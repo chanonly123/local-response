@@ -11,12 +11,11 @@ import RealmSwift
 struct ContentView: View {
     
     @StateObject var viewm = ContentViewModel()
-    @State private var selected: String?
     
     var body: some View {
         NavigationSplitView {
             if let items = viewm.list {
-                Table(items, selection: $selected) {
+                Table(items, selection: $viewm.selected) {
                     TableColumn("Method", content: { val in
                         Text("\(val.method)")
                     })
@@ -34,7 +33,7 @@ struct ContentView: View {
             }
         } detail: {
             VStack(alignment: .leading) {
-                if let item = viewm.fetch(taskId: selected) {
+                if let item = viewm.fetch(taskId: viewm.selected) {
                     List {
                         Section("URL") {
                             Text(item.url)
@@ -45,10 +44,7 @@ struct ContentView: View {
                         }
                         
                         Section("Request headers") {
-                            let keys = item.reqHeaders.keys
-                            ForEach(keys.indices) { i in
-                                Text("\(keys[i]): \(item.reqHeaders[keys[i]] ?? "")")
-                            }
+                            Text(viewm.dictToString(item: item.reqHeaders))
                         }
                         
                         Section("Status") {
@@ -56,10 +52,7 @@ struct ContentView: View {
                         }
                         
                         Section("Response headers") {
-                            let keys = item.resHeaders.keys
-                            ForEach(keys.indices) { i in
-                                Text("\(keys[i]): \(item.resHeaders[keys[i]] ?? "")")
-                            }
+                            Text(viewm.dictToString(item: item.resHeaders))
                         }
                     }
                     .monospaced()

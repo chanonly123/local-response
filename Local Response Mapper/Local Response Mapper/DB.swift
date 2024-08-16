@@ -33,8 +33,13 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var statusCode: Int = 0
     @Persisted var finished: Bool = false
     
+    convenience init(taskId: String) {
+        self.init()
+        self.taskId = taskId
+    }
+    
     func updateFrom(task: URLTaskModel) {
-        taskId = task.taskId
+        date = Date().timeIntervalSince1970
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
@@ -42,6 +47,15 @@ class URLTaskObject: Object, Identifiable {
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         statusCode = task.statusCode ?? 0
         finished = task.finished
+    }
+    
+    var requestHeaders: [String: String] { realmMapToDict(reqHeaders) }
+    var responseHeaders: [String: String] { realmMapToDict(resHeaders) }
+    
+    private func realmMapToDict(_ map: Map<String, String>) -> [String: String] {
+        var dict = [String: String]()
+        map.forEach { dict[$0.key] = $0.value }
+        return dict
     }
 }
 
@@ -84,8 +98,7 @@ extension DBProtocol {
     }
     
     func createDummyForPreview() {
-        let item = URLTaskObject()
-        item.taskId = UUID().uuidString
+        let item = URLTaskObject(taskId: UUID().uuidString)
         item.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
         item.method = "POST"
         item.reqHeaders["header1"] = "Some value"
@@ -93,8 +106,7 @@ extension DBProtocol {
             r.add(item)
         }
         
-        let item2 = URLTaskObject()
-        item2.taskId = UUID().uuidString
+        let item2 = URLTaskObject(taskId: UUID().uuidString)
         item2.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
         item2.method = "POST"
         item2.reqHeaders["header1"] = "Some value"
@@ -111,19 +123,22 @@ class DB: DBProtocol {
     
     func recordBegin(task: URLTaskModel) {
         guard let realm else { return }
-        let item = URLTaskObject()
+        print("🟡 recordBegin \(task.taskId)")
+        let item = URLTaskObject(taskId: task.taskId)
         item.updateFrom(task: task)
         if let found = realm.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
             write { r in
-                r.delete(found)
+                found.updateFrom(task: task)
             }
-        }
-        write { r in
-            r.add(item)
+        } else {
+            write { r in
+                r.add(item)
+            }
         }
     }
     
     func recordEnd(task: URLTaskModel) {
+        print("🟡 recordEnd \(task.taskId)")
         write { r in
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
                 item.updateFrom(task: task)
@@ -135,5 +150,5 @@ class DB: DBProtocol {
         guard let realm else { return nil }
         return realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: false)
     }
-    
+
 }

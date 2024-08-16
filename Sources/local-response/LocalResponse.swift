@@ -7,7 +7,7 @@
 
 import Foundation
 
-class LocalResponse {
+public class LocalResponse {
     private static var localDirPath: String?
     private static var injector: Injector = NetworkInjector()
     public static let shared = LocalResponse()
