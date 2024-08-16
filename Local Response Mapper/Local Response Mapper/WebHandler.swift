@@ -55,13 +55,13 @@ class WebHandler {
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let data = try await req.bodyData
         let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
-        await self.db.recordBegin(task: obj)
+        try self.db.recordBegin(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
     
     lazy var recordEnd: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
-        await self.db.recordEnd(task: obj)
+        try self.db.recordEnd(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
 }

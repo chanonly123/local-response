@@ -43,8 +43,13 @@ struct ContentView: View {
                 if let item = viewm.fetch(taskId: viewm.selected) {
                     List {
                         if viewm.selectedTab == .req {
-                            Section("URL") {
-                                Text(item.url)
+                            let url = URL(string: item.url)
+                            Section("Host") {
+                                Text(url?.host() ?? "")
+                            }
+                            
+                            Section("Path") {
+                                Text(url?.path() ?? "")
                             }
                             
                             Section("Method") {
@@ -62,6 +67,10 @@ struct ContentView: View {
                             
                             Section("Response headers") {
                                 Text(viewm.dictToString(item: item.resHeaders))
+                            }
+                            
+                            Section("Body") {
+                                Text(item.body)
                             }
                         }
                     }

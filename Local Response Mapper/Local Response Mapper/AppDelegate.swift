@@ -12,10 +12,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @Injected(\.db) var db
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if Self.isPreview {
-            db.clearAllRecords()
-            db.createDummyForPreview()
-        }
+//        if Self.isPreview {
+//            db.clearAllRecords()
+//            db.createDummyForPreview()
+//        }
         WebHandler.shared.startServer()
     }
     

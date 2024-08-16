@@ -19,70 +19,34 @@ extension Container {
     }
 }
 
-class URLTaskObject: Object, Identifiable {
-    var id: String { taskId }
-    @Persisted var date: Double = Date().timeIntervalSince1970
-    @Persisted(primaryKey: true) var taskId: String
-    @Persisted var url: String = ""
-    @Persisted var method: String = ""
-    @Persisted var reqHeaders: Map<String, String> = .init()
-    
-    // after response
-    @Persisted var body: String = ""
-    @Persisted var resHeaders: Map<String, String> = .init()
-    @Persisted var statusCode: Int = 0
-    @Persisted var finished: Bool = false
-    
-    convenience init(taskId: String) {
-        self.init()
-        self.taskId = taskId
-    }
-    
-    func updateFrom(task: URLTaskModel) {
-        date = Date().timeIntervalSince1970
-        url = task.url
-        method = task.method
-        task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
-        body = task.body ?? ""
-        task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
-        statusCode = task.statusCode ?? 0
-        finished = task.finished
-    }
-    
-    var requestHeaders: [String: String] { realmMapToDict(reqHeaders) }
-    var responseHeaders: [String: String] { realmMapToDict(resHeaders) }
-    
-    private func realmMapToDict(_ map: Map<String, String>) -> [String: String] {
-        var dict = [String: String]()
-        map.forEach { dict[$0.key] = $0.value }
-        return dict
-    }
-}
-
 protocol DBProtocol {
     @MainActor
-    func getList() -> Results<URLTaskObject>?
-    func recordBegin(task: URLTaskModel)
-    func recordEnd(task: URLTaskModel)
+    func getRecordsList() throws -> Results<URLTaskObject>?
+    func getItem(taskId: String?) throws -> URLTaskObject?
+    func recordBegin(task: URLTaskModel) throws
+    func recordEnd(task: URLTaskModel) throws
+    func clearAllRecords()
+    func createDummyForPreview()
 }
 
-extension DBProtocol {
+class DB: DBProtocol {
     
-    func write(block: (Realm) -> Void) {
-        guard let realm else { return }
+    func write(block: (Realm) throws -> Void) {
         do {
             try realm.write {
-                block(realm)
+                try block(try realm)
             }
         } catch let e {
             print("\(e)")
         }
     }
     
-    var realm: Realm? {
-        let config = Realm.Configuration(
-            schemaVersion: Constants.schemaVersion)
-        return try! Realm(configuration: config)
+    var realm: Realm {
+        get throws {
+            let config = Realm.Configuration(
+                schemaVersion: Constants.schemaVersion)
+            return try Realm(configuration: config)
+        }
     }
     
     func clearAllRecords() {
@@ -92,9 +56,9 @@ extension DBProtocol {
         }
     }
     
-    func getItem(taskId: String?) -> URLTaskObject? {
+    func getItem(taskId: String?) throws -> URLTaskObject? {
         guard let taskId else { return nil }
-        return realm?.object(ofType: URLTaskObject.self, forPrimaryKey: taskId)
+        return try realm.object(ofType: URLTaskObject.self, forPrimaryKey: taskId)
     }
     
     func createDummyForPreview() {
@@ -116,17 +80,22 @@ extension DBProtocol {
         write { r in
             r.add(item2)
         }
+        
+        let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
+        write { r in
+            r.add(map1)
+        }
+        
+        let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
+        write { r in
+            r.add(map2)
+        }
     }
-}
-
-class DB: DBProtocol {
     
-    func recordBegin(task: URLTaskModel) {
-        guard let realm else { return }
-        print("🟡 recordBegin \(task.taskId)")
+    func recordBegin(task: URLTaskModel) throws {
         let item = URLTaskObject(taskId: task.taskId)
         item.updateFrom(task: task)
-        if let found = realm.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
+        if let found = try realm.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
             write { r in
                 found.updateFrom(task: task)
             }
@@ -138,7 +107,6 @@ class DB: DBProtocol {
     }
     
     func recordEnd(task: URLTaskModel) {
-        print("🟡 recordEnd \(task.taskId)")
         write { r in
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
                 item.updateFrom(task: task)
@@ -146,9 +114,11 @@ class DB: DBProtocol {
         }
     }
     
-    func getList() -> Results<URLTaskObject>? {
-        guard let realm else { return nil }
-        return realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: false)
+    func getRecordsList() throws -> Results<URLTaskObject>? {
+        return try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
     }
 
+    func getMapList() throws -> Results<MapLocalObject>? {
+        return try realm.objects(MapLocalObject.self).sorted(by: \.date, ascending: true)
+    }
 }

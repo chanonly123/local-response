@@ -14,7 +14,7 @@ class ContentViewModel: ObservableObject {
     
     enum TabType: String { case req, res  }
     
-    @Published var error: Error?
+    @Published var error: [Error] = []
     @Published var list: Results<URLTaskObject>?
     @Published var selected: String?
     @Published var selectedTab: TabType = .req
@@ -23,16 +23,28 @@ class ContentViewModel: ObservableObject {
     @Injected(\.db) var db
     
     init() {
-        let list = db.getList()
-        self.list = list
-        self.selected = list?.first?.taskId
-        notificationToken = list?.observe { [weak self] _ in
-            self?.list = self?.db.getList()
+        do {
+            let list = try db.getRecordsList()
+            self.list = list
+            self.selected = list?.first?.taskId
+            notificationToken = list?.observe { [weak self] _ in
+                do {
+                    self?.list = try self?.db.getRecordsList()
+                } catch let e {
+                    self?.error.append(e)
+                }
+            }
+        } catch let e {
+            error.append(e)
         }
     }
     
     func fetch() {
-        list = db.getList()
+        do {
+            list = try db.getRecordsList()
+        } catch let e {
+            error.append(e)
+        }
     }
     
     func clearAll() {
@@ -41,7 +53,12 @@ class ContentViewModel: ObservableObject {
     }
     
     func fetch(taskId: String?) -> URLTaskObject? {
-        return db.getItem(taskId: taskId)
+        do {
+            return try db.getItem(taskId: taskId)
+        } catch let e {
+            error.append(e)
+            return nil
+        }
     }
     
     func dictToString(item: Map<String, String>) -> String {
