@@ -12,9 +12,13 @@ import Factory
 @MainActor
 class ContentViewModel: ObservableObject {
     
+    enum TabType: String { case req, res  }
+    
     @Published var error: Error?
     @Published var list: Results<URLTaskObject>?
     @Published var selected: String?
+    @Published var selectedTab: TabType = .req
+    
     var notificationToken: NotificationToken?
     @Injected(\.db) var db
     
@@ -42,6 +46,10 @@ class ContentViewModel: ObservableObject {
     
     func dictToString(item: Map<String, String>) -> String {
         item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+    }
+    
+    func getTabButtonBackground(tab: TabType) -> Color {
+        tab == selectedTab ? Color.gray.opacity(0.5) : Color.white
     }
 }
 
