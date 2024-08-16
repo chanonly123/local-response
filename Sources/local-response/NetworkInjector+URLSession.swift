@@ -28,10 +28,13 @@ extension NetworkInjector {
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject) -> Void = {[weak self](me) in
             
-
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector)
+                            
+//                let req = URLRequest(url: URL(string: "http://localhost:4040/hello")!)
+//                task.setValue(req, forKey: "currentRequest")
+//                original(task, selector)
 
             // Safe-check
             if let task = me as? URLSessionTask {
@@ -75,7 +78,6 @@ extension NetworkInjector {
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, Bool, Bool) -> Void = {[weak self](me, response, sniff, rewrite) in
 
-
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, response, sniff, rewrite)
@@ -106,7 +108,6 @@ extension NetworkInjector {
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, Bool) -> Void = {[weak self](me, response, sniff) in
             
-
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, response, sniff)
@@ -139,15 +140,10 @@ extension NetworkInjector {
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject) -> Void = {[weak self](me, data) in
             
-
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
-            if let task = me.value(forKey: "task") as? URLSessionTask, let data2 = LocalResponse.find(task: task) {
-                original(me, selector, NSData(data: data2))
-            } else {
-                original(me, selector, data)
-            }
-
+            original(me, selector, data)
+            
             // Safe-check
             if let task = me.value(forKey: "task") as? URLSessionTask,
                let data = data as? Data {
@@ -175,7 +171,6 @@ extension NetworkInjector {
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject?) -> Void = {[weak self](me, error) in
             
-
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, error)

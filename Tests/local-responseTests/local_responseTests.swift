@@ -5,8 +5,8 @@ final class local_responseTests: XCTestCase {
     
     var obs: Any?
     
-    func testExample() throws {
-        LocalResponse.inject(path: "/Users/apple/Documents/local-response/local_map_example")
+    func testExample() async throws {
+        LocalResponse.shared.inject(path: "/Users/apple/Documents/local-response/local_map_example")
         
         let url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
         let sess = URLSession.shared
@@ -25,7 +25,9 @@ final class local_responseTests: XCTestCase {
                 e1.fulfill()
             })
         
-        waitForExpectations(timeout: 100)
+        await waitForExpectations(timeout: 100)
+        
+        try await Task.sleep(nanoseconds: UInt64(2e9))
 //
 //        let req = URLRequest(url: URL(string: url)!)
 //        sess.dataTask(with: req) { data, res, err in
