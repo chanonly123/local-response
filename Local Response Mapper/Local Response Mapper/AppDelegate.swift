@@ -16,7 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 //            db.clearAllRecords()
 //            db.createDummyForPreview()
 //        }
-        WebHandler.shared.startServer()
+        LocalServer.shared.startServer()
     }
     
     static var isPreview: Bool {

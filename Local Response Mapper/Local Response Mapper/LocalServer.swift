@@ -9,8 +9,8 @@ import FlyingFox
 import Foundation
 import Factory
 
-class WebHandler {
-    static let shared = WebHandler()
+class LocalServer {
+    static let shared = LocalServer()
     
     init() {}
     

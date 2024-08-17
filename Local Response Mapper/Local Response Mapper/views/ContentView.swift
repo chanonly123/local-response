@@ -20,24 +20,24 @@ struct ContentView: View {
                         TableColumn("Method", content: { val in
                             Text("\(val.method)")
                         })
-                        .width(ideal: 70)
+                        .width(min: 50, ideal: 50, max: 100)
                         
                         TableColumn("Status", content: { val in
                             Text("\(val.statusCode)")
                         })
-                        .width(ideal: 50)
+                        .width(min: 50, ideal: 50, max: 100)
                         
                         TableColumn("URL", content: { val in
                             Text("\(val.url)")
                         })
-                        .width(ideal: 200)
+                        .width(min: 50, ideal: 200)
                     }
-                    .frame(minWidth: 200)
+                    .frame(minWidth: 300)
                 } else {
                     Text("Empty")
                 }
             }
-            .frame(minWidth: 200)
+            .frame(minWidth: 300)
         } detail: {
             VStack(alignment: .leading) {
                 if let item = viewm.fetch(taskId: viewm.selected) {
