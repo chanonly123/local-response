@@ -16,6 +16,11 @@ class ContentViewModel: ObservableObject {
     
     @Published var error: [Error] = []
     @Published var list: Results<URLTaskObject>?
+    @Published var filter: String = "" {
+        didSet {
+            fetch()
+        }
+    }
     @Published var selected: String?
     @Published var selectedTab: TabType = .req
     
@@ -24,12 +29,12 @@ class ContentViewModel: ObservableObject {
     
     init() {
         do {
-            let list = try db.getRecordsList()
+            let list = try db.getRecordsList(filter: filter)
             self.list = list
-            self.selected = list?.first?.taskId
-            notificationToken = list?.observe { [weak self] _ in
+            self.selected = list.first?.taskId
+            notificationToken = list.observe { [weak self] _ in
                 do {
-                    self?.list = try self?.db.getRecordsList()
+                    self?.list = try self?.db.getRecordsList(filter: self?.filter ?? "")
                 } catch let e {
                     self?.error.append(e)
                 }
@@ -41,7 +46,7 @@ class ContentViewModel: ObservableObject {
     
     func fetch() {
         do {
-            list = try db.getRecordsList()
+            list = try db.getRecordsList(filter: filter)
         } catch let e {
             error.append(e)
         }
@@ -54,7 +59,7 @@ class ContentViewModel: ObservableObject {
     
     func fetch(taskId: String?) -> URLTaskObject? {
         do {
-            return try db.getItem(taskId: taskId)
+            return try db.getItemTask(taskId: taskId)
         } catch let e {
             error.append(e)
             return nil

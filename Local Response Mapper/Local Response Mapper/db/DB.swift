@@ -20,13 +20,16 @@ extension Container {
 }
 
 protocol DBProtocol {
-    @MainActor
-    func getRecordsList() throws -> Results<URLTaskObject>?
-    func getItem(taskId: String?) throws -> URLTaskObject?
+    @MainActor func getRecordsList(filter: String) throws -> Results<URLTaskObject>
+    @MainActor func getMapList() throws -> Results<MapLocalObject>
+    @MainActor func getItemTask(taskId: String?) throws -> URLTaskObject?
+    @MainActor func getItemMapLocal(id: String?) throws -> MapLocalObject?
+    @MainActor func clearAllRecords()
+    @MainActor func createDummyForPreview()
+    @MainActor func write(block: (Realm) throws -> Void)
+    
     func recordBegin(task: URLTaskModel) throws
     func recordEnd(task: URLTaskModel) throws
-    func clearAllRecords()
-    func createDummyForPreview()
 }
 
 class DB: DBProtocol {
@@ -37,7 +40,7 @@ class DB: DBProtocol {
                 try block(try realm)
             }
         } catch let e {
-            print("\(e)")
+            print("Error: \(e)")
         }
     }
     
@@ -56,69 +59,86 @@ class DB: DBProtocol {
         }
     }
     
-    func getItem(taskId: String?) throws -> URLTaskObject? {
+    func getItemTask(taskId: String?) throws -> URLTaskObject? {
         guard let taskId else { return nil }
         return try realm.object(ofType: URLTaskObject.self, forPrimaryKey: taskId)
     }
     
-    func createDummyForPreview() {
-        let item = URLTaskObject(taskId: UUID().uuidString)
-        item.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
-        item.method = "POST"
-        item.reqHeaders["header1"] = "Some value"
-        write { r in
-            r.add(item)
+    func getItemMapLocal(id: String?) throws -> MapLocalObject? {
+        guard let id else { return nil }
+        return try realm.object(ofType: MapLocalObject.self, forPrimaryKey: id)
+    }
+    
+    func getRecordsList(filter: String = "") throws -> Results<URLTaskObject> {
+        var items = try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
+        if !filter.isEmpty {
+            items = items.where {
+                $0.url.contains(filter)
+            }
+        }
+        return items
+    }
+    
+    func getMapList() throws -> Results<MapLocalObject> {
+        return try realm.objects(MapLocalObject.self).sorted(by: \.date, ascending: true)
+    }
+    
+    @MainActor func createDummyForPreview() {
+        if let items = try? getRecordsList(filter: ""), items.isEmpty {
+            
+            let item = URLTaskObject(taskId: UUID().uuidString)
+            item.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
+            item.method = "POST"
+            item.reqHeaders["header1"] = "Some value"
+            write { r in
+                r.add(item)
+            }
+            
+            let item2 = URLTaskObject(taskId: UUID().uuidString)
+            item2.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
+            item2.method = "POST"
+            item2.reqHeaders["header1"] = "Some value"
+            
+            item2.resHeaders["header2"] = "Some value"
+            item2.body = #"{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}"#
+            write { r in
+                r.add(item2)
+            }
         }
         
-        let item2 = URLTaskObject(taskId: UUID().uuidString)
-        item2.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
-        item2.method = "POST"
-        item2.reqHeaders["header1"] = "Some value"
-        
-        item2.resHeaders["header2"] = "Some value"
-        item2.body = #"{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}"#
-        write { r in
-            r.add(item2)
-        }
-        
-        let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
-        write { r in
-            r.add(map1)
-        }
-        
-        let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
-        write { r in
-            r.add(map2)
+        if let items = try? getMapList(), items.isEmpty {
+            
+            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
+            write { r in
+                r.add(map1)
+            }
+            
+            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", body: #"{"status":{"code":201,"status":"NOT"}}"#)
+            write { r in
+                r.add(map2)
+            }
         }
     }
     
     func recordBegin(task: URLTaskModel) throws {
-        let item = URLTaskObject(taskId: task.taskId)
-        item.updateFrom(task: task)
-        if let found = try realm.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
-            write { r in
-                found.updateFrom(task: task)
-            }
-        } else {
-            write { r in
+        let r = try realm
+        try r.write {
+            if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
+                item.updateFrom(task: task)
+            } else {
+                let item = URLTaskObject(taskId: task.taskId)
+                item.updateFrom(task: task)
                 r.add(item)
             }
         }
     }
     
-    func recordEnd(task: URLTaskModel) {
-        write { r in
+    func recordEnd(task: URLTaskModel) throws {
+        let r = try realm
+        try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
                 item.updateFrom(task: task)
             }
         }
-    }
-    
-    func getRecordsList() throws -> Results<URLTaskObject>? {
-        return try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
-    }
-
-    func getMapList() throws -> Results<MapLocalObject>? {
-        return try realm.objects(MapLocalObject.self).sorted(by: \.date, ascending: true)
     }
 }

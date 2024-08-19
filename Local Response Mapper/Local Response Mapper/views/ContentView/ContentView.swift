@@ -1,0 +1,194 @@
+//
+//  ContentView.swift
+//  Local Response Mapper
+//
+//  Created by Chandan on 14/08/24.
+//
+
+import SwiftUI
+import RealmSwift
+
+struct ContentView: View {
+    
+    @StateObject var viewm = ContentViewModel()
+    @StateObject private var server = LocalServer()
+    @Environment(\.openWindow) var openWindow
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            GeometryReader { geo in
+                
+                HSplitView {
+                    leftView
+                        .frame(minWidth: geo.size.width/3)
+                        .frame(height: geo.size.height)
+                    
+                    rightView
+                        .frame(minWidth: geo.size.width/3)
+                        .frame(height: geo.size.height)
+                        .navigationTitle("Local Response Mapper")
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+            }
+            
+            HStack {
+                Spacer()
+                
+                Button {
+                    
+                } label: {
+                    Circle().fill(server.isListening == true ? Color.green : Color.gray)
+                        .frame(width: 10)
+                    switch server.isListening {
+                    case false:
+                        Text("Start Server")
+                    case nil:
+                        Text("Connecting...")
+                    case true:
+                        Text("Listening \(server.listeningAddress)")
+                    case .some(_):
+                        EmptyView()
+                    }
+                }
+            }
+            .padding(2)
+        }
+        .monospaced()
+        .onAppear {
+            server.startServer()
+            server.reloadLocalAddress()
+        }
+        .toolbar {
+            
+            Button {
+                openWindow(id: "map-local-view")
+            } label: {
+                Text("Map Local")
+            }
+            
+            Button {
+                viewm.clearAll()
+            } label: {
+                Text("Clear")
+            }
+        }
+        
+    }
+    
+    var leftView: some View {
+        VStack(spacing: 0) {
+            if let items = viewm.list {
+                Table(items, selection: $viewm.selected) {
+                    TableColumn("Method", content: { val in
+                        Text("\(val.method)")
+                    })
+                    .width(min: 50, ideal: 50, max: 100)
+                    
+                    TableColumn("Status", content: { val in
+                        HStack {
+                            Circle().fill(Utils.getStatusColor(val.statusCode))
+                                .frame(width: 10, height: 10)
+                                .padding(.top, 1)
+                            Text("\(val.statusCode > 0 ? "\(val.statusCode)" : "")")
+                        }
+                    })
+                    .width(min: 50, ideal: 50, max: 100)
+                    
+                    TableColumn("URL", content: { val in
+                        Text("\(val.url)")
+                            .truncationMode(.head)
+                    })
+                    .width(min: 50, ideal: 200)
+                }
+                .frame(minWidth: 300)
+                
+                TextField("Filter", text: $viewm.filter)
+                    .textFieldStyle(.roundedBorder)
+            } else {
+                Image(systemName: "tray")
+            }
+        }
+    }
+    
+    var rightView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let item = viewm.fetch(taskId: viewm.selected) {
+                
+                HStack {
+                    Spacer()
+                    HStack {
+                        Button {
+                            viewm.selectedTab = .req
+                        } label: {
+                            Text("Request")
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                                .background(viewm.getTabButtonBackground(tab: .req))
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            viewm.selectedTab = .res
+                        } label: {
+                            Text("Response")
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                                .background(viewm.getTabButtonBackground(tab: .res))
+                            
+                        }
+                        .buttonStyle(.plain)
+                        
+                    }
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    Spacer()
+                }
+                .padding(2)
+
+                
+                List {
+                    if viewm.selectedTab == .req {
+                        Section("Host") {
+                            Text(Utils.getHost(item.url) ?? "")
+                        }
+                        
+                        Section("Path") {
+                            Text(Utils.getPath(item.url) ?? "")
+                        }
+                        
+                        Section("Method") {
+                            Text(item.method)
+                        }
+                        
+                        Section("Request headers") {
+                            Text(viewm.dictToString(item: item.reqHeaders))
+                        }
+                    } else if viewm.selectedTab == .res {
+                        
+                        Section("Status") {
+                            Text("\(item.statusCode)")
+                        }
+                        
+                        Section("Response headers") {
+                            Text(viewm.dictToString(item: item.resHeaders))
+                        }
+                        
+                        Section("Body") {
+                            Text(item.body)
+                        }
+                    }
+                }
+                
+                                
+            } else {
+                Image(systemName: "tray")
+            }
+        }
+    }
+}
+
+#Preview {
+    ContentView()
+}

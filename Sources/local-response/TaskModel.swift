@@ -7,7 +7,7 @@
 
 import Foundation
 
-class URLTaskModel: Codable {
+struct URLTaskModel: Codable {
     private static let sessionId = UUID().uuidString
     
     let taskId: String
@@ -23,7 +23,7 @@ class URLTaskModel: Codable {
     let finished: Bool
     
     init(task: URLSessionTask, finished: Bool, response: URLResponse?, data: Data?, err: String?) {
-        taskId = "\(task.taskIdentifier)-" + URLTaskModel.sessionId
+        taskId = task.uniqueId //"\(task.taskIdentifier)-" + URLTaskModel.sessionId
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
         var _reqHeaders = [String: String]()
@@ -61,5 +61,12 @@ class URLTaskModel: Codable {
             statusCode = nil
             error = nil
         }
+    }
+}
+
+extension URLSessionTask {
+    
+    var uniqueId: String {
+        return "\(unsafeBitCast(self, to: Int.self))-\(self.taskIdentifier)"
     }
 }

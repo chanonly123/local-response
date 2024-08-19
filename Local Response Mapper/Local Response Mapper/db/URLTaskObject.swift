@@ -28,22 +28,13 @@ class URLTaskObject: Object, Identifiable {
     }
     
     func updateFrom(task: URLTaskModel) {
-        date = Date().timeIntervalSince1970
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
-        body = task.body ?? ""
+        body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         statusCode = task.statusCode ?? 0
         finished = task.finished
     }
     
-    var requestHeaders: [String: String] { realmMapToDict(reqHeaders) }
-    var responseHeaders: [String: String] { realmMapToDict(resHeaders) }
-    
-    private func realmMapToDict(_ map: Map<String, String>) -> [String: String] {
-        var dict = [String: String]()
-        map.forEach { dict[$0.key] = $0.value }
-        return dict
-    }
 }

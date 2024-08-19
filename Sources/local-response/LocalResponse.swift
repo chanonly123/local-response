@@ -16,7 +16,7 @@ public class LocalResponse {
         Self.injector.delegate = self
     }
     
-    private var taskIdResponse = [Int: HTTPURLResponse]()
+    private var taskIdResponse = [String: HTTPURLResponse]()
     
     public func inject(path: String) {
         LocalResponse.localDirPath = path
@@ -75,13 +75,13 @@ extension LocalResponse: InjectorDelegate {
     func injectorSessionDidReceiveResponse(dataTask: URLSessionTask, response: URLResponse) {
         if isLocalServer(task: dataTask) { return }
         LocalResponse.debugPrint(#function)
-        taskIdResponse[dataTask.taskIdentifier] = response as? HTTPURLResponse
+        taskIdResponse[dataTask.uniqueId] = response as? HTTPURLResponse
     }
     
     func injectorSessionDidReceiveData(dataTask: URLSessionTask, data: Data) {
         if isLocalServer(task: dataTask) { return }
         LocalResponse.debugPrint(#function)
-        let res = taskIdResponse[dataTask.taskIdentifier]
+        let res = taskIdResponse[dataTask.uniqueId]
         let model = URLTaskModel(task: dataTask, finished: true, response: res, data: data, err: nil)
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
@@ -119,3 +119,4 @@ extension LocalResponse: InjectorDelegate {
         LocalResponse.debugPrint(#function)
     }
 }
+

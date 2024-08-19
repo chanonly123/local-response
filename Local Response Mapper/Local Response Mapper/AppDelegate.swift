@@ -12,11 +12,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @Injected(\.db) var db
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-//        if Self.isPreview {
-//            db.clearAllRecords()
-//            db.createDummyForPreview()
-//        }
-        LocalServer.shared.startServer()
+        if Self.isPreview {
+            db.createDummyForPreview()
+        }
     }
     
     static var isPreview: Bool {

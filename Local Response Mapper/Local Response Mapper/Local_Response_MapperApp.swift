@@ -17,5 +17,9 @@ struct Local_Response_MapperApp: SwiftUI.App {
             ContentView()
                 .frame(minWidth: 700, minHeight: 300)
         }
+        Window("", id: "map-local-view") {
+            LocalMapView()
+                .frame(minWidth: 700, minHeight: 300)
+        }
     }
 }

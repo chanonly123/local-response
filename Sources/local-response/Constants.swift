@@ -8,8 +8,9 @@
 import Foundation
 
 class Constants {
-    static var localBaseUrl = "http://localhost:4040"
+    static let localBaseUrlPort = 4040
+    static let localBaseUrl = "http://localhost:\(localBaseUrlPort)"
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
-    static let schemaVersion: UInt64 = 5
+    static let schemaVersion: UInt64 = 9
 }
