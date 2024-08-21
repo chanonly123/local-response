@@ -34,7 +34,7 @@ class URLTaskObject: Object, Identifiable {
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
         body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
-        responseString = task.resString ?? ""
+        responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? ""
         statusCode = task.statusCode ?? 0
         finished = task.finished
     }

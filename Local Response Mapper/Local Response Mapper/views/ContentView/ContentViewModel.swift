@@ -11,9 +11,9 @@ import Factory
 
 @MainActor
 class ContentViewModel: ObservableObject {
-    
+
     enum TabType: String { case req, res  }
-    
+
     @Published var error: [Error] = []
     @Published var list: Results<URLTaskObject>?
     @Published var filter: String = "" {
@@ -23,10 +23,10 @@ class ContentViewModel: ObservableObject {
     }
     @Published var selected: String?
     @Published var selectedTab: TabType = .req
-    
+
     var notificationToken: NotificationToken?
     @Injected(\.db) var db
-    
+
     init() {
         do {
             let list = try db.getRecordsList(filter: filter)
@@ -43,7 +43,7 @@ class ContentViewModel: ObservableObject {
             error.append(e)
         }
     }
-    
+
     func fetch() {
         do {
             list = try db.getRecordsList(filter: filter)
@@ -51,12 +51,12 @@ class ContentViewModel: ObservableObject {
             error.append(e)
         }
     }
-    
+
     func clearAll() {
         db.clearAllRecords()
         fetch()
     }
-    
+
     func fetch(taskId: String?) -> URLTaskObject? {
         do {
             return try db.getItemTask(taskId: taskId)
@@ -65,11 +65,11 @@ class ContentViewModel: ObservableObject {
             return nil
         }
     }
-    
+
     func dictToString(item: Map<String, String>) -> String {
         item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
     }
-    
+
     func getTabButtonBackground(tab: TabType) -> Color {
         tab == selectedTab ? Color.gray.opacity(0.5) : Color.white
     }
@@ -87,4 +87,3 @@ class ContentViewModel: ObservableObject {
         NSPasteboard.general.setString(obj[keyPath: keyPath], forType: .string)
     }
 }
-

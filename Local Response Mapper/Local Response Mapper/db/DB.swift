@@ -126,6 +126,9 @@ class DB: DBProtocol {
         try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
                 item.updateFrom(task: task)
+                if item.url != task.url {
+                    Logger.debugPrint("🔴 error: \(task.url) 🔷 \(item.url)")
+                }
             } else {
                 let item = URLTaskObject(taskId: task.taskId)
                 item.updateFrom(task: task)
@@ -146,6 +149,7 @@ class DB: DBProtocol {
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse? {
         let r = try realm
         let items: [MapLocalObject] = r.objects(MapLocalObject.self)
+            .where { $0.enable }
             .sorted(by: \.date, ascending: true)
             .filter({ req.url.contains($0.subUrl) })
             .map { $0 }

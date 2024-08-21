@@ -10,16 +10,16 @@ import Foundation
 import Factory
 
 class LocalServer: ObservableObject {
-    
+
     @MainActor init() {}
-    
+
     let server = HTTPServer(address: .loopback(port: UInt16(Constants.localBaseUrlPort)))
     @Injected(\.db) var db
-    
+
     @MainActor @Published var listeningAddress: String = ""
     @MainActor @Published var isListening: Bool? = false
     @MainActor @Published var error: Error?
-    
+
     @MainActor
     func startServer() {
         if AppDelegate.isPreview {
@@ -29,7 +29,7 @@ class LocalServer: ObservableObject {
         Task {
             isListening = nil
         }
-        
+
         Task { [weak self] in
             guard let `self` = self else { return }
             do {
@@ -45,7 +45,7 @@ class LocalServer: ObservableObject {
                 isListening = false
             }
         }
-        
+
         Task { [weak self] in
             guard let `self` = self else { return }
             do {
@@ -57,25 +57,25 @@ class LocalServer: ObservableObject {
             }
         }
     }
-    
+
     @MainActor
     func reloadLocalAddress() {
         listeningAddress = Utils.getIPAddress() ?? ":\(Constants.localBaseUrlPort)"
     }
-    
+
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let data = try await req.bodyData
         let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
         try self.db.recordBegin(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
-    
+
     lazy var recordEnd: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
         try self.db.recordEnd(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
-    
+
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
         if let localRes = try self.db.getLocalMapIfAvailable(req: obj) {
@@ -88,10 +88,10 @@ class LocalServer: ObservableObject {
 
     lazy var overridenRequestHandler: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckResponse.self, from: req.bodyData)
-        
+
         var resHeaders = [HTTPHeader: String]()
         obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
-        
+
         return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
                             headers: resHeaders,
                             body: obj.body.data(using: .utf8) ?? Data())

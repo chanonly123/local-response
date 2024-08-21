@@ -11,7 +11,7 @@ import RealmSwift
 @main
 struct Local_Response_MapperApp: SwiftUI.App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()

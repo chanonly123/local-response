@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Chandan on 16/08/24.
 //
@@ -9,7 +9,7 @@ import Foundation
 
 struct URLTaskModel: Codable {
     private static let sessionId = UUID().uuidString
-    
+
     let taskId: String
     let url: String
     let method: String
@@ -22,7 +22,7 @@ struct URLTaskModel: Codable {
     let statusCode: Int?
     let error: String?
     let finished: Bool
-    
+
     init(task: URLSessionTask, finished: Bool, response: URLResponse?, responseString: Data?, err: String?) {
         taskId = task.uniqueId
         url = task.originalRequest?.url?.absoluteString ?? ""
@@ -34,7 +34,7 @@ struct URLTaskModel: Codable {
         }
         reqHeaders = _reqHeaders
         self.finished = finished
-        
+
         if finished {
             if let res = response as? HTTPURLResponse {
                 var _resHeaders = [String: String]()
@@ -67,7 +67,7 @@ struct URLTaskModel: Codable {
 }
 
 extension URLSessionTask {
-    
+
     var uniqueId: String {
         return "\(unsafeBitCast(self, to: Int.self))-\(self.taskIdentifier)"
     }

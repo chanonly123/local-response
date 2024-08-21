@@ -8,17 +8,17 @@
 import SwiftUI
 
 struct LocalMapView: View {
-    
+
     @StateObject private var viewm = LocalMapViewModel()
-    
+
     var body: some View {
         GeometryReader { geo in
-            
+
             HSplitView {
                 leftView
                     .frame(minWidth: geo.size.width/3)
                     .frame(height: geo.size.height)
-                
+
                 rightView
                     .frame(minWidth: geo.size.width/3)
                     .frame(height: geo.size.height)
@@ -28,7 +28,7 @@ struct LocalMapView: View {
         }
         .monospaced()
     }
-    
+
     var leftView: some View {
         VStack(spacing: 0) {
             if let items = viewm.list {
@@ -37,7 +37,7 @@ struct LocalMapView: View {
                         Toggle("", isOn: viewm.getSetValue(val, keyPath: \.enable))
                     })
                     .width(min: 50, ideal: 50, max: 80)
-                    
+
                     TableColumn("Method", content: { val in
                         Picker("", selection: viewm.getSetValue(val, keyPath: \.method)) {
                             ForEach(viewm.httpMethods, id: \.self) {
@@ -46,7 +46,7 @@ struct LocalMapView: View {
                         }
                     })
                     .width(min: 100, ideal: 100, max: 150)
-                    
+
                     TableColumn("URL", content: { val in
                         TextField("", text: viewm.getSetValue(val, keyPath: \.subUrl))
                             .truncationMode(.head)
@@ -54,31 +54,31 @@ struct LocalMapView: View {
                     .width(min: 50, ideal: 200)
                 }
                 .frame(minWidth: 300)
-                
+
                 HStack(spacing: 4) {
                     Button {
                         viewm.addNew()
                     } label: {
                         Image(systemName: "plus")
                     }
-                    
+
                     Button {
                         viewm.deleteSelected()
                     } label: {
                         Image(systemName: "minus")
                     }
                     .disabled(viewm.selected == nil)
-                    
+
                     Spacer()
                 }
                 .padding(.leading, 4)
-                
+
             } else {
                 Image(systemName: "tray")
             }
         }
     }
-    
+
     var rightView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let item = viewm.getSelectedItem() {
@@ -88,16 +88,16 @@ struct LocalMapView: View {
                     Image(systemName: "line.horizontal.3.decrease")
                 }
                 .padding(2)
-                
+
                 TextEditor(text: viewm.getSetValue(item, keyPath: \.body))
                     .frame(maxHeight: .infinity)
-                
+
             } else {
                 Image(systemName: "tray")
             }
         }
     }
-    
+
 }
 
 #Preview {

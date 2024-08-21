@@ -61,7 +61,7 @@ struct ContentView: View {
         .toolbar {
             
             Button {
-                openWindow(id: "map-local-view")
+                openLocalMapWindow()
             } label: {
                 Text("Map Local")
             }
@@ -78,7 +78,7 @@ struct ContentView: View {
     var leftView: some View {
         VStack(spacing: 0) {
             if let items = viewm.list {
-
+                
                 Table(of: URLTaskObject.self, selection: $viewm.selected) {
                     TableColumn("Method", content: { val in
                         Text("\(val.method)")
@@ -100,13 +100,14 @@ struct ContentView: View {
                             .truncationMode(.head)
                     })
                     .width(min: 50, ideal: 200)
-
+                    
                 } rows: {
                     ForEach(items) { val in
                         TableRow(val)
                             .contextMenu {
                                 Button("Map local") {
                                     viewm.addNewMapLocal(obj: val)
+                                    openLocalMapWindow()
                                 }
                                 Button("Copy URL") {
                                     viewm.copyValue(obj: val, keyPath: \.url)
@@ -121,8 +122,8 @@ struct ContentView: View {
                     }
                 }
                 .frame(minWidth: 300)
-
-
+                
+                
                 TextField("Filter", text: $viewm.filter)
                     .textFieldStyle(.roundedBorder)
             } else {
@@ -167,7 +168,7 @@ struct ContentView: View {
                     Spacer()
                 }
                 .padding(2)
-
+                
                 
                 List {
                     if viewm.selectedTab == .req {
@@ -186,8 +187,8 @@ struct ContentView: View {
                         Section("Request headers") {
                             Text(viewm.dictToString(item: item.reqHeaders))
                         }
-
-                        Section("Body") {
+                        
+                        Section("Request Body") {
                             Text(item.body)
                         }
                     } else if viewm.selectedTab == .res {
@@ -206,14 +207,17 @@ struct ContentView: View {
                     }
                 }
                 .textSelection(.enabled)
-
-                                
+                
+                
             } else {
                 Image(systemName: "tray")
             }
         }
     }
-
+    
+    func openLocalMapWindow() {
+        openWindow(id: "map-local-view")
+    }
 }
 
 #Preview {
