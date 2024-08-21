@@ -7,8 +7,7 @@
 
 import Foundation
 
-struct URLTaskModel: Codable {
-    private static let sessionId = UUID().uuidString
+struct URLTaskModelBegin: Codable {
 
     let taskId: String
     let url: String
@@ -16,14 +15,7 @@ struct URLTaskModel: Codable {
     let reqHeaders: [String: String]
     let body: String?
 
-    // after response
-    let resString: String?
-    let resHeaders: [String: String]?
-    let statusCode: Int?
-    let error: String?
-    let finished: Bool
-
-    init(task: URLSessionTask, finished: Bool, response: URLResponse?, responseString: Data?, err: String?) {
+    init(task: URLSessionTask) {
         taskId = task.uniqueId
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
@@ -33,35 +25,38 @@ struct URLTaskModel: Codable {
             _reqHeaders[$0.key] = $0.value
         }
         reqHeaders = _reqHeaders
-        self.finished = finished
+    }
+}
 
-        if finished {
-            if let res = response as? HTTPURLResponse {
-                var _resHeaders = [String: String]()
-                res.allHeaderFields.forEach {
-                    if let key = $0.key as? String, let value = $0.value as? String {
-                        _resHeaders[key] = value
-                    }
+struct URLTaskModelEnd: Codable {
+    let taskId: String
+    let resString: String?
+    let resHeaders: [String: String]?
+    let statusCode: Int?
+    let error: String?
+
+    init(task: URLSessionTask, response: URLResponse?, responseData: Data?, err: String?) {
+        taskId = task.uniqueId
+        if let res = response as? HTTPURLResponse {
+            var _resHeaders = [String: String]()
+            res.allHeaderFields.forEach {
+                if let key = $0.key as? String, let value = $0.value as? String {
+                    _resHeaders[key] = value
                 }
-                resHeaders = _reqHeaders
-                if let responseString, let str = String(data: responseString, encoding: .utf8) {
-                    resString = str
-                } else {
-                    resString = nil
-                }
-                statusCode = res.statusCode
-                error = nil
-            } else {
-                error = err ?? "Unknown"
-                resString = nil
-                resHeaders = nil
-                statusCode = 0
             }
+            resHeaders = _resHeaders
+            if let responseData, let str = String(data: responseData, encoding: .utf8) {
+                resString = str
+            } else {
+                resString = nil
+            }
+            statusCode = res.statusCode
+            error = err
         } else {
-            resHeaders = nil
+            error = err ?? "Unknown"
             resString = nil
-            statusCode = nil
-            error = nil
+            resHeaders = nil
+            statusCode = 0
         }
     }
 }

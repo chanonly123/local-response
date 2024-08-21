@@ -15,16 +15,16 @@ class MapLocalObject: Object, Identifiable {
     @Persisted var enable: Bool = false
     @Persisted var subUrl: String = ""
     @Persisted var method: String = ""
-    @Persisted var body: String = ""
+    @Persisted var resString: String = ""
     @Persisted var statusCode: Int = 0
     @Persisted var resHeaders: Map<String, String> = .init()
     
-    convenience init(subUrl: String, method: String, statusCode: Int, body: String) {
+    convenience init(subUrl: String, method: String, statusCode: Int, resString: String) {
         self.init()
         self.method = method
         self.statusCode = statusCode
         self.subUrl = subUrl
-        self.body = body
+        self.resString = resString
     }
 }
 
@@ -32,7 +32,7 @@ extension MapCheckResponse {
     init(from: MapLocalObject) {
         statusCode = from.statusCode
         method = from.method
-        body = from.body
+        body = from.resString
         var _headers = [String: String]()
         from.resHeaders.forEach { _headers[$0.key] = $0.value }
         resHeaders = _headers

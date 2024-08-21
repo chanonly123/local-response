@@ -28,8 +28,8 @@ protocol DBProtocol {
     @MainActor func createDummyForPreview()
     @MainActor func write(block: (Realm) throws -> Void)
     
-    func recordBegin(task: URLTaskModel) throws
-    func recordEnd(task: URLTaskModel) throws
+    func recordBegin(task: URLTaskModelBegin) throws
+    func recordEnd(task: URLTaskModelEnd) throws
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse?
 }
 
@@ -109,19 +109,19 @@ class DB: DBProtocol {
         
         if let items = try? getMapList(), items.isEmpty {
             
-            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: 0, body: #"{"status":{"code":201,"status":"NOT"}}"#)
+            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: 0, resString: #"{"status":{"code":201,"status":"NOT"}}"#)
             write { r in
                 r.add(map1)
             }
             
-            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", statusCode: 0, body: #"{"status":{"code":201,"status":"NOT"}}"#)
+            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", statusCode: 0, resString: #"{"status":{"code":201,"status":"NOT"}}"#)
             write { r in
                 r.add(map2)
             }
         }
     }
     
-    func recordBegin(task: URLTaskModel) throws {
+    func recordBegin(task: URLTaskModelBegin) throws {
         let r = try realm
         try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
@@ -137,7 +137,7 @@ class DB: DBProtocol {
         }
     }
     
-    func recordEnd(task: URLTaskModel) throws {
+    func recordEnd(task: URLTaskModelEnd) throws {
         let r = try realm
         try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {

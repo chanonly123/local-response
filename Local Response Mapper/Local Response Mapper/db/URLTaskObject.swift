@@ -28,15 +28,17 @@ class URLTaskObject: Object, Identifiable {
         self.taskId = taskId
     }
     
-    func updateFrom(task: URLTaskModel) {
+    func updateFrom(task: URLTaskModelBegin) {
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
         body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? ""
+    }
+
+    func updateFrom(task: URLTaskModelEnd) {
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? ""
         statusCode = task.statusCode ?? 0
-        finished = task.finished
     }
-    
+
 }

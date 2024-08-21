@@ -57,7 +57,6 @@ public class LocalResponse {
 extension LocalResponse: InjectorDelegate {
 
     func injectorSessionOverrideResume(task: URLSessionTask, completion: @escaping () -> Void) {
-        Logger.debugPrint(task.currentRequest?.url?.absoluteString ?? "")
         if useCase.isLocalServer(task: task) {
             completion()
             return
@@ -69,7 +68,15 @@ extension LocalResponse: InjectorDelegate {
             do {
                 if let map {
                     var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                    req.httpBody = try? JSONEncoder().encode(map)
+
+//                    let body = try? JSONEncoder().encode(map)
+//                    req.httpBody = body
+
+                    var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
+                    comps?.queryItems = [URLQueryItem(name: "obj", value: self.toString(from: map) ?? "nil")]
+                    req.url = comps?.url
+
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     task.setValue(req, forKey: "currentRequest")
                 }
             } catch let e {
@@ -80,7 +87,6 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {
-        Logger.debugPrint(task.currentRequest?.url?.absoluteString ?? "")
         if useCase.isLocalServer(task: task) { return }
         Logger.debugPrint(#function)
 

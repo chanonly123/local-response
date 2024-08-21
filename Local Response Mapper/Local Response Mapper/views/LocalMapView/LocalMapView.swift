@@ -89,7 +89,7 @@ struct LocalMapView: View {
                 }
                 .padding(2)
 
-                TextEditor(text: viewm.getSetValue(item, keyPath: \.body))
+                TextEditor(text: viewm.getSetValue(item, keyPath: \.resString))
                     .frame(maxHeight: .infinity)
 
             } else {

@@ -72,7 +72,7 @@ class LocalMapViewModel: ObservableObject {
     func formatJsonBody() {
         db.write { _ in
             do {
-                getSelectedItem()?.body = try Utils.prettyPrintJSON(from: getSelectedItem()?.body ?? "")
+                getSelectedItem()?.resString = try Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
             } catch let err {
                 self.error.append(err)
             }
@@ -81,7 +81,7 @@ class LocalMapViewModel: ObservableObject {
     
     func addNew() {
         db.write { r in
-            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: 0, body: "")
+            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: 0, resString: "")
             r.add(new)
         }
     }

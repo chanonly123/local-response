@@ -10,6 +10,8 @@ import Foundation
 class ApiUseCase {
     
     private var taskIdResponse = [String: HTTPURLResponse]()
+    private var taskIdResponseData = [String: Data]()
+
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 5
@@ -44,11 +46,14 @@ class ApiUseCase {
     
     func isLocalServer(task: URLSessionTask) -> Bool {
         let url = task.currentRequest?.url?.absoluteString ?? ""
+        if url.contains("overriden-request") {
+            return false
+        }
         return url.contains(Constants.localBaseUrl)
     }
     
     func recordBegin(task: URLSessionTask) {
-        let model = URLTaskModel(task: task, finished: false, response: nil, responseString: nil, err: nil)
+        let model = URLTaskModelBegin(task: task)
         var req = createURLRequest(endpoint: Constants.recordBeginUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()
@@ -59,8 +64,9 @@ class ApiUseCase {
     }
     
     func recordComplete(task: URLSessionTask, data: Data) {
+        taskIdResponseData[task.uniqueId] = data
         let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModel(task: task, finished: true, response: res, responseString: data, err: nil)
+        let model = URLTaskModelEnd(task: task, response: res, responseData: data, err: nil)
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()
@@ -68,7 +74,7 @@ class ApiUseCase {
     
     func recordWithError(task: URLSessionTask, error: Error?) {
         let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModel(task: task, finished: true, response: res, responseString: nil, err: error?.localizedDescription ?? "Unknown error")
+        let model = URLTaskModelEnd(task: task, response: res, responseData: taskIdResponseData[task.uniqueId], err: error?.localizedDescription ?? "Unknown error")
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()

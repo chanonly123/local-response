@@ -65,13 +65,13 @@ class LocalServer: ObservableObject {
 
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let data = try await req.bodyData
-        let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
+        let obj = try await JSONDecoder().decode(URLTaskModelBegin.self, from: req.bodyData)
         try self.db.recordBegin(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
 
     lazy var recordEnd: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
+        let obj = try await JSONDecoder().decode(URLTaskModelEnd.self, from: req.bodyData)
         try self.db.recordEnd(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
@@ -87,14 +87,21 @@ class LocalServer: ObservableObject {
     }
 
     lazy var overridenRequestHandler: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(MapCheckResponse.self, from: req.bodyData)
+        do {
+            let str = req.query["obj"] ?? ""
 
-        var resHeaders = [HTTPHeader: String]()
-        obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+            let obj = try JSONDecoder().decode(MapCheckResponse.self, from: str.data(using: .utf8) ?? Data())
 
-        return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
-                            headers: resHeaders,
-                            body: obj.body.data(using: .utf8) ?? Data())
+            var resHeaders = [HTTPHeader: String]()
+            obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+
+            return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
+                                headers: resHeaders,
+                                body: obj.body.data(using: .utf8) ?? Data())
+        } catch let e {
+            Logger.debugPrint("error: \(e)")
+        }
+        return HTTPResponse(statusCode: .internalServerError)
     }
 }
 
