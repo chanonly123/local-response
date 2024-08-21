@@ -78,7 +78,8 @@ struct ContentView: View {
     var leftView: some View {
         VStack(spacing: 0) {
             if let items = viewm.list {
-                Table(items, selection: $viewm.selected) {
+
+                Table(of: URLTaskObject.self, selection: $viewm.selected) {
                     TableColumn("Method", content: { val in
                         Text("\(val.method)")
                     })
@@ -99,9 +100,29 @@ struct ContentView: View {
                             .truncationMode(.head)
                     })
                     .width(min: 50, ideal: 200)
+
+                } rows: {
+                    ForEach(items) { val in
+                        TableRow(val)
+                            .contextMenu {
+                                Button("Map local") {
+                                    viewm.addNewMapLocal(obj: val)
+                                }
+                                Button("Copy URL") {
+                                    viewm.copyValue(obj: val, keyPath: \.url)
+                                }
+                                Button("Copy Request Body") {
+                                    viewm.copyValue(obj: val, keyPath: \.body)
+                                }
+                                Button("Copy Response String") {
+                                    viewm.copyValue(obj: val, keyPath: \.responseString)
+                                }
+                            }
+                    }
                 }
                 .frame(minWidth: 300)
-                
+
+
                 TextField("Filter", text: $viewm.filter)
                     .textFieldStyle(.roundedBorder)
             } else {
@@ -165,6 +186,10 @@ struct ContentView: View {
                         Section("Request headers") {
                             Text(viewm.dictToString(item: item.reqHeaders))
                         }
+
+                        Section("Body") {
+                            Text(item.body)
+                        }
                     } else if viewm.selectedTab == .res {
                         
                         Section("Status") {
@@ -175,18 +200,20 @@ struct ContentView: View {
                             Text(viewm.dictToString(item: item.resHeaders))
                         }
                         
-                        Section("Body") {
-                            Text(item.body)
+                        Section("Response String") {
+                            Text(item.responseString)
                         }
                     }
                 }
-                
+                .textSelection(.enabled)
+
                                 
             } else {
                 Image(systemName: "tray")
             }
         }
     }
+
 }
 
 #Preview {

@@ -14,18 +14,20 @@ struct URLTaskModel: Codable {
     let url: String
     let method: String
     let reqHeaders: [String: String]
-    
-    // after response
     let body: String?
+
+    // after response
+    let resString: String?
     let resHeaders: [String: String]?
     let statusCode: Int?
     let error: String?
     let finished: Bool
     
-    init(task: URLSessionTask, finished: Bool, response: URLResponse?, data: Data?, err: String?) {
+    init(task: URLSessionTask, finished: Bool, response: URLResponse?, responseString: Data?, err: String?) {
         taskId = task.uniqueId
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
+        body = if let httpBody = task.originalRequest?.httpBody { String(data: httpBody, encoding: .utf8) } else { nil }
         var _reqHeaders = [String: String]()
         task.originalRequest?.allHTTPHeaderFields?.forEach {
             _reqHeaders[$0.key] = $0.value
@@ -42,22 +44,22 @@ struct URLTaskModel: Codable {
                     }
                 }
                 resHeaders = _reqHeaders
-                if let data, let str = String(data: data, encoding: .utf8) {
-                    body = str
+                if let responseString, let str = String(data: responseString, encoding: .utf8) {
+                    resString = str
                 } else {
-                    body = nil
+                    resString = nil
                 }
                 statusCode = res.statusCode
                 error = nil
             } else {
                 error = err ?? "Unknown"
-                body = nil
+                resString = nil
                 resHeaders = nil
                 statusCode = 0
             }
         } else {
             resHeaders = nil
-            body = nil
+            resString = nil
             statusCode = nil
             error = nil
         }

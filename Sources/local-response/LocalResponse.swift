@@ -69,7 +69,7 @@ extension LocalResponse: InjectorDelegate {
             do {
                 if let map {
                     var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                    req.httpBody = try? JSONSerialization.data(withJSONObject: map, options: [])
+                    req.httpBody = try? JSONEncoder().encode(map)
                     task.setValue(req, forKey: "currentRequest")
                 }
             } catch let e {

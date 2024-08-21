@@ -48,7 +48,7 @@ class ApiUseCase {
     }
     
     func recordBegin(task: URLSessionTask) {
-        let model = URLTaskModel(task: task, finished: false, response: nil, data: nil, err: nil)
+        let model = URLTaskModel(task: task, finished: false, response: nil, responseString: nil, err: nil)
         var req = createURLRequest(endpoint: Constants.recordBeginUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()
@@ -60,7 +60,7 @@ class ApiUseCase {
     
     func recordComplete(task: URLSessionTask, data: Data) {
         let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModel(task: task, finished: true, response: res, data: data, err: nil)
+        let model = URLTaskModel(task: task, finished: true, response: res, responseString: data, err: nil)
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()
@@ -68,7 +68,7 @@ class ApiUseCase {
     
     func recordWithError(task: URLSessionTask, error: Error?) {
         let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModel(task: task, finished: true, response: res, data: nil, err: error?.localizedDescription ?? "Unknown error")
+        let model = URLTaskModel(task: task, finished: true, response: res, responseString: nil, err: error?.localizedDescription ?? "Unknown error")
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()

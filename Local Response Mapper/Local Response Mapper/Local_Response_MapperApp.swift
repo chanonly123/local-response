@@ -15,12 +15,10 @@ struct Local_Response_MapperApp: SwiftUI.App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .textSelection(.enabled)
                 .frame(minWidth: 700, minHeight: 300)
         }
         Window("", id: "map-local-view") {
             LocalMapView()
-                .textSelection(.enabled)
                 .frame(minWidth: 700, minHeight: 300)
         }
     }

@@ -73,5 +73,18 @@ class ContentViewModel: ObservableObject {
     func getTabButtonBackground(tab: TabType) -> Color {
         tab == selectedTab ? Color.gray.opacity(0.5) : Color.white
     }
+
+    func addNewMapLocal(obj: URLTaskObject) {
+        db.write { r in
+            let new = MapLocalObject(subUrl: obj.url, method: obj.method, statusCode: obj.statusCode, body: obj.body)
+            r.add(new)
+        }
+    }
+
+    func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {
+        let gen = NSPasteboard.general
+        gen.declareTypes([.string], owner: nil)
+        NSPasteboard.general.setString(obj[keyPath: keyPath], forType: .string)
+    }
 }
 
