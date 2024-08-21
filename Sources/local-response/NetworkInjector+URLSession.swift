@@ -9,7 +9,7 @@
 import Foundation
 
 func logError(name: String) {
-    print("❌ Could not swizzle this func: \(name)! It looks like the latest iOS (beta) has changed, please create an issue.")
+    Logger.debugPrint("❌ Could not swizzle this func: \(name)! It looks like the latest iOS (beta) has changed, please create an issue.")
 }
 
 extension NetworkInjector {
@@ -18,23 +18,23 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("resume")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionResumeSelector")
             return
         }
 
-        // 
+        //
         typealias NewClosureType =  @convention(c) (AnyObject, Selector) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject) -> Void = {[weak self](me) in
-            
+
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
-            original(me, selector)
-                            
-//                let req = URLRequest(url: URL(string: "http://localhost:4040/hello")!)
-//                task.setValue(req, forKey: "currentRequest")
-//                original(task, selector)
+            if let task = me as? URLSessionTask {
+                self?.delegate?.injectorSessionOverrideResume(task: task) {
+                    original(me, selector)
+                }
+            }
 
             // Safe-check
             if let task = me as? URLSessionTask {
@@ -67,7 +67,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("_didReceiveResponse:sniff:rewrite:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionDataTaskDidReceiveResponseWithRewrite")
             return
         }
@@ -85,7 +85,7 @@ extension NetworkInjector {
             // Safe-check
             if let task = me.value(forKey: "task") as? URLSessionTask,
                let response = response as? URLResponse {
-                
+
                 self?.delegate?.injectorSessionDidReceiveResponse(dataTask: task, response: response)
             } else {
                 assertionFailure("Could not get data from _swizzleURLSessionDataTaskDidReceiveResponseForIOS13AndLater. It might causes due to the latest iOS changes. Please contact the author!")
@@ -99,7 +99,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("_didReceiveResponse:sniff:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionDataTaskDidReceiveResponseWithoutRewrite")
             return
         }
@@ -107,7 +107,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, Bool) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, Bool) -> Void = {[weak self](me, response, sniff) in
-            
+
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, response, sniff)
@@ -131,7 +131,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("_didReceiveData:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionDataTaskDidReceiveData")
             return
         }
@@ -139,11 +139,11 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject) -> Void = {[weak self](me, data) in
-            
+
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, data)
-            
+
             // Safe-check
             if let task = me.value(forKey: "task") as? URLSessionTask,
                let data = data as? Data {
@@ -162,7 +162,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("_didFinishWithError:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionTaskDidCompleteWithError")
             return
         }
@@ -170,7 +170,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject?) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject?) -> Void = {[weak self](me, error) in
-            
+
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
             original(me, selector, error)
@@ -203,7 +203,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("uploadTaskWithRequest:fromFile:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionUploadFromFileSelector")
             return
         }
@@ -213,7 +213,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, AnyObject?) -> AnyObject
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, AnyObject?) -> AnyObject = {[weak self](me, request, fileURL) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -238,7 +238,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("uploadTaskWithRequest:fromFile:completionHandler:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionUploadFromFileWithCompleteHandlerSelector")
             return
         }
@@ -248,7 +248,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, AnyObject?, AnyObject) -> AnyObject
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, AnyObject?, AnyObject) -> AnyObject = {[weak self](me, request, fileURL, block) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -257,7 +257,7 @@ extension NetworkInjector {
             // Safe-check
             if let task = task as? URLSessionTask,
                let request = request as? NSURLRequest,
-                let fileURL = fileURL as? URL {
+               let fileURL = fileURL as? URL {
                 let data = try? Data(contentsOf: fileURL)
                 self?.delegate?.injectorSessionDidUpload(task: task, request: request, data: data)
             } else {
@@ -274,7 +274,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("uploadTaskWithRequest:fromData:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionUploadFromDataSelector")
             return
         }
@@ -284,7 +284,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, AnyObject) -> AnyObject
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, AnyObject) -> AnyObject = {[weak self](me, request, data) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -309,7 +309,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("uploadTaskWithRequest:fromData:completionHandler:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionUploadFromDataWithCompleteHandlerSelector")
             return
         }
@@ -319,7 +319,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, AnyObject?, AnyObject) -> AnyObject
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, AnyObject?, AnyObject) -> AnyObject = {[weak self](me, request, data, block) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -346,7 +346,7 @@ extension NetworkInjector {
 
     func _swizzleURLSessionWebsocketSelector() {
         guard let websocketClass = NSClassFromString("__NSURLSessionWebSocketTask") else {
-            print("[ERROR] Could not inject __NSURLSessionWebSocketTask!!")
+            Logger.debugPrint("[ERROR] Could not inject __NSURLSessionWebSocketTask!!")
             return
         }
 
@@ -362,7 +362,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("sendMessage:completionHandler:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionWebSocketSendMessageSelector")
             return
         }
@@ -372,7 +372,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject, AnyObject) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject, AnyObject) -> Void = {[weak self] (me, message, block) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -398,7 +398,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("receiveMessageWithCompletionHandler:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionWebSocketReceiveMessageSelector")
             return
         }
@@ -408,22 +408,22 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject) -> Void = {[weak self](me, handler) in
-            
+
 
             // Originally implemented in Obj-C.
-//            let wrapperHandler = AtlantisHelper.swizzleWebSocketReceiveMessage(withCompleteHandler: handler, responseHandler: {[weak self] (str, data, error) in
-//                if let task = me as? URLSessionTask {
-//                    if let message = self?.wrapWebSocketMessage(strValue: str, dataValue: data) {
-//                        self?.delegate?.injectorSessionWebSocketDidReceive(task: task, message: message)
-//                    }
-//                } else {
-//                    assertionFailure("Could not get data from _swizzleURLSessionWebSocketReceiveMessageSelector. It might causes due to the latest iOS changes. Please contact the author!")
-//                }
-//            }) ?? handler
+            //            let wrapperHandler = AtlantisHelper.swizzleWebSocketReceiveMessage(withCompleteHandler: handler, responseHandler: {[weak self] (str, data, error) in
+            //                if let task = me as? URLSessionTask {
+            //                    if let message = self?.wrapWebSocketMessage(strValue: str, dataValue: data) {
+            //                        self?.delegate?.injectorSessionWebSocketDidReceive(task: task, message: message)
+            //                    }
+            //                } else {
+            //                    assertionFailure("Could not get data from _swizzleURLSessionWebSocketReceiveMessageSelector. It might causes due to the latest iOS changes. Please contact the author!")
+            //                }
+            //            }) ?? handler
 
             // call the original
-//            let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
-//            original(me, selector, wrapperHandler as AnyObject)
+            //            let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
+            //            original(me, selector, wrapperHandler as AnyObject)
         }
 
         method_setImplementation(method, imp_implementationWithBlock(block))
@@ -434,7 +434,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("sendPingWithPongReceiveHandler:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionWebSocketSendPingPongSelector")
             return
         }
@@ -444,7 +444,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, AnyObject) -> Void = {[weak self](me, handler) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)
@@ -466,7 +466,7 @@ extension NetworkInjector {
         // Prepare
         let selector = NSSelectorFromString("cancelWithCloseCode:reason:")
         guard let method = class_getInstanceMethod(baseClass, selector),
-            baseClass.instancesRespond(to: selector) else {
+              baseClass.instancesRespond(to: selector) else {
             logError(name: "_swizzleURLSessionWebSocketCancelWithCloseCodeReasonSelector")
             return
         }
@@ -476,7 +476,7 @@ extension NetworkInjector {
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, NSInteger, AnyObject?) -> Void
         let originalImp: IMP = method_getImplementation(method)
         let block: @convention(block) (AnyObject, NSInteger, AnyObject?) -> Void = {[weak self](me, closeCode, reason) in
-            
+
 
             // call the original
             let original: NewClosureType = unsafeBitCast(originalImp, to: NewClosureType.self)

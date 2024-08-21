@@ -23,7 +23,7 @@ struct URLTaskModel: Codable {
     let finished: Bool
     
     init(task: URLSessionTask, finished: Bool, response: URLResponse?, data: Data?, err: String?) {
-        taskId = task.uniqueId //"\(task.taskIdentifier)-" + URLTaskModel.sessionId
+        taskId = task.uniqueId
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
         var _reqHeaders = [String: String]()
@@ -69,4 +69,24 @@ extension URLSessionTask {
     var uniqueId: String {
         return "\(unsafeBitCast(self, to: Int.self))-\(self.taskIdentifier)"
     }
+}
+
+struct LocalModel: Codable {
+    let subUrl: String?
+    let method: String?
+    let body: String?
+    let statusCode: Int?
+    let resHeaders: [String: String]?
+}
+
+struct MapCheckRequest: Codable {
+    let url: String
+    let method: String
+}
+
+struct MapCheckResponse: Codable {
+    let statusCode: Int
+    let method: String
+    let body: String
+    let resHeaders: [String: String]
 }

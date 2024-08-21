@@ -8,9 +8,14 @@
 import Foundation
 
 class Constants {
+    
     static let localBaseUrlPort = 4040
     static let localBaseUrl = "http://localhost:\(localBaseUrlPort)"
+    
+    static let schemaVersion: UInt64 = 10
+    
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
-    static let schemaVersion: UInt64 = 9
+    static let checkMapResponse = "POST /check-map-response"
+    static let overridenRequest = "POST /overriden-request"
 }

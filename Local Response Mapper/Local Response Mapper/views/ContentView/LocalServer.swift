@@ -37,8 +37,10 @@ class LocalServer: ObservableObject {
                 isListening = await server.isListening
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordBeginUrl), handler: recordBegin)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordEndUrl), handler: recordEnd)
+                await server.appendRoute(HTTPRoute(stringLiteral: Constants.checkMapResponse), handler: returnMappedIfAny)
+                await server.appendRoute(HTTPRoute(stringLiteral: Constants.overridenRequest), handler: overridenRequestHandler)
             } catch let e {
-                print("Error: \(e)")
+                Logger.debugPrint("Error: \(e)")
                 error = e
                 isListening = false
             }
@@ -49,7 +51,7 @@ class LocalServer: ObservableObject {
             do {
                 try await server.start()
             } catch let e {
-                print("Error: \(e)")
+                Logger.debugPrint("Error: \(e)")
                 error = e
                 isListening = false
             }
@@ -75,10 +77,24 @@ class LocalServer: ObservableObject {
     }
     
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(URLTaskModel.self, from: req.bodyData)
-        try self.db.recordEnd(task: obj)
-        return HTTPResponse(statusCode: .ok)
+        let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
+        if let localRes = try self.db.getLocalMapIfAvailable(req: obj) {
+            let data = try JSONEncoder().encode(localRes)
+            return HTTPResponse(statusCode: .ok, body: data)
+        } else {
+            return HTTPResponse(statusCode: .noContent)
+        }
     }
 
+    lazy var overridenRequestHandler: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
+        let obj = try await JSONDecoder().decode(MapCheckResponse.self, from: req.bodyData)
+        
+        var resHeaders = [HTTPHeader: String]()
+        obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+        
+        return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
+                            headers: resHeaders,
+                            body: obj.body.data(using: .utf8) ?? Data())
+    }
 }
 

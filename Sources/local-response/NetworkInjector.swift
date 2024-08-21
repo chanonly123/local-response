@@ -27,6 +27,8 @@ protocol Injector {
 
 protocol InjectorDelegate: AnyObject {
 
+    func injectorSessionOverrideResume(task: URLSessionTask, completion: @escaping () -> Void)
+
     // For URLSession
     func injectorSessionDidCallResume(task: URLSessionTask)
     func injectorSessionDidReceiveResponse(dataTask: URLSessionTask, response: URLResponse)
@@ -46,7 +48,7 @@ final class NetworkInjector: Injector {
     // MARK: - Variables
 
     weak var delegate: InjectorDelegate?
-    
+
     // MARK: - Internal
 
     func injectAllNetworkClasses(config: NetworkConfiguration = NetworkConfiguration()) {
@@ -98,16 +100,16 @@ extension NetworkInjector {
         if !ProcessInfo.processInfo.responds(to: #selector(getter: ProcessInfo.operatingSystemVersion)) {
             baseResumeClass = NSClassFromString("__NSCFLocalSessionTask")
         } else {
-            #if targetEnvironment(macCatalyst) || os(macOS)
+#if targetEnvironment(macCatalyst) || os(macOS)
             baseResumeClass = URLSessionTask.self
-            #else
+#else
             let majorVersion = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
             if majorVersion < 9 || majorVersion >= 14 {
                 baseResumeClass = URLSessionTask.self
             } else {
                 baseResumeClass = NSClassFromString("__NSCFURLSessionTask")
             }
-            #endif
+#endif
         }
 
         guard let resumeClass = baseResumeClass else {

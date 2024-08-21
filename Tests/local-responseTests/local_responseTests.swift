@@ -21,7 +21,7 @@ final class local_responseTests: XCTestCase {
             }
             .sink(receiveCompletion: { error in
             }, receiveValue: { val in
-                print("res1: \(val)")
+                Logger.debugPrint("res1: \(val)")
                 e1.fulfill()
             })
         
@@ -32,9 +32,9 @@ final class local_responseTests: XCTestCase {
 //        let req = URLRequest(url: URL(string: url)!)
 //        sess.dataTask(with: req) { data, res, err in
 //            if let data, let resString = String(data: data, encoding: .utf8) {
-//                print("res2: \(resString)")
+//                Logger.debugPrint("res2: \(resString)")
 //            } else {
-//                print("res2 error: error")
+//                Logger.debugPrint("res2 error: error")
 //            }
 //        }
 //        .resume()

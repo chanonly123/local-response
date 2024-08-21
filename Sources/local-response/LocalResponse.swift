@@ -11,22 +11,18 @@ public class LocalResponse {
     private static var localDirPath: String?
     private static var injector: Injector = NetworkInjector()
     public static let shared = LocalResponse()
-    
+
+    private let useCase = ApiUseCase()
+
     private init() {
         Self.injector.delegate = self
     }
-    
-    private var taskIdResponse = [String: HTTPURLResponse]()
-    
+
     public func inject(path: String) {
         LocalResponse.localDirPath = path
         LocalResponse.injector.injectAllNetworkClasses(config: NetworkConfiguration())
     }
-    
-    static func debugPrint(_ msg: String) {
-        print("local-response> \(msg)")
-    }
-    
+
     func createURLRequest(endpoint: String) -> URLRequest {
         let method = String(endpoint.split(separator: " ").first!)
         let endPoint = String(endpoint.split(separator: " ").last!)
@@ -35,23 +31,23 @@ public class LocalResponse {
         req.httpMethod = String(method)
         return req
     }
-    
+
     func toData(from: Encodable) -> Data? {
         do {
             return try JSONEncoder().encode(from)
         } catch let e {
-            LocalResponse.debugPrint("\(e)")
+            Logger.debugPrint("\(e)")
         }
         return nil
     }
-    
+
     func toString(from: Encodable) -> String? {
         if let data = toData(from: from) {
             return String(data: data, encoding: .utf8)
         }
         return nil
     }
-    
+
     func isLocalServer(task: URLSessionTask) -> Bool {
         let url = task.currentRequest?.url?.absoluteString ?? ""
         return url.contains(Constants.localBaseUrl)
@@ -59,64 +55,81 @@ public class LocalResponse {
 }
 
 extension LocalResponse: InjectorDelegate {
+
+    func injectorSessionOverrideResume(task: URLSessionTask, completion: @escaping () -> Void) {
+        Logger.debugPrint(task.currentRequest?.url?.absoluteString ?? "")
+        if useCase.isLocalServer(task: task) {
+            completion()
+            return
+        }
+
+        let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
+                                   method: task.currentRequest?.httpMethod ?? "")
+        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { map in
+            do {
+                if let map {
+                    var req = self.createURLRequest(endpoint: Constants.overridenRequest)
+                    req.httpBody = try? JSONSerialization.data(withJSONObject: map, options: [])
+                    task.setValue(req, forKey: "currentRequest")
+                }
+            } catch let e {
+                Logger.debugPrint("\(e)")
+            }
+            completion()
+        }
+    }
+
     func injectorSessionDidCallResume(task: URLSessionTask) {
-        if isLocalServer(task: task) { return }
-        LocalResponse.debugPrint(#function)
-        let model = URLTaskModel(task: task, finished: false, response: nil, data: nil, err: nil)
-        var req = createURLRequest(endpoint: Constants.recordBeginUrl)
-        req.httpBody = toData(from: model)
-        print(toString(from: model) ?? "")
-        let task = URLSession.shared.dataTask(with: req) { _, _, err in
-            print("Complete \(err)")
-        }
-        task.resume()
+        Logger.debugPrint(task.currentRequest?.url?.absoluteString ?? "")
+        if useCase.isLocalServer(task: task) { return }
+        Logger.debugPrint(#function)
+
+        // record completion of the request
+        useCase.recordBegin(task: task)
     }
-    
+
     func injectorSessionDidReceiveResponse(dataTask: URLSessionTask, response: URLResponse) {
-        if isLocalServer(task: dataTask) { return }
-        LocalResponse.debugPrint(#function)
-        taskIdResponse[dataTask.uniqueId] = response as? HTTPURLResponse
+        if useCase.isLocalServer(task: dataTask) { return }
+        Logger.debugPrint(#function)
+
+        // record when received response, data yet to come
+        useCase.recordReceivedResponse(task: dataTask, response: response)
     }
-    
+
     func injectorSessionDidReceiveData(dataTask: URLSessionTask, data: Data) {
-        if isLocalServer(task: dataTask) { return }
-        LocalResponse.debugPrint(#function)
-        let res = taskIdResponse[dataTask.uniqueId]
-        let model = URLTaskModel(task: dataTask, finished: true, response: res, data: data, err: nil)
-        var req = createURLRequest(endpoint: Constants.recordEndUrl)
-        req.httpBody = toData(from: model)
-        let task = URLSession.shared.dataTask(with: req) { _, _, err in
-            print("Complete \(err)")
-        }
-        task.resume()
+        if useCase.isLocalServer(task: dataTask) { return }
+        Logger.debugPrint(#function)
+
+        // record completion of the request with data
+        useCase.recordComplete(task: dataTask, data: data)
     }
-    
+
     func injectorSessionDidComplete(task: URLSessionTask, error: (any Error)?) {
-        let model = URLTaskModel(task: task, finished: true, response: nil, data: nil, err: error?.localizedDescription ?? "Unknown error")
-        var req = createURLRequest(endpoint: Constants.recordEndUrl)
-        req.httpBody = toData(from: model)
-        URLSession.shared.dataTask(with: req)
-        LocalResponse.debugPrint(#function)
+        if useCase.isLocalServer(task: task) { return }
+        Logger.debugPrint(#function)
+
+        // record completion of the request with error
+        useCase.recordWithError(task: task, error: error)
     }
-    
+
     func injectorSessionDidUpload(task: URLSessionTask, request: NSURLRequest, data: Data?) {
-        LocalResponse.debugPrint(#function)
+        Logger.debugPrint(#function)
     }
-    
+
     func injectorSessionWebSocketDidSendMessage(task: URLSessionTask, message: URLSessionWebSocketTask.Message) {
-        LocalResponse.debugPrint(#function)
+        Logger.debugPrint(#function)
     }
-    
+
     func injectorSessionWebSocketDidReceive(task: URLSessionTask, message: URLSessionWebSocketTask.Message) {
-        LocalResponse.debugPrint(#function)
+        Logger.debugPrint(#function)
     }
-    
+
     func injectorSessionWebSocketDidSendPingPong(task: URLSessionTask) {
-        LocalResponse.debugPrint(#function)
+        Logger.debugPrint(#function)
     }
-    
+
     func injectorSessionWebSocketDidSendCancelWithReason(task: URLSessionTask, closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        LocalResponse.debugPrint(#function)
+        Logger.debugPrint(#function)
     }
 }
 

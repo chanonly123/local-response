@@ -81,7 +81,7 @@ class LocalMapViewModel: ObservableObject {
     
     func addNew() {
         db.write { r in
-            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", body: "")
+            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: 0, body: "")
             r.add(new)
         }
     }
