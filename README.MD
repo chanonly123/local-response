@@ -9,6 +9,12 @@
 - **Mock Responses**: Easily override and mock network responses directly from the macOS app, enabling you to test various scenarios without modifying your code.
 - **No Certificates or Proxy Needed**: Unlike other tools, this solution does not require the installation of certificates or the use of a proxy, simplifying the setup process.
 
+## TODO
+- Handling errors
+- Recording requests directly to Map Local window
+- Mac app new version check
+- Adding unit tests
+
 ## Installation
 
 ### iOS Library
@@ -67,6 +73,10 @@
 
 - **Testing Error Scenarios:**
   - Override network responses to simulate server errors, or custom data responses.
+
+## Screenshots
+
+![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo1.png)
 
 ## Contributing
 
