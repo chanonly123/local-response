@@ -9,6 +9,6 @@ import Foundation
 
 class Logger {
     static func debugPrint(_ msg: String) {
-        print("local-response> \(msg)")
+//        print("local-response> \(msg)")
     }
 }

@@ -44,14 +44,6 @@ class ApiUseCase {
         return req
     }
     
-    func isLocalServer(task: URLSessionTask) -> Bool {
-        let url = task.currentRequest?.url?.absoluteString ?? ""
-        if url.contains("overriden-request") {
-            return false
-        }
-        return url.contains(Constants.localBaseUrl)
-    }
-    
     func recordBegin(task: URLSessionTask) {
         let model = URLTaskModelBegin(task: task)
         var req = createURLRequest(endpoint: Constants.recordBeginUrl)
@@ -80,19 +72,18 @@ class ApiUseCase {
         session.dataTask(with: req).resume()
     }
     
-    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (MapCheckResponse?) -> Void) {
-        
+    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (String?) -> Void) {
+
         var req = createURLRequest(endpoint: Constants.checkMapResponse)
         req.httpBody = toData(from: data)
         
         self.session.dataTask(with: req) { data, res, err in
-            var result: MapCheckResponse?
+            var result: String?
             var error: Error?
             
             do {
-                if let data {
-                    let r = try JSONDecoder().decode(MapCheckResponse.self, from: data)
-                    result = r
+                if let data, let id = String(data: data, encoding: .utf8), !id.isEmpty {
+                    result = id
                 } else {
                     error = err ?? NSError(domain: "data is nil", code: -1)
                 }
@@ -103,17 +94,8 @@ class ApiUseCase {
             if let error {
                 Logger.debugPrint("\(error)")
             }
-            if result != nil {
-                print("here")
-            }
             completion(result)
         }
         .resume()
-    }
-    
-    func overrideWithLocalNetwork(data: MapCheckResponse) {
-        var req = createURLRequest(endpoint: Constants.recordEndUrl)
-        req.httpBody = toData(from: data)
-        session.dataTask(with: req).resume()
     }
 }

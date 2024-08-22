@@ -8,25 +8,27 @@
 import Foundation
 
 public class LocalResponse {
-    private static var localDirPath: String?
-    private static var injector: Injector = NetworkInjector()
     public static let shared = LocalResponse()
 
+    private var connectionUrl: String = Constants.localBaseUrl
+    private var injector: Injector = NetworkInjector()
     private let useCase = ApiUseCase()
+    private var excludes: [String] = []
 
     private init() {
-        Self.injector.delegate = self
+        injector.delegate = self
     }
 
-    public func inject(path: String) {
-        LocalResponse.localDirPath = path
-        LocalResponse.injector.injectAllNetworkClasses(config: NetworkConfiguration())
+    public func connect(connectionUrl: String? = nil, excludes: [String] = []) {
+        LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
+        LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
+        self.excludes = excludes
     }
 
     func createURLRequest(endpoint: String) -> URLRequest {
         let method = String(endpoint.split(separator: " ").first!)
         let endPoint = String(endpoint.split(separator: " ").last!)
-        let url = URL(string: Constants.localBaseUrl + endPoint)!
+        let url = URL(string: connectionUrl + endPoint)!
         var req = URLRequest(url: url)
         req.httpMethod = String(method)
         return req
@@ -48,35 +50,32 @@ public class LocalResponse {
         return nil
     }
 
-    func isLocalServer(task: URLSessionTask) -> Bool {
+    func shouldIgnoreTask(task: URLSessionTask) -> Bool {
         let url = task.currentRequest?.url?.absoluteString ?? ""
-        return url.contains(Constants.localBaseUrl)
+        if url.contains("overriden-request") {
+            return false
+        }
+        return url.contains(Constants.localBaseUrl) || excludes.contains { url.contains($0) }
     }
 }
 
 extension LocalResponse: InjectorDelegate {
 
     func injectorSessionOverrideResume(task: URLSessionTask, completion: @escaping () -> Void) {
-        if useCase.isLocalServer(task: task) {
+        if shouldIgnoreTask(task: task) {
             completion()
             return
         }
 
         let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
                                    method: task.currentRequest?.httpMethod ?? "")
-        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { map in
+        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { id in
             do {
-                if let map {
+                if let id {
                     var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-
-//                    let body = try? JSONEncoder().encode(map)
-//                    req.httpBody = body
-
                     var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
-                    comps?.queryItems = [URLQueryItem(name: "obj", value: self.toString(from: map) ?? "nil")]
+                    comps?.queryItems = [URLQueryItem(name: "id", value: id)]
                     req.url = comps?.url
-
-                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     task.setValue(req, forKey: "currentRequest")
                 }
             } catch let e {
@@ -87,7 +86,7 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {
-        if useCase.isLocalServer(task: task) { return }
+        if shouldIgnoreTask(task: task) { return }
         Logger.debugPrint(#function)
 
         // record completion of the request
@@ -95,7 +94,7 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidReceiveResponse(dataTask: URLSessionTask, response: URLResponse) {
-        if useCase.isLocalServer(task: dataTask) { return }
+        if shouldIgnoreTask(task: dataTask) { return }
         Logger.debugPrint(#function)
 
         // record when received response, data yet to come
@@ -103,7 +102,7 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidReceiveData(dataTask: URLSessionTask, data: Data) {
-        if useCase.isLocalServer(task: dataTask) { return }
+        if shouldIgnoreTask(task: dataTask) { return }
         Logger.debugPrint(#function)
 
         // record completion of the request with data
@@ -111,7 +110,7 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidComplete(task: URLSessionTask, error: (any Error)?) {
-        if useCase.isLocalServer(task: task) { return }
+        if shouldIgnoreTask(task: task) { return }
         Logger.debugPrint(#function)
 
         // record completion of the request with error
@@ -119,23 +118,23 @@ extension LocalResponse: InjectorDelegate {
     }
 
     func injectorSessionDidUpload(task: URLSessionTask, request: NSURLRequest, data: Data?) {
-        Logger.debugPrint(#function)
+
     }
 
     func injectorSessionWebSocketDidSendMessage(task: URLSessionTask, message: URLSessionWebSocketTask.Message) {
-        Logger.debugPrint(#function)
+
     }
 
     func injectorSessionWebSocketDidReceive(task: URLSessionTask, message: URLSessionWebSocketTask.Message) {
-        Logger.debugPrint(#function)
+
     }
 
     func injectorSessionWebSocketDidSendPingPong(task: URLSessionTask) {
-        Logger.debugPrint(#function)
+
     }
 
     func injectorSessionWebSocketDidSendCancelWithReason(task: URLSessionTask, closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        Logger.debugPrint(#function)
+
     }
 }
 

@@ -30,7 +30,8 @@ protocol DBProtocol {
     
     func recordBegin(task: URLTaskModelBegin) throws
     func recordEnd(task: URLTaskModelEnd) throws
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse?
+    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String?
+    func getLocalMap(id: String) throws -> MapLocalObject?
 }
 
 class DB: DBProtocol {
@@ -146,16 +147,21 @@ class DB: DBProtocol {
         }
     }
     
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse? {
+    /// returns id
+    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String? {
         let r = try realm
         let items: [MapLocalObject] = r.objects(MapLocalObject.self)
             .where { $0.enable }
             .sorted(by: \.date, ascending: true)
             .filter({ req.url.contains($0.subUrl) })
             .map { $0 }
-        if let found = items.first {
-            return MapCheckResponse(from: found)
-        }
-        return nil
+        return items.first?.id
+    }
+
+    /// returns id
+    func getLocalMap(id: String) throws -> MapLocalObject? {
+        let r = try realm
+        let item = r.object(ofType: MapLocalObject.self, forPrimaryKey: id)
+        return item
     }
 }

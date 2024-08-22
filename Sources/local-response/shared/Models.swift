@@ -80,10 +80,3 @@ struct MapCheckRequest: Codable {
     let url: String
     let method: String
 }
-
-struct MapCheckResponse: Codable {
-    let statusCode: Int
-    let method: String
-    let body: String
-    let resHeaders: [String: String]
-}

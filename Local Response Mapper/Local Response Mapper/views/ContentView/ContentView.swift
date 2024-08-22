@@ -45,7 +45,7 @@ struct ContentView: View {
                     case nil:
                         Text("Connecting...")
                     case true:
-                        Text("Listening \(server.listeningAddress)")
+                        Text("Listening \(server.listeningAddress):\(String(Constants.localBaseUrlPort))")
                     case .some(_):
                         EmptyView()
                     }

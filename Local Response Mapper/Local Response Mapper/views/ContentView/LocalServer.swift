@@ -78,8 +78,7 @@ class LocalServer: ObservableObject {
 
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
-        if let localRes = try self.db.getLocalMapIfAvailable(req: obj) {
-            let data = try JSONEncoder().encode(localRes)
+        if let id = try self.db.getLocalMapIfAvailable(req: obj), let data = id.data(using: .utf8) {
             return HTTPResponse(statusCode: .ok, body: data)
         } else {
             return HTTPResponse(statusCode: .noContent)
@@ -88,16 +87,15 @@ class LocalServer: ObservableObject {
 
     lazy var overridenRequestHandler: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         do {
-            let str = req.query["obj"] ?? ""
+            if let id = req.query["id"], let obj = try self.db.getLocalMap(id: id) {
 
-            let obj = try JSONDecoder().decode(MapCheckResponse.self, from: str.data(using: .utf8) ?? Data())
+                var resHeaders = [HTTPHeader: String]()
+                obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
 
-            var resHeaders = [HTTPHeader: String]()
-            obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
-
-            return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
-                                headers: resHeaders,
-                                body: obj.body.data(using: .utf8) ?? Data())
+                return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
+                                    headers: resHeaders,
+                                    body: obj.resString.data(using: .utf8) ?? Data())
+            }
         } catch let e {
             Logger.debugPrint("error: \(e)")
         }

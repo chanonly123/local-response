@@ -27,14 +27,3 @@ class MapLocalObject: Object, Identifiable {
         self.resString = resString
     }
 }
-
-extension MapCheckResponse {
-    init(from: MapLocalObject) {
-        statusCode = from.statusCode
-        method = from.method
-        body = from.resString
-        var _headers = [String: String]()
-        from.resHeaders.forEach { _headers[$0.key] = $0.value }
-        resHeaders = _headers
-    }
-}
