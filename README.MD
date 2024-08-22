@@ -76,7 +76,14 @@
 
 ## Screenshots
 
+### Allow the app to run
 ![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo1.png)
+
+### Records all http network calls
+![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo2.png)
+
+### You can edit (Response, Headers, StatusCode)
+![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo3.png)
 
 ## Contributing
 
