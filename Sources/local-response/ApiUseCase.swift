@@ -38,7 +38,7 @@ class ApiUseCase {
     private func createURLRequest(endpoint: String) -> URLRequest {
         let method = String(endpoint.split(separator: " ").first!)
         let endPoint = String(endpoint.split(separator: " ").last!)
-        let url = URL(string: Constants.localBaseUrl + endPoint)!
+        let url = URL(string: LocalResponse.shared.connectionUrl + endPoint)!
         var req = URLRequest(url: url)
         req.httpMethod = String(method)
         return req

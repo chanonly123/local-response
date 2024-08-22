@@ -82,8 +82,6 @@ class ContentViewModel: ObservableObject {
     }
 
     func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {
-        let gen = NSPasteboard.general
-        gen.declareTypes([.string], owner: nil)
-        NSPasteboard.general.setString(obj[keyPath: keyPath], forType: .string)
+        Utils.copyToClipboard(obj[keyPath: keyPath])
     }
 }

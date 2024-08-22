@@ -13,7 +13,7 @@ class LocalServer: ObservableObject {
 
     @MainActor init() {}
 
-    let server = HTTPServer(address: .loopback(port: UInt16(Constants.localBaseUrlPort)))
+    let server = HTTPServer(address: .inet(port: UInt16(Constants.localBaseUrlPort)))
     @Injected(\.db) var db
 
     @MainActor @Published var listeningAddress: String = ""
@@ -35,6 +35,9 @@ class LocalServer: ObservableObject {
             do {
                 try await server.waitUntilListening(timeout: 10)
                 isListening = await server.isListening
+                await server.appendRoute("/") { request in
+                    return HTTPResponse(statusCode: .ok, body: "Success".data(using: .utf8) ?? Data())
+                }
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordBeginUrl), handler: recordBegin)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordEndUrl), handler: recordEnd)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.checkMapResponse), handler: returnMappedIfAny)
@@ -100,6 +103,11 @@ class LocalServer: ObservableObject {
             Logger.debugPrint("error: \(e)")
         }
         return HTTPResponse(statusCode: .internalServerError)
+    }
+
+    @MainActor
+    var getFullListeningAddress: String {
+        "http://\(listeningAddress):\(String(Constants.localBaseUrlPort))"
     }
 }
 

@@ -10,7 +10,7 @@ import Foundation
 public class LocalResponse {
     public static let shared = LocalResponse()
 
-    private var connectionUrl: String = Constants.localBaseUrl
+    var connectionUrl: String = Constants.localBaseUrl
     private var injector: Injector = NetworkInjector()
     private let useCase = ApiUseCase()
     private var excludes: [String] = []
@@ -21,6 +21,9 @@ public class LocalResponse {
 
     public func connect(connectionUrl: String? = nil, excludes: [String] = []) {
         LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
+        if URL(string: LocalResponse.shared.connectionUrl) == nil {
+            assertionFailure("local-response> Bad url! \(connectionUrl)")
+        }
         LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
         self.excludes = excludes
     }
@@ -55,7 +58,7 @@ public class LocalResponse {
         if url.contains("overriden-request") {
             return false
         }
-        return url.contains(Constants.localBaseUrl) || excludes.contains { url.contains($0) }
+        return url.contains(connectionUrl) || excludes.contains { url.contains($0) }
     }
 }
 

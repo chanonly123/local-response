@@ -35,7 +35,9 @@ struct ContentView: View {
                 Spacer()
                 
                 Button {
-                    
+                    if server.isListening == true {
+                        Utils.copyToClipboard("\(server.getFullListeningAddress)")
+                    }
                 } label: {
                     Circle().fill(server.isListening == true ? Color.green : Color.gray)
                         .frame(width: 10)
@@ -45,7 +47,10 @@ struct ContentView: View {
                     case nil:
                         Text("Connecting...")
                     case true:
-                        Text("Listening \(server.listeningAddress):\(String(Constants.localBaseUrlPort))")
+                        HStack {
+                            Text("Listening \(server.getFullListeningAddress)")
+                            Image(systemName: "doc.on.doc")
+                        }
                     case .some(_):
                         EmptyView()
                     }

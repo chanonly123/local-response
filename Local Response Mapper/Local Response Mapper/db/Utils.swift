@@ -82,4 +82,10 @@ struct Utils {
         
         return address
     }
+
+    static func copyToClipboard(_ string: String) {
+        let gen = NSPasteboard.general
+        gen.declareTypes([.string], owner: nil)
+        NSPasteboard.general.setString(string, forType: .string)
+    }
 }
