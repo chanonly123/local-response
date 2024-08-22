@@ -59,6 +59,7 @@ struct ContentView: View {
             .padding(2)
         }
         .monospaced()
+        .showErrors(errors: viewm.errors)
         .onAppear {
             server.startServer()
             server.reloadLocalAddress()

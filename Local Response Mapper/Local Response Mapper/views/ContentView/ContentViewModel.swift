@@ -10,11 +10,11 @@ import RealmSwift
 import Factory
 
 @MainActor
-class ContentViewModel: ObservableObject {
+class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     enum TabType: String { case req, res  }
 
-    @Published var error: [Error] = []
+    @Published var errors: [Error] = []
     @Published var list: Results<URLTaskObject>?
     @Published var filter: String = "" {
         didSet {
@@ -36,11 +36,11 @@ class ContentViewModel: ObservableObject {
                 do {
                     self?.list = try self?.db.getRecordsList(filter: self?.filter ?? "")
                 } catch let e {
-                    self?.error.append(e)
+                    self?.appendError(e)
                 }
             }
         } catch let e {
-            error.append(e)
+            appendError(e)
         }
     }
 
@@ -48,7 +48,7 @@ class ContentViewModel: ObservableObject {
         do {
             list = try db.getRecordsList(filter: filter)
         } catch let e {
-            error.append(e)
+            appendError(e)
         }
     }
 
@@ -61,7 +61,7 @@ class ContentViewModel: ObservableObject {
         do {
             return try db.getItemTask(taskId: taskId)
         } catch let e {
-            error.append(e)
+            appendError(e)
             return nil
         }
     }

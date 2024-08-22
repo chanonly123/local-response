@@ -11,9 +11,9 @@ import Factory
 import SwiftUI
 
 @MainActor
-class LocalMapViewModel: ObservableObject {
+class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
-    @Published var error: [Error] = []
+    @Published var errors: [any Error] = []
     @Published var list: Results<MapLocalObject>?
     @Published var selected: String?
     let httpMethods = [
@@ -41,11 +41,11 @@ class LocalMapViewModel: ObservableObject {
                 do {
                     self?.list = try self?.db.getMapList()
                 } catch let e {
-                    self?.error.append(e)
+                    self?.appendError(e)
                 }
             }
         } catch let e {
-            error.append(e)
+            appendError(e)
         }
     }
 
@@ -53,7 +53,7 @@ class LocalMapViewModel: ObservableObject {
         do {
             return try db.getItemMapLocal(id: selected)
         } catch let e {
-            error.append(e)
+            appendError(e)
             return nil
         }
     }
@@ -91,7 +91,7 @@ class LocalMapViewModel: ObservableObject {
             do {
                 getSelectedItem()?.resString = try Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
             } catch let err {
-                self.error.append(err)
+                self.appendError(err)
             }
         }
     }
