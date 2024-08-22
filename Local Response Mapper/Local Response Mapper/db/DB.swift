@@ -147,13 +147,13 @@ class DB: DBProtocol {
         }
     }
     
-    /// returns id
+    /// checs if a map response found, returns id
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String? {
         let r = try realm
         let items: [MapLocalObject] = r.objects(MapLocalObject.self)
             .where { $0.enable }
             .sorted(by: \.date, ascending: true)
-            .filter({ req.url.contains($0.subUrl) })
+            .filter({ ($0.method.contains("*") || $0.method == req.method) && req.url.contains($0.subUrl) })
             .map { $0 }
         return items.first?.id
     }

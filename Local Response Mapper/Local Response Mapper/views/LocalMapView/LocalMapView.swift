@@ -38,7 +38,7 @@ struct LocalMapView: View {
                     })
                     .width(min: 50, ideal: 50, max: 80)
 
-                    TableColumn("Method", content: { val in
+                    TableColumn("Method (match)", content: { val in
                         Picker("", selection: viewm.getSetValue(val, keyPath: \.method)) {
                             ForEach(viewm.httpMethods, id: \.self) {
                                 Text($0)
@@ -47,7 +47,7 @@ struct LocalMapView: View {
                     })
                     .width(min: 100, ideal: 100, max: 150)
 
-                    TableColumn("URL", content: { val in
+                    TableColumn("URL (contains)", content: { val in
                         TextField("", text: viewm.getSetValue(val, keyPath: \.subUrl))
                             .truncationMode(.head)
                     })

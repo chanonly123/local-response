@@ -22,7 +22,7 @@ public class LocalResponse {
     public func connect(connectionUrl: String? = nil, excludes: [String] = []) {
         LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
-            assertionFailure("local-response> Bad url! \(connectionUrl)")
+            assertionFailure("LocalResponse> Bad url! \(connectionUrl)")
         }
         LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
         self.excludes = excludes
