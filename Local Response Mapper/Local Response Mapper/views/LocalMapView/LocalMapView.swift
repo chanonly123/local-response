@@ -82,16 +82,35 @@ struct LocalMapView: View {
     var rightView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let item = viewm.getSelectedItem() {
-                Button {
-                    viewm.formatJsonBody()
-                } label: {
-                    Image(systemName: "line.horizontal.3.decrease")
+                VStack(alignment: .leading, spacing: 4) {
+
+                    HStack {
+                        Text("Status")
+                        (viewm.isValidStatus(item) ? Color.green : Color.red)
+                            .frame(width: 10, height: 10)
+                            .clipShape(Circle())
+                    }
+                    TextField("", text: viewm.getSetValue(item, keyPath: \.statusCode))
+
+                    Text("Response Headers")
+                    TextEditor(text: viewm.getSetResponseHeaders(item))
+                        .frame(maxHeight: 100)
+
+                    HStack {
+                        Text("Response String")
+                        (viewm.isValidResponseJSON(item) ? Color.green : Color.red)
+                            .frame(width: 10, height: 10)
+                            .clipShape(Circle())
+                        Button {
+                            viewm.formatJsonBody()
+                        } label: {
+                            Text("Format JSON")
+                        }
+                    }
+                    TextEditor(text: viewm.getSetValue(item, keyPath: \.resString))
+                        .frame(maxHeight: .infinity)
                 }
-                .padding(2)
-
-                TextEditor(text: viewm.getSetValue(item, keyPath: \.resString))
-                    .frame(maxHeight: .infinity)
-
+                .padding(4)
             } else {
                 Image(systemName: "tray")
             }

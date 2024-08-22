@@ -95,7 +95,7 @@ class LocalServer: ObservableObject {
                 var resHeaders = [HTTPHeader: String]()
                 obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
 
-                return HTTPResponse(statusCode: HTTPStatusCode(obj.statusCode, phrase: "custom"),
+                return HTTPResponse(statusCode: HTTPStatusCode(Int(obj.statusCode) ?? 0, phrase: "custom"),
                                     headers: resHeaders,
                                     body: obj.resString.data(using: .utf8) ?? Data())
             }

@@ -27,7 +27,8 @@ protocol DBProtocol {
     @MainActor func clearAllRecords()
     @MainActor func createDummyForPreview()
     @MainActor func write(block: (Realm) throws -> Void)
-    
+    @MainActor func deleteLocalMap(id: String) throws
+
     func recordBegin(task: URLTaskModelBegin) throws
     func recordEnd(task: URLTaskModelEnd) throws
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String?
@@ -85,7 +86,7 @@ class DB: DBProtocol {
         return try realm.objects(MapLocalObject.self).sorted(by: \.date, ascending: true)
     }
     
-    @MainActor func createDummyForPreview() {
+    func createDummyForPreview() {
         if let items = try? getRecordsList(filter: ""), items.isEmpty {
             
             let item = URLTaskObject(taskId: UUID().uuidString)
@@ -110,12 +111,12 @@ class DB: DBProtocol {
         
         if let items = try? getMapList(), items.isEmpty {
             
-            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: 0, resString: #"{"status":{"code":201,"status":"NOT"}}"#)
+            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: "0", resHeaders: Map<String, String>(), resString: #"{"status":{"code":201,"status":"NOT"}}"#)
             write { r in
                 r.add(map1)
             }
             
-            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", statusCode: 0, resString: #"{"status":{"code":201,"status":"NOT"}}"#)
+            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", statusCode: "0", resHeaders: Map<String, String>(), resString: #"{"status":{"code":201,"status":"NOT"}}"#)
             write { r in
                 r.add(map2)
             }
@@ -163,5 +164,14 @@ class DB: DBProtocol {
         let r = try realm
         let item = r.object(ofType: MapLocalObject.self, forPrimaryKey: id)
         return item
+    }
+
+    func deleteLocalMap(id: String) throws {
+        let r = try realm
+        try r.write {
+            if let item = r.object(ofType: MapLocalObject.self, forPrimaryKey: id) {
+                r.delete(item)
+            }
+        }
     }
 }

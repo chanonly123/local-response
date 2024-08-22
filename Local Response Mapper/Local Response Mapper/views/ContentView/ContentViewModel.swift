@@ -76,7 +76,7 @@ class ContentViewModel: ObservableObject {
 
     func addNewMapLocal(obj: URLTaskObject) {
         db.write { r in
-            let new = MapLocalObject(subUrl: obj.url, method: obj.method, statusCode: obj.statusCode, resString: obj.responseString)
+            let new = MapLocalObject(subUrl: obj.url, method: obj.method, statusCode: String(obj.statusCode), resHeaders: obj.resHeaders, resString: obj.responseString)
             r.add(new)
         }
     }

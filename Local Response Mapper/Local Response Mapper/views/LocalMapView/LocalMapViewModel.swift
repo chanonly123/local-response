@@ -12,7 +12,7 @@ import SwiftUI
 
 @MainActor
 class LocalMapViewModel: ObservableObject {
-    
+
     @Published var error: [Error] = []
     @Published var list: Results<MapLocalObject>?
     @Published var selected: String?
@@ -28,10 +28,10 @@ class LocalMapViewModel: ObservableObject {
         "TRACE",
         "* (any)"
     ]
-    
+
     var notificationToken: NotificationToken?
     @Injected(\.db) var db
-    
+
     init() {
         do {
             let list = try db.getMapList()
@@ -48,7 +48,7 @@ class LocalMapViewModel: ObservableObject {
             error.append(e)
         }
     }
-    
+
     func getSelectedItem() -> MapLocalObject? {
         do {
             return try db.getItemMapLocal(id: selected)
@@ -57,18 +57,35 @@ class LocalMapViewModel: ObservableObject {
             return nil
         }
     }
-    
-    func getSetValue<T>(_ item: MapLocalObject, keyPath: WritableKeyPath<MapLocalObject, T>) -> Binding<T> {
+
+    func getSetValue<T: InitProvider>(_ item: MapLocalObject, keyPath: WritableKeyPath<MapLocalObject, T>) -> Binding<T> {
         var item = item
         return Binding(get: {
-            item[keyPath: keyPath]
+            item.isInvalidated ? T() : item[keyPath: keyPath]
         }, set: { [weak self] new in
             self?.db.write { r in
                 item[keyPath: keyPath] = new
             }
         })
     }
-    
+
+    func getSetResponseHeaders(_ item: MapLocalObject) -> Binding<String> {
+        return Binding(get: {
+            item.isInvalidated ? "" : item.resHeaders.map { "\($0.key): \($0.value)"  }.joined(separator: "\n")
+        }, set: { [weak self] new in
+            self?.db.write { r in
+                item.resHeaders.removeAll()
+                new.split(separator: "\n", omittingEmptySubsequences: true)
+                    .forEach {
+                        let comps = $0.split(separator: ":").map { $0.trimmingCharacters(in: .whitespaces) }
+                        if comps.count > 0 {
+                            item.resHeaders[comps[0]] = comps.count > 1 ? comps[1] : ""
+                        }
+                    }
+            }
+        })
+    }
+
     func formatJsonBody() {
         db.write { _ in
             do {
@@ -78,14 +95,14 @@ class LocalMapViewModel: ObservableObject {
             }
         }
     }
-    
+
     func addNew() {
         db.write { r in
-            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: 0, resString: "")
+            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "0", resHeaders: Map<String, String>(), resString: "")
             r.add(new)
         }
     }
-    
+
     func deleteSelected() {
         db.write { r in
             if let item = getSelectedItem() {
@@ -93,4 +110,20 @@ class LocalMapViewModel: ObservableObject {
             }
         }
     }
+
+    func isValidStatus(_ item: MapLocalObject) -> Bool {
+        return Int(item.statusCode) != nil
+    }
+
+    func isValidResponseJSON(_ item: MapLocalObject) -> Bool {
+        let result = try? JSONSerialization.jsonObject(with: item.resString.data(using: .utf8) ?? Data())
+        return result != nil
+    }
 }
+
+protocol InitProvider {
+    init()
+}
+
+extension String: InitProvider {}
+extension Bool: InitProvider {}
