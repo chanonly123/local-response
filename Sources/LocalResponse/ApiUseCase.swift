@@ -56,20 +56,22 @@ class ApiUseCase {
     }
     
     func recordComplete(task: URLSessionTask, data: Data) {
-        taskIdResponseData[task.uniqueId] = data
-        let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModelEnd(task: task, response: res, responseData: data, err: nil)
-        var req = createURLRequest(endpoint: Constants.recordEndUrl)
-        req.httpBody = toData(from: model)
-        session.dataTask(with: req).resume()
+        if taskIdResponseData[task.uniqueId] == nil {
+            taskIdResponseData[task.uniqueId] = Data()
+        }
+        taskIdResponseData[task.uniqueId]?.append(data)
     }
     
     func recordWithError(task: URLSessionTask, error: Error?) {
         let res = taskIdResponse[task.uniqueId]
-        let model = URLTaskModelEnd(task: task, response: res, responseData: taskIdResponseData[task.uniqueId], err: error?.localizedDescription ?? "Unknown error")
+        let data = taskIdResponseData[task.uniqueId]
+        let model = URLTaskModelEnd(task: task, response: res, responseData: data, err: error?.localizedDescription)
         var req = createURLRequest(endpoint: Constants.recordEndUrl)
         req.httpBody = toData(from: model)
         session.dataTask(with: req).resume()
+
+        taskIdResponse[task.uniqueId] = nil
+        taskIdResponseData[task.uniqueId] = nil
     }
     
     func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (String?) -> Void) {
