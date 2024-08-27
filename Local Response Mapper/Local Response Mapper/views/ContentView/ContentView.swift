@@ -189,9 +189,13 @@ struct ContentView: View {
                         Section("Method") {
                             Text(item.method)
                         }
-                        
+
+                        Section("Query Params") {
+                            Text(Utils.dictToString(item: Utils.getQueryParams(item.url)))
+                        }
+
                         Section("Request headers") {
-                            Text(viewm.dictToString(item: item.reqHeaders))
+                            Text(Utils.dictToString(item: item.reqHeaders))
                         }
                         
                         Section("Request Body") {
@@ -204,7 +208,7 @@ struct ContentView: View {
                         }
                         
                         Section("Response headers") {
-                            Text(viewm.dictToString(item: item.resHeaders))
+                            Text(Utils.dictToString(item: item.resHeaders))
                         }
                         
                         Section("Response String") {

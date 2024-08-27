@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RealmSwift
 import SwiftUI
 
 struct Utils {
@@ -17,7 +18,22 @@ struct Utils {
     static func getPath(_ from: String) -> String? {
         URL(string: from)?.path()
     }
-    
+
+    static func getQueryParams(_ from: String) -> [String: String] {
+        let comps = URLComponents(string: from)
+        var params = [String: String]()
+        comps?.queryItems?.forEach { params[$0.name] = $0.value }
+        return params
+    }
+
+    static func dictToString(item: Map<String, String>) -> String {
+        item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+    }
+
+    static func dictToString(item: [String: String]) -> String {
+        item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+    }
+
     static func getStatusColor(_ status: Int) -> Color {
         switch status {
         case 100...199: // Informational

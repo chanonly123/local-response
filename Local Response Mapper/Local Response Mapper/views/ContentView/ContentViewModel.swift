@@ -66,10 +66,6 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    func dictToString(item: Map<String, String>) -> String {
-        item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-    }
-
     func getTabButtonBackground(tab: TabType) -> Color {
         tab == selectedTab ? Color.gray.opacity(0.5) : Color.white
     }

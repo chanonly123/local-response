@@ -143,8 +143,9 @@ class DB: DBProtocol {
         let r = try realm
         try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
-                item.updateFrom(task: task)
-                r.add(item.createCopy())
+                let new = item.createCopy()
+                new.updateFrom(task: task)
+                r.add(new)
                 r.delete(item)
             }
         }
