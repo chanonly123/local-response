@@ -10,7 +10,6 @@
 - **No Certificates or Proxy Needed**: Unlike other tools, this solution does not require the installation of certificates or the use of a proxy, simplifying the setup process.
 
 ## TODO
-- Handling errors
 - Recording requests directly to Map Local window
 - Mac app new version check
 - Adding unit tests
