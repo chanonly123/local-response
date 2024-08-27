@@ -21,13 +21,25 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var responseString: String = ""
     @Persisted var resHeaders: Map<String, String> = .init()
     @Persisted var statusCode: Int = 0
-    @Persisted var finished: Bool = false
     
     convenience init(taskId: String) {
         self.init()
         self.taskId = taskId
     }
-    
+
+    func createCopy() -> URLTaskObject {
+        let new = URLTaskObject(taskId: UUID().uuidString)
+        new.date = date
+        new.url = url
+        new.body = body
+        new.method = method
+        new.reqHeaders = reqHeaders
+        new.responseString = responseString
+        new.resHeaders = resHeaders
+        new.statusCode = statusCode
+        return new
+    }
+
     func updateFrom(task: URLTaskModelBegin) {
         url = task.url
         method = task.method

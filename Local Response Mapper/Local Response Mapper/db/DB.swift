@@ -144,6 +144,8 @@ class DB: DBProtocol {
         try r.write {
             if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
                 item.updateFrom(task: task)
+                r.add(item.createCopy())
+                r.delete(item)
             }
         }
     }

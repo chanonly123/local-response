@@ -12,7 +12,7 @@ class Constants {
     static let localBaseUrlPort = 4040
     static let localBaseUrl = "http://localhost:\(localBaseUrlPort)"
 
-    static let schemaVersion: UInt64 = 13
+    static let schemaVersion: UInt64 = 14
 
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
