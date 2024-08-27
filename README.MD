@@ -9,6 +9,9 @@
 - **Mock Responses**: Easily override and mock network responses directly from the macOS app, enabling you to test various scenarios without modifying your code.
 - **No Certificates or Proxy Needed**: Unlike other tools, this solution does not require the installation of certificates or the use of a proxy, simplifying the setup process.
 
+## How to mock response
+![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo4.mp4)
+
 ## TODO
 - Recording requests directly to Map Local window
 - Mac app new version check
