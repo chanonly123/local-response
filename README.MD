@@ -10,7 +10,7 @@
 - **No Certificates or Proxy Needed**: Unlike other tools, this solution does not require the installation of certificates or the use of a proxy, simplifying the setup process.
 
 ## How to mock response
-![alt tag](https://youtu.be/_tsQh9sRV7M)
+[![](https://markdown-videos-api.jorgenkh.no/youtube/_tsQh9sRV7M)](https://www.youtube.com/watch?v=_tsQh9sRV7M)
 
 ## TODO
 - Recording requests directly to Map Local window
