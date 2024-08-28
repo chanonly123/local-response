@@ -7,6 +7,7 @@
 
 import SwiftUI
 import RealmSwift
+import CodeEditor
 
 struct ContentView: View {
     
@@ -212,7 +213,7 @@ struct ContentView: View {
                         }
                         
                         Section("Response String") {
-                            Text(item.responseString)
+                            CodeEditor(source: item.responseString, language: .json, theme: .pojoaque, disableScroll: true)
                         }
                     }
                 }

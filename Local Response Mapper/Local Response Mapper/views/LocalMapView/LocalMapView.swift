@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CodeEditor
 
 struct LocalMapView: View {
 
@@ -86,28 +87,43 @@ struct LocalMapView: View {
 
                     HStack {
                         Text("Status")
-                        (viewm.isValidStatus(item) ? Color.green : Color.red)
-                            .frame(width: 10, height: 10)
-                            .clipShape(Circle())
+
+                        Spacer()
+
+                        if viewm.isValidStatus(item) {
+                            Text("(valid Status)")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("(invalid Status)")
+                                .foregroundStyle(.red)
+                        }
                     }
                     TextField("", text: viewm.getSetValue(item, keyPath: \.statusCode))
 
                     Text("Response Headers")
-                    TextEditor(text: viewm.getSetResponseHeaders(item))
+                    CodeEditor(source: viewm.getSetResponseHeaders(item), language: .yaml, theme: .pojoaque)
                         .frame(maxHeight: 100)
 
                     HStack {
                         Text("Response String")
-                        (viewm.isValidResponseJSON(item) ? Color.green : Color.red)
-                            .frame(width: 10, height: 10)
-                            .clipShape(Circle())
+
                         Button {
                             viewm.formatJsonBody()
                         } label: {
                             Text("Format JSON")
                         }
+
+                        Spacer()
+
+                        if viewm.isValidResponseJSON(item) {
+                            Text("(valid JSON)")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("(invalid JSON)")
+                                .foregroundStyle(.red)
+                        }
                     }
-                    TextEditor(text: viewm.getSetValue(item, keyPath: \.resString))
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .pojoaque)
                         .frame(maxHeight: .infinity)
                 }
                 .padding(4)

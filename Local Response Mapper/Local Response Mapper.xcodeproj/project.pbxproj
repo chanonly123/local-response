@@ -19,6 +19,9 @@
 		18341F612C774E8B0033BD92 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18341F5E2C774E8B0033BD92 /* Models.swift */; };
 		1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC202C77D48F00FEA95A /* ErrorsView.swift */; };
 		1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC242C77D88F00FEA95A /* Color-ext.swift */; };
+		1860ACAE2C7F52AF0078ABF4 /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 1860ACAD2C7F52AF0078ABF4 /* CodeEditor */; };
+		1860ACB12C7F62430078ABF4 /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 1860ACB02C7F62430078ABF4 /* CodeEditor */; };
+		18698C3F2C7F7BE10029202F /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 18698C3E2C7F7BE10029202F /* CodeEditor */; };
 		188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */; };
 		18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BA66E62C7080C2005D86E7 /* LocalMapView.swift */; };
 		18C48AC02C6E5F4900A005EF /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 18C48ABF2C6E5F4900A005EF /* RealmSwift */; };
@@ -79,6 +82,9 @@
 				18CB6DAA2C6E58130074B8E0 /* FlyingFox in Frameworks */,
 				18CB6DAC2C6E58130074B8E0 /* FlyingSocks in Frameworks */,
 				1820A13E2C6F2E940016934A /* Factory in Frameworks */,
+				1860ACB12C7F62430078ABF4 /* CodeEditor in Frameworks */,
+				18698C3F2C7F7BE10029202F /* CodeEditor in Frameworks */,
+				1860ACAE2C7F52AF0078ABF4 /* CodeEditor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -206,6 +212,9 @@
 				18CB6DAB2C6E58130074B8E0 /* FlyingSocks */,
 				18C48ABF2C6E5F4900A005EF /* RealmSwift */,
 				1820A13D2C6F2E940016934A /* Factory */,
+				1860ACAD2C7F52AF0078ABF4 /* CodeEditor */,
+				1860ACB02C7F62430078ABF4 /* CodeEditor */,
+				18698C3E2C7F7BE10029202F /* CodeEditor */,
 			);
 			productName = "Local Response Mapper";
 			productReference = 1805D02A2C6CF8E200333A88 /* Local Response Mapper.app */;
@@ -239,6 +248,7 @@
 				18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */,
 				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */,
 				1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */,
+				18698C3D2C7F7BE10029202F /* XCRemoteSwiftPackageReference "CodeEditor" */,
 			);
 			productRefGroup = 1805D02B2C6CF8E200333A88 /* Products */;
 			projectDirPath = "";
@@ -496,6 +506,14 @@
 				minimumVersion = 2.3.2;
 			};
 		};
+		18698C3D2C7F7BE10029202F /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chanonly123/CodeEditor";
+			requirement = {
+				branch = develop;
+				kind = branch;
+			};
+		};
 		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/realm/realm-swift";
@@ -519,6 +537,19 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = Factory;
+		};
+		1860ACAD2C7F52AF0078ABF4 /* CodeEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CodeEditor;
+		};
+		1860ACB02C7F62430078ABF4 /* CodeEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CodeEditor;
+		};
+		18698C3E2C7F7BE10029202F /* CodeEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 18698C3D2C7F7BE10029202F /* XCRemoteSwiftPackageReference "CodeEditor" */;
+			productName = CodeEditor;
 		};
 		18C48ABF2C6E5F4900A005EF /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;

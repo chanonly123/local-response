@@ -1,6 +1,15 @@
 {
-  "originHash" : "f0eb5c73a4e622d5773f5675beb808d5b932edd95bbe10134060507fd9f68940",
+  "originHash" : "f952c8272ee84082c180e69c2b26917c13ca71610094da0215d55a29b09a6227",
   "pins" : [
+    {
+      "identity" : "codeeditor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/chanonly123/CodeEditor",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "c6b9a6ac5048c807215d2a47e02c6da67ff02a0e"
+      }
+    },
     {
       "identity" : "factory",
       "kind" : "remoteSourceControl",
@@ -17,6 +26,15 @@
       "state" : {
         "revision" : "b37b5ab2c8545cdcea27909c3441c92ca1a992a1",
         "version" : "0.15.0"
+      }
+    },
+    {
+      "identity" : "highlightr",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/helje5/Highlightr",
+      "state" : {
+        "revision" : "bd0358056ff1f12ea83833a9fc1b3b5a396a9da0",
+        "version" : "3.0.2"
       }
     },
     {
