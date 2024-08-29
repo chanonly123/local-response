@@ -12,7 +12,9 @@ import Factory
 @MainActor
 class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
-    enum TabType: String { case req, res  }
+    enum TabType: String, CaseIterable {
+        case req = "Request", res = "Response", resString = "Response String"
+    }
 
     @Published var errors: [Error] = []
     @Published var list: Results<URLTaskObject>?
@@ -69,8 +71,8 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    func getTabButtonBackground(tab: TabType) -> Color {
-        tab == selectedTab ? Color.gray.opacity(0.5) : Color.white
+    func getTabButtonTextColor(tab: TabType) -> Color {
+        tab == selectedTab ? Color.blue : Color.gray.opacity(0.5)
     }
 
     func addNewMapLocal(obj: URLTaskObject) {
@@ -89,22 +91,27 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func checkForNewVersion() {
+        struct Root: Codable {
+            let tag_name: String?
+        }
+
         Task {
             guard let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
                 return
             }
 
-            guard let url = URL(string: "https://github.com/chanonly123/local-response/raw/main/current_version.txt") else {
+            guard let url = URL(string: "https://api.github.com/repos/chanonly123/local-response/releases/latest") else {
                 return
             }
 
             let result = try await URLSession.shared.data(from: url)
-            
-            guard let new = String(data: result.0, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            let root = try JSONDecoder().decode(Root.self, from: result.0)
+
+            guard let new = root.tag_name else {
                 return
             }
-            
-            if current > new {
+
+            if new > current {
                 newVersion = new
                 newVersionAlert = true
             }

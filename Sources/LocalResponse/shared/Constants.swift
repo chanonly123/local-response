@@ -11,6 +11,7 @@ class Constants {
 
     static let localBaseUrlPort = 4040
     static let localBaseUrl = "http://localhost:\(localBaseUrlPort)"
+    static let higlightTheme = "xcode"
 
     static let schemaVersion: UInt64 = 14
 

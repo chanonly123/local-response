@@ -27,4 +27,6 @@ class MapLocalObject: Object, Identifiable {
         self.resHeaders = resHeaders
         self.resString = resString
     }
+
+    var status: Int { Int(statusCode) ?? 0 }
 }

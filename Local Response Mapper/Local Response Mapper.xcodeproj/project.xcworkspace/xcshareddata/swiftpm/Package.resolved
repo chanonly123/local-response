@@ -1,13 +1,13 @@
 {
-  "originHash" : "f3a8163e9a728724f1ceb995a6078a807d4e2ddbc706a05a529ff55c71b3e5af",
+  "originHash" : "8b74db517e77f0f905922f8967be3843366006a1cb3c5cd178cd0ecd45a3a58e",
   "pins" : [
     {
-      "identity" : "codeeditor",
+      "identity" : "codeeditor?tab=readme-ov-file",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/chanonly123/CodeEditor",
+      "location" : "https://github.com/ZeeZide/CodeEditor?tab=readme-ov-file",
       "state" : {
-        "branch" : "develop",
-        "revision" : "c6b9a6ac5048c807215d2a47e02c6da67ff02a0e"
+        "revision" : "f5c076b94f4ceb05abff88ba91d75a8d57143f0c",
+        "version" : "1.2.6"
       }
     },
     {

@@ -99,9 +99,14 @@ struct LocalMapView: View {
                         }
                     }
                     TextField("", text: viewm.getSetValue(item, keyPath: \.statusCode))
+                        .overlay(alignment: .trailing) {
+                            Text(Utils.getCommonDescription(httpStatusCode: Int(item.status)) ?? "")
+                                .foregroundColor(.gray)
+                                .padding(.trailing, 8)
+                        }
 
                     Text("Response Headers")
-                    CodeEditor(source: viewm.getSetResponseHeaders(item), language: .yaml, theme: .pojoaque)
+                    CodeEditor(source: viewm.getSetResponseHeaders(item), language: .yaml, theme: .init(rawValue: Constants.higlightTheme))
                         .frame(maxHeight: 100)
 
                     HStack {
@@ -123,7 +128,7 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .pojoaque)
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .init(rawValue: Constants.higlightTheme))
                         .frame(maxHeight: .infinity)
                 }
                 .padding(4)

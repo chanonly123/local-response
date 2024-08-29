@@ -10,20 +10,20 @@ import RealmSwift
 import CodeEditor
 
 struct ContentView: View {
-    
+
     @StateObject var viewm = ContentViewModel()
     @StateObject private var server = LocalServer()
     @Environment(\.openWindow) var openWindow
-    
+
     var body: some View {
         VStack(spacing: 0) {
             GeometryReader { geo in
-                
+
                 HSplitView {
                     leftView
                         .frame(minWidth: geo.size.width/3)
                         .frame(height: geo.size.height)
-                    
+
                     rightView
                         .frame(minWidth: geo.size.width/3)
                         .frame(height: geo.size.height)
@@ -31,10 +31,10 @@ struct ContentView: View {
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }
-            
+
             HStack {
                 Spacer()
-                
+
                 Button {
                     if server.isListening == true {
                         Utils.copyToClipboard("\(server.getFullListeningAddress)")
@@ -67,13 +67,13 @@ struct ContentView: View {
             viewm.checkForNewVersion()
         }
         .toolbar {
-            
+
             Button {
                 openLocalMapWindow()
             } label: {
                 Text("Map Local")
             }
-            
+
             Button {
                 viewm.clearAll()
             } label: {
@@ -86,17 +86,17 @@ struct ContentView: View {
         }
 
     }
-    
+
     var leftView: some View {
         VStack(spacing: 0) {
             if let items = viewm.list {
-                
+
                 Table(of: URLTaskObject.self, selection: $viewm.selected) {
                     TableColumn("Method", content: { val in
                         Text("\(val.method)")
                     })
                     .width(min: 50, ideal: 50, max: 100)
-                    
+
                     TableColumn("Status", content: { val in
                         HStack {
                             Circle().fill(Utils.getStatusColor(val.statusCode))
@@ -106,13 +106,13 @@ struct ContentView: View {
                         }
                     })
                     .width(min: 50, ideal: 50, max: 100)
-                    
+
                     TableColumn("URL", content: { val in
                         Text("\(val.url)")
                             .truncationMode(.head)
                     })
                     .width(min: 50, ideal: 200)
-                    
+
                 } rows: {
                     ForEach(items) { val in
                         TableRow(val)
@@ -134,8 +134,8 @@ struct ContentView: View {
                     }
                 }
                 .frame(minWidth: 300)
-                
-                
+
+
                 TextField("Filter", text: $viewm.filter)
                     .textFieldStyle(.roundedBorder)
             } else {
@@ -143,55 +143,44 @@ struct ContentView: View {
             }
         }
     }
-    
+
     var rightView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let item = viewm.fetch(taskId: viewm.selected) {
-                
+
                 HStack {
                     Spacer()
                     HStack {
-                        Button {
-                            viewm.selectedTab = .req
-                        } label: {
-                            Text("Request")
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 8)
-                                .contentShape(Rectangle())
-                                .background(viewm.getTabButtonBackground(tab: .req))
+                        ForEach(ContentViewModel.TabType.allCases, id: \.self) { item in
+                            Button {
+                                viewm.selectedTab = item
+                            } label: {
+                                Text(item.rawValue)
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 8)
+                                    .contentShape(Rectangle())
+                                    .foregroundColor(viewm.getTabButtonTextColor(tab: item))
+                            }
+                            .setSelectedButtonStyle(selected: viewm.selectedTab == item)
                         }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            viewm.selectedTab = .res
-                        } label: {
-                            Text("Response")
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 8)
-                                .contentShape(Rectangle())
-                                .background(viewm.getTabButtonBackground(tab: .res))
-                            
-                        }
-                        .buttonStyle(.plain)
-                        
                     }
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     Spacer()
                 }
                 .padding(2)
-                
-                
-                List {
-                    if viewm.selectedTab == .req {
+
+
+
+                switch viewm.selectedTab {
+                case .req:
+                    List {
                         Section("Host") {
                             Text(Utils.getHost(item.url) ?? "")
                         }
-                        
+
                         Section("Path") {
                             Text(Utils.getPath(item.url) ?? "")
                         }
-                        
+
                         Section("Method") {
                             Text(item.method)
                         }
@@ -203,36 +192,52 @@ struct ContentView: View {
                         Section("Request headers") {
                             Text(Utils.dictToString(item: item.reqHeaders))
                         }
-                        
+
                         Section("Request Body") {
-                            Text(item.body)
-                        }
-                    } else if viewm.selectedTab == .res {
-                        
-                        Section("Status") {
-                            Text("\(item.statusCode)")
-                        }
-                        
-                        Section("Response headers") {
-                            CodeEditor(source: Utils.dictToString(item: item.resHeaders), language: .yaml, theme: .pojoaque, disableScroll: true)
-                        }
-                        
-                        Section("Response String") {
-                            CodeEditor(source: item.responseString, language: .json, theme: .pojoaque, disableScroll: true)
+                            Text(Utils.highlightJson(item.body))
                         }
                     }
+                    .textSelection(.enabled)
+                case .res:
+                    List {
+                        Section("Status") {
+                            HStack {
+                                Text("\(item.statusCode)")
+                                Spacer()
+                                Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
+                        Section("Response headers") {
+                            Text(Utils.dictToString(item: item.resHeaders))
+                        }
+                    }
+                    .textSelection(.enabled)
+                case .resString:
+                    CodeEditor(source: item.responseString, language: .json, theme: .init(rawValue: Constants.higlightTheme))
+                        .frame(maxHeight: .infinity)
                 }
-                .textSelection(.enabled)
-                
-                
             } else {
                 Image(systemName: "tray")
             }
         }
     }
-    
+
     func openLocalMapWindow() {
         openWindow(id: "map-local-view")
+    }
+}
+
+fileprivate extension View {
+
+    @ViewBuilder
+    func setSelectedButtonStyle(selected: Bool) -> some View {
+        if selected {
+            self.buttonStyle(.bordered)
+        } else {
+            self.buttonStyle(.borderless)
+        }
     }
 }
 
