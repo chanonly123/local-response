@@ -1,5 +1,5 @@
 {
-  "originHash" : "f952c8272ee84082c180e69c2b26917c13ca71610094da0215d55a29b09a6227",
+  "originHash" : "f3a8163e9a728724f1ceb995a6078a807d4e2ddbc706a05a529ff55c71b3e5af",
   "pins" : [
     {
       "identity" : "codeeditor",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swhitty/FlyingFox.git",
       "state" : {
-        "revision" : "b37b5ab2c8545cdcea27909c3441c92ca1a992a1",
-        "version" : "0.15.0"
+        "revision" : "f7829d4aca8cbfecb410a1cce872b1b045224aa1",
+        "version" : "0.16.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/realm/realm-swift",
       "state" : {
-        "revision" : "5221a83dc720823e3017493394d00d49ccf13446",
-        "version" : "10.52.3"
+        "revision" : "9815e6c29d43cb5314add5dff8705c5476ab556c",
+        "version" : "10.53.0"
       }
     }
   ],

@@ -14,7 +14,6 @@
 
 ## TODO
 - Recording requests directly to Map Local window
-- Mac app new version check
 - Adding unit tests
 
 ## Installation
@@ -111,3 +110,6 @@ A big thanks to the following open-source projects and contributors whose code h
 
 [realm-swift](https://github.com/realm/realm-swift) - Realm is a mobile database: a replacement for Core Data & SQLite.
 
+[Highlightr](https://github.com/raspu/Highlightr) - iOS & OSX Syntax Highlighter.
+
+[CodeEditor](https://github.com/ZeeZide/CodeEditor) - A SwiftUI TextEditor with syntax highlighting using Highlight.js
