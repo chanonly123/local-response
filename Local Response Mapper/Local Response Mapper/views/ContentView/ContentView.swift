@@ -64,6 +64,7 @@ struct ContentView: View {
         .onAppear {
             server.startServer()
             server.reloadLocalAddress()
+            viewm.checkForNewVersion()
         }
         .toolbar {
             
@@ -79,7 +80,11 @@ struct ContentView: View {
                 Text("Clear")
             }
         }
-        
+        .alert("New version available\n\(viewm.newVersion ?? "")", isPresented: $viewm.newVersionAlert) {
+            viewm.getUpdateLink()
+            Button("Cancel") { }
+        }
+
     }
     
     var leftView: some View {
@@ -209,7 +214,7 @@ struct ContentView: View {
                         }
                         
                         Section("Response headers") {
-                            Text(Utils.dictToString(item: item.resHeaders))
+                            CodeEditor(source: Utils.dictToString(item: item.resHeaders), language: .yaml, theme: .pojoaque, disableScroll: true)
                         }
                         
                         Section("Response String") {

@@ -24,6 +24,9 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var selected: String?
     @Published var selectedTab: TabType = .req
 
+    @Published var newVersion: String?
+    @Published var newVersionAlert: Bool = false
+
     var notificationToken: NotificationToken?
     @Injected(\.db) var db
 
@@ -80,4 +83,32 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {
         Utils.copyToClipboard(obj[keyPath: keyPath])
     }
+
+    func getUpdateLink() -> some View {
+        Link("Update", destination: URL(string: "https://github.com/chanonly123/local-response/releases")!)
+    }
+
+    func checkForNewVersion() {
+        Task {
+            guard let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+                return
+            }
+
+            guard let url = URL(string: "https://github.com/chanonly123/local-response/raw/main/current_version.txt") else {
+                return
+            }
+
+            let result = try await URLSession.shared.data(from: url)
+            
+            guard let new = String(data: result.0, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+                return
+            }
+            
+            if current > new {
+                newVersion = new
+                newVersionAlert = true
+            }
+        }
+    }
+    
 }
