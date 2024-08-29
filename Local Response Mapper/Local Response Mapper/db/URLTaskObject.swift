@@ -53,4 +53,28 @@ class URLTaskObject: Object, Identifiable {
         statusCode = task.statusCode ?? 0
     }
 
+    // cache storage
+    lazy var getQuery: AttributedString = {
+        Utils.dictToString(item: Utils.getQueryParams(url))
+    }()
+
+    lazy var getReqHeaders: AttributedString = {
+        Utils.dictToString(item: reqHeaders)
+    }()
+
+    lazy var getResHeaders: AttributedString = {
+        Utils.dictToString(item: resHeaders)
+    }()
+
+    lazy var getResBody: AttributedString = {
+        Utils.highlightJson(body)
+    }()
+
+    lazy var getHost: AttributedString = {
+        Utils.getHost(url)
+    }()
+
+    lazy var getPath: AttributedString = {
+        Utils.getPath(url)
+    }()
 }

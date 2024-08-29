@@ -106,7 +106,7 @@ struct LocalMapView: View {
                         }
 
                     Text("Response Headers")
-                    CodeEditor(source: viewm.getSetResponseHeaders(item), language: .yaml, theme: .init(rawValue: Constants.higlightTheme))
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resHeaders), language: .yaml, theme: .init(rawValue: Constants.higlightTheme), flags: [.editable, .selectable])
                         .frame(maxHeight: 100)
 
                     HStack {
@@ -128,7 +128,7 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .init(rawValue: Constants.higlightTheme))
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .init(rawValue: Constants.higlightTheme), flags: [.editable, .selectable])
                         .frame(maxHeight: .infinity)
                 }
                 .padding(4)

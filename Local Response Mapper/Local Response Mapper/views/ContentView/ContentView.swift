@@ -174,27 +174,27 @@ struct ContentView: View {
                 case .req:
                     List {
                         Section("Host") {
-                            Text(Utils.getHost(item.url) ?? "")
+                            Text(item.getHost)
                         }
 
                         Section("Path") {
-                            Text(Utils.getPath(item.url) ?? "")
+                            Text(item.getPath)
                         }
 
                         Section("Method") {
-                            Text(item.method)
+                            Text(Utils.highlightYaml(item.method))
                         }
 
                         Section("Query Params") {
-                            Text(Utils.dictToString(item: Utils.getQueryParams(item.url)))
+                            Text(item.getQuery)
                         }
 
                         Section("Request headers") {
-                            Text(Utils.dictToString(item: item.reqHeaders))
+                            Text(item.getReqHeaders)
                         }
 
                         Section("Request Body") {
-                            Text(Utils.highlightJson(item.body))
+                            Text(item.getResBody)
                         }
                     }
                     .textSelection(.enabled)
@@ -202,7 +202,7 @@ struct ContentView: View {
                     List {
                         Section("Status") {
                             HStack {
-                                Text("\(item.statusCode)")
+                                Text(Utils.highlightYaml("\(item.statusCode)"))
                                 Spacer()
                                 Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
                                     .foregroundColor(.gray)
@@ -210,12 +210,12 @@ struct ContentView: View {
                         }
 
                         Section("Response headers") {
-                            Text(Utils.dictToString(item: item.resHeaders))
+                            Text(item.getReqHeaders)
                         }
                     }
                     .textSelection(.enabled)
                 case .resString:
-                    CodeEditor(source: item.responseString, language: .json, theme: .init(rawValue: Constants.higlightTheme))
+                    CodeEditor(source: item.responseString, language: .json, theme: .init(rawValue: Constants.higlightTheme), flags: [.selectable])
                         .frame(maxHeight: .infinity)
                 }
             } else {

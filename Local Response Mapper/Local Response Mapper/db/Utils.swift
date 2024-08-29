@@ -18,12 +18,12 @@ struct Utils {
         return h
     }()
 
-    static func getHost(_ from: String) -> String? {
-        URL(string: from)?.host()
+    static func getHost(_ from: String) -> AttributedString {
+        return highlightYaml(URL(string: from)?.host() ?? "")
     }
 
-    static func getPath(_ from: String) -> String? {
-        URL(string: from)?.path()
+    static func getPath(_ from: String) -> AttributedString {
+        return highlightYaml(URL(string: from)?.path() ?? "")
     }
 
     static func getQueryParams(_ from: String) -> [String: String] {
@@ -35,22 +35,24 @@ struct Utils {
 
     static func dictToString(item: Map<String, String>) -> AttributedString {
         let code = item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-        guard let attr = highlightr?.highlight(code, as: "yaml") else {
-            return AttributedString(code)
-        }
-        return AttributedString(attr)
+        return highlightYaml(code)
     }
 
     static func dictToString(item: [String: String]) -> AttributedString {
-        let code = item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-        guard let attr = highlightr?.highlight(code, as: "yaml") else {
-            return AttributedString(code)
-        }
-        return AttributedString(attr)
+        let keys: [String] = item.keys.sorted(by: { $0 < $1 })
+        let code = keys.map { "\($0): \(item[$0]!)" }.joined(separator: "\n")
+        return highlightYaml(code)
     }
 
     static func highlightJson(_ str: String) -> AttributedString {
         guard let attr = highlightr?.highlight(str, as: "json") else {
+            return AttributedString(str)
+        }
+        return AttributedString(attr)
+    }
+
+    static func highlightYaml(_ str: String) -> AttributedString {
+        guard let attr = highlightr?.highlight(str, as: "yaml") else {
             return AttributedString(str)
         }
         return AttributedString(attr)

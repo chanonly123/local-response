@@ -93,7 +93,7 @@ class LocalServer: ObservableObject {
             if let id = req.query["id"], let obj = try self.db.getLocalMap(id: id) {
 
                 var resHeaders = [HTTPHeader: String]()
-                obj.resHeaders.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+                obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
 
                 return HTTPResponse(statusCode: HTTPStatusCode(Int(obj.statusCode) ?? 0, phrase: "custom"),
                                     headers: resHeaders,

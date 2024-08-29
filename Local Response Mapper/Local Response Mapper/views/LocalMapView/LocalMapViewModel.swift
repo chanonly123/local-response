@@ -69,23 +69,6 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         })
     }
 
-    func getSetResponseHeaders(_ item: MapLocalObject) -> Binding<String> {
-        return Binding(get: {
-            item.isInvalidated ? "" : item.resHeaders.map { "\($0.key): \($0.value)"  }.joined(separator: "\n")
-        }, set: { [weak self] new in
-            self?.db.write { r in
-                item.resHeaders.removeAll()
-                new.split(separator: "\n", omittingEmptySubsequences: true)
-                    .forEach {
-                        let comps = $0.split(separator: ":").map { $0.trimmingCharacters(in: .whitespaces) }
-                        if comps.count > 0 {
-                            item.resHeaders[comps[0]] = comps.count > 1 ? comps[1] : ""
-                        }
-                    }
-            }
-        })
-    }
-
     func formatJsonBody() {
         db.write { _ in
             do {

@@ -13,7 +13,7 @@ class Constants {
     static let localBaseUrl = "http://localhost:\(localBaseUrlPort)"
     static let higlightTheme = "xcode"
 
-    static let schemaVersion: UInt64 = 14
+    static let schemaVersion: UInt64 = 15
 
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
