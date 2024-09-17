@@ -29,6 +29,9 @@
      ]
      ```
 
+   - Using Cocoapods:
+      Add `pod 'LocalResponse'` to `Podfile`
+
    - Or by manually integrating the library into your project.
 
 2. **Initialize the Interceptor:**
