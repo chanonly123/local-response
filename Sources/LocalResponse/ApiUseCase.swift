@@ -82,15 +82,11 @@ class ApiUseCase {
         self.session.dataTask(with: req) { data, res, err in
             var result: String?
             var error: Error?
-            
-            do {
-                if let data, let id = String(data: data, encoding: .utf8), !id.isEmpty {
-                    result = id
-                } else {
-                    error = err ?? NSError(domain: "data is nil", code: -1)
-                }
-            } catch let e {
-                error = e
+
+            if let data, let id = String(data: data, encoding: .utf8), !id.isEmpty {
+                result = id
+            } else {
+                error = err ?? NSError(domain: "data is nil", code: -1)
             }
             
             if let error {

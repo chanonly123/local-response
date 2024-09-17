@@ -22,7 +22,7 @@ public class LocalResponse {
     public func connect(connectionUrl: String? = nil, excludes: [String] = []) {
         LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
-            assertionFailure("LocalResponse> Bad url! \(connectionUrl)")
+            assertionFailure("LocalResponse> Bad url! \(connectionUrl ?? "nil")")
         }
         LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
         self.excludes = excludes
@@ -73,16 +73,12 @@ extension LocalResponse: InjectorDelegate {
         let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
                                    method: task.currentRequest?.httpMethod ?? "")
         LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { id in
-            do {
-                if let id {
-                    var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                    var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
-                    comps?.queryItems = [URLQueryItem(name: "id", value: id)]
-                    req.url = comps?.url
-                    task.setValue(req, forKey: "currentRequest")
-                }
-            } catch let e {
-                Logger.debugPrint("\(e)")
+            if let id {
+                var req = self.createURLRequest(endpoint: Constants.overridenRequest)
+                var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
+                comps?.queryItems = [URLQueryItem(name: "id", value: id)]
+                req.url = comps?.url
+                task.setValue(req, forKey: "currentRequest")
             }
             completion()
         }

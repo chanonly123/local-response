@@ -406,8 +406,8 @@ extension NetworkInjector {
         // For safety, we should cast to AnyObject
         // To prevent app crashes in the future if the object type is changed
         typealias NewClosureType =  @convention(c) (AnyObject, Selector, AnyObject) -> Void
-        let originalImp: IMP = method_getImplementation(method)
-        let block: @convention(block) (AnyObject, AnyObject) -> Void = {[weak self](me, handler) in
+        let _ /*originalImp*/: IMP = method_getImplementation(method)
+        let block: @convention(block) (AnyObject, AnyObject) -> Void = { /*[weak self]*/ (me, handler) in
 
 
             // Originally implemented in Obj-C.
