@@ -37,7 +37,7 @@ struct ContentView: View {
 
                 Button {
                     if server.isListening == true {
-                        Utils.copyToClipboard("\(server.getFullListeningAddress)")
+                        Utils.copyToClipboard("\(server.listeningAddress)")
                     }
                 } label: {
                     Circle().fill(server.isListening == true ? Color.green : Color.gray)
@@ -49,7 +49,7 @@ struct ContentView: View {
                         Text("Connecting...")
                     case true:
                         HStack {
-                            Text("Listening \(server.getFullListeningAddress)")
+                            Text("Listening \(server.listeningAddress)")
                             Image(systemName: "doc.on.doc")
                         }
                     case .some(_):
@@ -67,6 +67,14 @@ struct ContentView: View {
             viewm.checkForNewVersion()
         }
         .toolbar {
+
+#if DEBUG
+            Button {
+                viewm.generateDummyData()
+            } label: {
+                Text("Add Dummy data")
+            }
+#endif
 
             Button {
                 openLocalMapWindow()
@@ -92,8 +100,16 @@ struct ContentView: View {
             if let items = viewm.list {
 
                 Table(of: URLTaskObject.self, selection: $viewm.selected) {
+                    TableColumn("BundleID", content: { val in
+                        Text(val.bundleID)
+                            .truncationMode(.head)
+                            .help(val.bundleID)
+                    })
+                    .width(min: 50, ideal: 50, max: 200)
+
                     TableColumn("Method", content: { val in
                         Text("\(val.method)")
+                            .help(val.method)
                     })
                     .width(min: 50, ideal: 50, max: 100)
 
@@ -110,6 +126,7 @@ struct ContentView: View {
                     TableColumn("URL", content: { val in
                         Text("\(val.url)")
                             .truncationMode(.head)
+                            .help(val.url)
                     })
                     .width(min: 50, ideal: 200)
 
@@ -130,10 +147,14 @@ struct ContentView: View {
                                 Button("Copy Response String") {
                                     viewm.copyValue(obj: val, keyPath: \.responseString)
                                 }
+                                Button("Copy All") {
+                                    viewm.copyAll(obj: val)
+                                }
                             }
                     }
                 }
                 .frame(minWidth: 300)
+                .font(.system(size: Constants.tableFontSize))
 
 
                 TextField("Filter", text: $viewm.filter)
@@ -173,6 +194,10 @@ struct ContentView: View {
                 switch viewm.selectedTab {
                 case .req:
                     List {
+                        Section("BundleID") {
+                            Text(item.bundleID)
+                        }
+
                         Section("Host") {
                             Text(item.getHost)
                         }
@@ -210,7 +235,7 @@ struct ContentView: View {
                         }
 
                         Section("Response headers") {
-                            Text(item.getReqHeaders)
+                            Text(item.getResHeaders)
                         }
                     }
                     .textSelection(.enabled)

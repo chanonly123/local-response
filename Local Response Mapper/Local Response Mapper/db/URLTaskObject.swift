@@ -15,6 +15,7 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var url: String = ""
     @Persisted var body: String = ""
     @Persisted var method: String = ""
+    @Persisted var bundleID: String = ""
     @Persisted var reqHeaders: Map<String, String> = .init()
     
     // after response
@@ -41,6 +42,7 @@ class URLTaskObject: Object, Identifiable {
     }
 
     func updateFrom(task: URLTaskModelBegin) {
+        bundleID = task.bundleID ?? ""
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
@@ -48,6 +50,7 @@ class URLTaskObject: Object, Identifiable {
     }
 
     func updateFrom(task: URLTaskModelEnd) {
+        bundleID = task.bundleID ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? ""
         statusCode = task.statusCode ?? 0

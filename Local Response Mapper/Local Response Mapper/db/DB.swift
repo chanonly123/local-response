@@ -36,7 +36,7 @@ protocol DBProtocol {
 }
 
 class DB: DBProtocol {
-    
+
     func write(block: (Realm) throws -> Void) {
         do {
             try realm.write {
@@ -46,7 +46,7 @@ class DB: DBProtocol {
             Logger.debugPrint("Error: \(e)")
         }
     }
-    
+
     var realm: Realm {
         get throws {
             let config = Realm.Configuration(
@@ -54,75 +54,62 @@ class DB: DBProtocol {
             return try Realm(configuration: config)
         }
     }
-    
+
     func clearAllRecords() {
         write { r in
             let items = r.objects(URLTaskObject.self)
             r.delete(items)
         }
     }
-    
+
     func getItemTask(taskId: String?) throws -> URLTaskObject? {
         guard let taskId else { return nil }
         return try realm.object(ofType: URLTaskObject.self, forPrimaryKey: taskId)
     }
-    
+
     func getItemMapLocal(id: String?) throws -> MapLocalObject? {
         guard let id else { return nil }
         return try realm.object(ofType: MapLocalObject.self, forPrimaryKey: id)
     }
-    
+
     func getRecordsList(filter: String = "") throws -> Results<URLTaskObject> {
         var items = try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
         if !filter.isEmpty {
             items = items.where {
-                $0.url.contains(filter)
+                $0.url.contains(filter) || $0.bundleID.contains(filter)
             }
         }
         return items
     }
-    
+
     func getMapList() throws -> Results<MapLocalObject> {
         return try realm.objects(MapLocalObject.self).sorted(by: \.date, ascending: true)
     }
-    
+
     func createDummyForPreview() {
-        if let items = try? getRecordsList(filter: ""), items.isEmpty {
-            
-            let item = URLTaskObject(taskId: UUID().uuidString)
-            item.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
-            item.method = "POST"
-            item.reqHeaders["header1"] = "Some value"
-            write { r in
-                r.add(item)
-            }
-            
-            let item2 = URLTaskObject(taskId: UUID().uuidString)
-            item2.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response"
-            item2.method = "POST"
-            item2.reqHeaders["header1"] = "Some value"
-            
-            item2.resHeaders["header2"] = "Some value"
-            item2.body = #"{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}"#
-            write { r in
-                r.add(item2)
-            }
+
+        let item = URLTaskObject(taskId: UUID().uuidString)
+        item.bundleID = "com.some.bundle"
+        item.url = "https://gist.githubusercontent.com/qb-mithuns/4160386/raw?json=true"
+        item.method = "POST"
+        item.reqHeaders["req_header"] = "Some value"
+        item.statusCode = (200...500).randomElement()!
+        item.responseString = #"{"id":0,"name":"Mitzi Fields"}"#
+        item.resHeaders["res_header"] = "Some value"
+        item.body = #"{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}"#
+        write { r in
+            r.add(item)
         }
-        
-        if let items = try? getMapList(), items.isEmpty {
-            
-            let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: "0", resHeaders: Map<String, String>(), resString: #"{"status":{"code":201,"status":"NOT"}}"#)
-            write { r in
-                r.add(map1)
-            }
-            
-            let map2 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw", method: "GET", statusCode: "0", resHeaders: Map<String, String>(), resString: #"{"status":{"code":201,"status":"NOT"}}"#)
-            write { r in
-                r.add(map2)
-            }
+
+        // insert dummy MAP LOCAL responses
+        let code = "\((200...500).randomElement()!)"
+        let map1 = MapLocalObject(subUrl: "qb-mithuns/4160386/raw/13ff411a17e2cd558804d98da241d6f711c6c57a/Sample%2520Response", method: "GET", statusCode: code, resHeaders: Map<String, String>(), resString: #"{"status":{"code":201,"status":"NOT"}}"#)
+        write { r in
+            r.add(map1)
         }
+
     }
-    
+
     func recordBegin(task: URLTaskModelBegin) throws {
         let r = try realm
         try r.write {
@@ -138,7 +125,7 @@ class DB: DBProtocol {
             }
         }
     }
-    
+
     func recordEnd(task: URLTaskModelEnd) throws {
         let r = try realm
         try r.write {
@@ -150,7 +137,7 @@ class DB: DBProtocol {
             }
         }
     }
-    
+
     /// checs if a map response found, returns id
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String? {
         let r = try realm

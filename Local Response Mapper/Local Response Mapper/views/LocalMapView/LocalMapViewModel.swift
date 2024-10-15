@@ -32,6 +32,17 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     var notificationToken: NotificationToken?
     @Injected(\.db) var db
 
+    var selectedAnimated: String? {
+        set {
+            withAnimation {
+                selected = newValue
+            }
+        }
+        get {
+            selected
+        }
+    }
+
     init() {
         do {
             let list = try db.getMapList()
@@ -83,13 +94,22 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         db.write { r in
             let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "0", resHeaders: Map<String, String>(), resString: "")
             r.add(new)
+            selectedAnimated = new.id
         }
     }
 
     func deleteSelected() {
         db.write { r in
             if let item = getSelectedItem() {
+                let index = list?.firstIndex(of: item)
                 r.delete(item)
+                if let index, let list, !list.isEmpty {
+                    if index < list.count {
+                        selectedAnimated = list[index].id
+                    } else if index-1 < list.count {
+                        selectedAnimated = list[index-1].id
+                    }
+                }
             }
         }
     }

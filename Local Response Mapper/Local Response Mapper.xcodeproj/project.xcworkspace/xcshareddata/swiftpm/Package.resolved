@@ -1,5 +1,5 @@
 {
-  "originHash" : "8b74db517e77f0f905922f8967be3843366006a1cb3c5cd178cd0ecd45a3a58e",
+  "originHash" : "f91437e483d3e8ed5256d0fb18ffcb5ee2e17f2fa8c17c92393b22a9ccb81d2f",
   "pins" : [
     {
       "identity" : "codeeditor?tab=readme-ov-file",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hmlongco/Factory",
       "state" : {
-        "revision" : "587995f7d5cc667951d635fbf6b4252324ba0439",
-        "version" : "2.3.2"
+        "revision" : "dfe0852e8ebc146fe0f913af54a541d423b5ef37",
+        "version" : "2.4.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swhitty/FlyingFox.git",
       "state" : {
-        "revision" : "f7829d4aca8cbfecb410a1cce872b1b045224aa1",
-        "version" : "0.16.0"
+        "revision" : "17bf6185cb5a1dd4a137bdde1f2161c2d7c172d6",
+        "version" : "0.18.0"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/realm/realm-core.git",
       "state" : {
-        "revision" : "c2552e1d36867cb42b28130e894a81fc17081062",
-        "version" : "14.12.0"
+        "revision" : "e474a8d2270a8b12ac63ac9504e4757e39814b99",
+        "version" : "14.13.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/realm/realm-swift",
       "state" : {
-        "revision" : "9815e6c29d43cb5314add5dff8705c5476ab556c",
-        "version" : "10.53.0"
+        "revision" : "863498d37a9f0e72caa65963da9641d8cdfc8228",
+        "version" : "10.54.0"
       }
     }
   ],

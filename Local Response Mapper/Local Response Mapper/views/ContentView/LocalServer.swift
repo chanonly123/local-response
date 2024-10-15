@@ -22,7 +22,7 @@ class LocalServer: ObservableObject {
 
     @MainActor
     func startServer() {
-        if AppDelegate.isPreview {
+        if Utils.isPreview {
             return
         }
         guard isListening == false else { return }
@@ -63,7 +63,8 @@ class LocalServer: ObservableObject {
 
     @MainActor
     func reloadLocalAddress() {
-        listeningAddress = Utils.getIPAddress() ?? ":\(Constants.localBaseUrlPort)"
+        let ipAddr = Utils.getIPAddress() ?? "localhost"
+        listeningAddress = "http://\(ipAddr):\(Constants.localBaseUrlPort)"
     }
 
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
@@ -103,11 +104,6 @@ class LocalServer: ObservableObject {
             Logger.debugPrint("error: \(e)")
         }
         return HTTPResponse(statusCode: .internalServerError)
-    }
-
-    @MainActor
-    var getFullListeningAddress: String {
-        "http://\(listeningAddress):\(String(Constants.localBaseUrlPort))"
     }
 }
 

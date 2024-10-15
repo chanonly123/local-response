@@ -14,8 +14,10 @@ struct URLTaskModelBegin: Codable {
     let method: String
     let reqHeaders: [String: String]
     let body: String?
+    let bundleID: String?
 
     init(task: URLSessionTask) {
+        bundleID = Bundle.main.bundleIdentifier
         taskId = task.uniqueId
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
@@ -34,8 +36,10 @@ struct URLTaskModelEnd: Codable {
     let resHeaders: [String: String]?
     let statusCode: Int?
     let error: String?
+    let bundleID: String?
 
     init(task: URLSessionTask, response: URLResponse?, responseData: Data?, err: String?) {
+        bundleID = Bundle.main.bundleIdentifier
         taskId = task.uniqueId
         if let res = response as? HTTPURLResponse {
             var _resHeaders = [String: String]()

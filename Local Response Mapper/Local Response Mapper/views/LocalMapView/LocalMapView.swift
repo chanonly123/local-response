@@ -51,10 +51,12 @@ struct LocalMapView: View {
                     TableColumn("URL (contains)", content: { val in
                         TextField("", text: viewm.getSetValue(val, keyPath: \.subUrl))
                             .truncationMode(.head)
+                            .help(val.subUrl)
                     })
                     .width(min: 50, ideal: 200)
                 }
                 .frame(minWidth: 300)
+                .font(.system(size: Constants.tableFontSize))
 
                 HStack(spacing: 4) {
                     Button {

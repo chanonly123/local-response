@@ -14,9 +14,6 @@
 		1805D03D2C6CF9CE00333A88 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */; };
 		1820A13A2C6F24BB0016934A /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 18C48ABF2C6E5F4900A005EF /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		1820A13E2C6F2E940016934A /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 1820A13D2C6F2E940016934A /* Factory */; };
-		18341F5F2C774E8B0033BD92 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18341F5C2C774E8B0033BD92 /* Constants.swift */; };
-		18341F602C774E8B0033BD92 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18341F5D2C774E8B0033BD92 /* Logger.swift */; };
-		18341F612C774E8B0033BD92 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18341F5E2C774E8B0033BD92 /* Models.swift */; };
 		1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC202C77D48F00FEA95A /* ErrorsView.swift */; };
 		1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC242C77D88F00FEA95A /* Color-ext.swift */; };
 		188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */; };
@@ -31,6 +28,9 @@
 		18D50D392C7093DE004B0D44 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D50D382C7093DE004B0D44 /* Utils.swift */; };
 		18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E5A1A82C6FB4710045C3C8 /* URLTaskObject.swift */; };
 		18E5A1AB2C6FB48B0045C3C8 /* MapLocalObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E5A1AA2C6FB48B0045C3C8 /* MapLocalObject.swift */; };
+		18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558B2CBEB88A001CCD17 /* Constants.swift */; };
+		18F855902CBEB88B001CCD17 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558D2CBEB88A001CCD17 /* Models.swift */; };
+		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -56,9 +56,6 @@
 		1805D0362C6CF8E300333A88 /* Local_Response_Mapper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Local_Response_Mapper.entitlements; sourceTree = "<group>"; };
 		1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
 		1815D2112C7739C000908A34 /* README.MD */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.MD; path = ../README.MD; sourceTree = "<group>"; };
-		18341F5C2C774E8B0033BD92 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = ../../../Sources/LocalResponse/shared/Constants.swift; sourceTree = "<group>"; };
-		18341F5D2C774E8B0033BD92 /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logger.swift; path = ../../../Sources/LocalResponse/shared/Logger.swift; sourceTree = "<group>"; };
-		18341F5E2C774E8B0033BD92 /* Models.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Models.swift; path = ../../../Sources/LocalResponse/shared/Models.swift; sourceTree = "<group>"; };
 		1848CC202C77D48F00FEA95A /* ErrorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorsView.swift; sourceTree = "<group>"; };
 		1848CC242C77D88F00FEA95A /* Color-ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color-ext.swift"; sourceTree = "<group>"; };
 		188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMapViewModel.swift; sourceTree = "<group>"; };
@@ -69,6 +66,9 @@
 		18D50D382C7093DE004B0D44 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		18E5A1A82C6FB4710045C3C8 /* URLTaskObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTaskObject.swift; sourceTree = "<group>"; };
 		18E5A1AA2C6FB48B0045C3C8 /* MapLocalObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLocalObject.swift; sourceTree = "<group>"; };
+		18F8558B2CBEB88A001CCD17 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		18F8558C2CBEB88A001CCD17 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,9 +109,9 @@
 			children = (
 				1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */,
 				18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */,
+				18F8558E2CBEB88A001CCD17 /* shared */,
 				18757FF22C70819100044627 /* supporting */,
 				18757FF12C70817000044627 /* db */,
-				18757FF02C70815100044627 /* shared */,
 				18BA66E82C7080CA005D86E7 /* views */,
 			);
 			path = "Local Response Mapper";
@@ -123,16 +123,6 @@
 				1805D0342C6CF8E300333A88 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		18757FF02C70815100044627 /* shared */ = {
-			isa = PBXGroup;
-			children = (
-				18341F5C2C774E8B0033BD92 /* Constants.swift */,
-				18341F5D2C774E8B0033BD92 /* Logger.swift */,
-				18341F5E2C774E8B0033BD92 /* Models.swift */,
-			);
-			path = shared;
 			sourceTree = "<group>";
 		};
 		18757FF12C70817000044627 /* db */ = {
@@ -185,6 +175,17 @@
 			);
 			path = views;
 			sourceTree = "<group>";
+		};
+		18F8558E2CBEB88A001CCD17 /* shared */ = {
+			isa = PBXGroup;
+			children = (
+				18F8558B2CBEB88A001CCD17 /* Constants.swift */,
+				18F8558C2CBEB88A001CCD17 /* Logger.swift */,
+				18F8558D2CBEB88A001CCD17 /* Models.swift */,
+			);
+			name = shared;
+			path = ../Sources/LocalResponse/shared;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -279,13 +280,13 @@
 				18D50D392C7093DE004B0D44 /* Utils.swift in Sources */,
 				1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */,
 				18CB6DA22C6E51770074B8E0 /* AppDelegate.swift in Sources */,
+				18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */,
+				18F855902CBEB88B001CCD17 /* Models.swift in Sources */,
+				18F855912CBEB88B001CCD17 /* Logger.swift in Sources */,
 				18CB6DA42C6E52E80074B8E0 /* LocalServer.swift in Sources */,
-				18341F602C774E8B0033BD92 /* Logger.swift in Sources */,
 				18C48AC22C6E611A00A005EF /* DB.swift in Sources */,
 				18E5A1AB2C6FB48B0045C3C8 /* MapLocalObject.swift in Sources */,
-				18341F5F2C774E8B0033BD92 /* Constants.swift in Sources */,
 				1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */,
-				18341F612C774E8B0033BD92 /* Models.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -431,7 +432,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -460,7 +461,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

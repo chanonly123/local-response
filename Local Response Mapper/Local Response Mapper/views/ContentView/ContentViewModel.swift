@@ -57,6 +57,10 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    func generateDummyData() {
+        db.createDummyForPreview()
+    }
+
     func clearAll() {
         db.clearAllRecords()
         fetch()
@@ -84,6 +88,32 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {
         Utils.copyToClipboard(obj[keyPath: keyPath])
+    }
+
+    func copyAll(obj: URLTaskObject) {
+        var arr = [String]()
+        arr.append("== URL ==")
+        arr.append(obj.url)
+        if !obj.body.isEmpty {
+            arr.append("== REQUEST_BODY ==")
+            arr.append(obj.body)
+        }
+        arr.append("== METHOD ==")
+        arr.append(obj.method)
+
+        arr.append("== REQUEST_HEADERS ==")
+        arr.append(NSAttributedString(obj.getReqHeaders).string)
+
+        arr.append("== STATUS ==")
+        arr.append("\(obj.statusCode)")
+
+        arr.append("== RESPONSE_HEADERS ==")
+        arr.append(NSAttributedString(string: obj.responseString).string)
+
+        arr.append("== RESPONSE_BODY ==")
+        arr.append(obj.responseString)
+
+        Utils.copyToClipboard(arr.joined(separator: "\n"))
     }
 
     func getUpdateLink() -> some View {
