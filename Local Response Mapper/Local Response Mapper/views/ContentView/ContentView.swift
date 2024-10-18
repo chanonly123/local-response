@@ -11,9 +11,10 @@ import CodeEditor
 
 struct ContentView: View {
 
-    @StateObject var viewm = ContentViewModel()
+    @StateObject private var myColorScheme = ColorSchemeViewModel.shared
+    @StateObject private var viewm = ContentViewModel()
     @StateObject private var server = LocalServer()
-    @Environment(\.openWindow) var openWindow
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,6 +76,12 @@ struct ContentView: View {
                 Text("Add Dummy data")
             }
 #endif
+
+            Button {
+                myColorScheme.rotateScheme()
+            } label: {
+                Label("Theme", systemImage: "circle.lefthalf.striped.horizontal.inverse")
+            }
 
             Button {
                 openLocalMapWindow()
@@ -240,7 +247,7 @@ struct ContentView: View {
                     }
                     .textSelection(.enabled)
                 case .resString:
-                    CodeEditor(source: item.responseString, language: .json, theme: .init(rawValue: Constants.higlightTheme), flags: [.selectable])
+                    CodeEditor(source: item.responseString, language: .json, theme: theme, flags: [.selectable])
                         .frame(maxHeight: .infinity)
                 }
             } else {
@@ -251,6 +258,10 @@ struct ContentView: View {
 
     func openLocalMapWindow() {
         openWindow(id: "map-local-view")
+    }
+
+    var theme: CodeEditor.ThemeName {
+        return .init(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
     }
 }
 

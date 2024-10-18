@@ -10,6 +10,7 @@ import CodeEditor
 
 struct LocalMapView: View {
 
+    @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = LocalMapViewModel()
 
     var body: some View {
@@ -108,7 +109,7 @@ struct LocalMapView: View {
                         }
 
                     Text("Response Headers")
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resHeaders), language: .yaml, theme: .init(rawValue: Constants.higlightTheme), flags: [.editable, .selectable])
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resHeaders), language: .yaml, theme: theme, flags: [.editable, .selectable])
                         .frame(maxHeight: 100)
 
                     HStack {
@@ -130,7 +131,7 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: .init(rawValue: Constants.higlightTheme), flags: [.editable, .selectable])
+                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: theme, flags: [.editable, .selectable])
                         .frame(maxHeight: .infinity)
                 }
                 .padding(4)
@@ -140,6 +141,9 @@ struct LocalMapView: View {
         }
     }
 
+    var theme: CodeEditor.ThemeName {
+        .init(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
+    }
 }
 
 #Preview {

@@ -16,6 +16,9 @@
 		1820A13E2C6F2E940016934A /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 1820A13D2C6F2E940016934A /* Factory */; };
 		1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC202C77D48F00FEA95A /* ErrorsView.swift */; };
 		1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC242C77D88F00FEA95A /* Color-ext.swift */; };
+		185879D12CC140D10042449B /* tomorrow-night-bright.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D02CC140D10042449B /* tomorrow-night-bright.min.css */; };
+		185879D52CC140E20042449B /* xcode.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D42CC140E20042449B /* xcode.min.css */; };
+		185879D72CC151600042449B /* MyColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 185879D62CC151580042449B /* MyColorScheme.swift */; };
 		188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */; };
 		188AFF462C8090EC00E8342B /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 188AFF452C8090EC00E8342B /* CodeEditor */; };
 		18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BA66E62C7080C2005D86E7 /* LocalMapView.swift */; };
@@ -58,6 +61,9 @@
 		1815D2112C7739C000908A34 /* README.MD */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.MD; path = ../README.MD; sourceTree = "<group>"; };
 		1848CC202C77D48F00FEA95A /* ErrorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorsView.swift; sourceTree = "<group>"; };
 		1848CC242C77D88F00FEA95A /* Color-ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color-ext.swift"; sourceTree = "<group>"; };
+		185879D02CC140D10042449B /* tomorrow-night-bright.min.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night-bright.min.css"; sourceTree = "<group>"; };
+		185879D42CC140E20042449B /* xcode.min.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = xcode.min.css; sourceTree = "<group>"; };
+		185879D62CC151580042449B /* MyColorScheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyColorScheme.swift; sourceTree = "<group>"; };
 		188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMapViewModel.swift; sourceTree = "<group>"; };
 		18BA66E62C7080C2005D86E7 /* LocalMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMapView.swift; sourceTree = "<group>"; };
 		18C48AC12C6E611A00A005EF /* DB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DB.swift; sourceTree = "<group>"; };
@@ -139,6 +145,8 @@
 		18757FF22C70819100044627 /* supporting */ = {
 			isa = PBXGroup;
 			children = (
+				185879D42CC140E20042449B /* xcode.min.css */,
+				185879D02CC140D10042449B /* tomorrow-night-bright.min.css */,
 				1805D0312C6CF8E300333A88 /* Assets.xcassets */,
 				1805D0362C6CF8E300333A88 /* Local_Response_Mapper.entitlements */,
 				1805D0332C6CF8E300333A88 /* Preview Content */,
@@ -168,6 +176,7 @@
 		18BA66E82C7080CA005D86E7 /* views */ = {
 			isa = PBXGroup;
 			children = (
+				185879D62CC151580042449B /* MyColorScheme.swift */,
 				188A7D8B2C73142B00B09A7F /* LocalMapView */,
 				188A7D8A2C73142100B09A7F /* ContentView */,
 				1848CC202C77D48F00FEA95A /* ErrorsView.swift */,
@@ -260,6 +269,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1805D0352C6CF8E300333A88 /* Preview Assets.xcassets in Resources */,
+				185879D52CC140E20042449B /* xcode.min.css in Resources */,
+				185879D12CC140D10042449B /* tomorrow-night-bright.min.css in Resources */,
 				1805D0322C6CF8E300333A88 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -282,6 +293,7 @@
 				18CB6DA22C6E51770074B8E0 /* AppDelegate.swift in Sources */,
 				18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */,
 				18F855902CBEB88B001CCD17 /* Models.swift in Sources */,
+				185879D72CC151600042449B /* MyColorScheme.swift in Sources */,
 				18F855912CBEB88B001CCD17 /* Logger.swift in Sources */,
 				18CB6DA42C6E52E80074B8E0 /* LocalServer.swift in Sources */,
 				18C48AC22C6E611A00A005EF /* DB.swift in Sources */,
@@ -432,7 +444,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -461,7 +473,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

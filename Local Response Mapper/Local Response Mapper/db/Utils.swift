@@ -12,11 +12,33 @@ import Highlightr
 
 struct Utils {
 
-    static var highlightr: Highlightr? = {
+    static var highlightrLight: Highlightr? = {
         let h = Highlightr()
-        h?.setTheme(to: Constants.higlightTheme)
+        h?.setTheme(to: Constants.higlightThemeLight)
         return h
     }()
+
+    static var highlightrDark: Highlightr? = {
+        let h = Highlightr()
+        h?.setTheme(to: Constants.higlightThemeDark)
+        return h
+    }()
+
+    static var highlightr: Highlightr? {
+        return switch ColorSchemeViewModel.shared.value {
+        case .light: highlightrLight
+        case .dark: highlightrDark
+        @unknown default: highlightrLight
+        }
+    }
+
+    static func getThemeName(colorScheme: ColorScheme) -> String {
+        return switch colorScheme {
+        case .light: Constants.higlightThemeLight
+        case .dark: Constants.higlightThemeDark
+        @unknown default: Constants.higlightThemeDark
+        }
+    }
 
     static func getHost(_ from: String) -> AttributedString {
         return highlightYaml(URL(string: from)?.host() ?? "")

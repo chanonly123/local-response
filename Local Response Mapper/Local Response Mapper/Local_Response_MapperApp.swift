@@ -10,16 +10,21 @@ import RealmSwift
 
 @main
 struct Local_Response_MapperApp: SwiftUI.App {
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var myColorScheme = ColorSchemeViewModel.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 700, minHeight: 300)
+                .preferredColorScheme(myColorScheme.value)
         }
+
         Window("", id: "map-local-view") {
             LocalMapView()
                 .frame(minWidth: 700, minHeight: 300)
+                .preferredColorScheme(myColorScheme.value)
         }
     }
 }
