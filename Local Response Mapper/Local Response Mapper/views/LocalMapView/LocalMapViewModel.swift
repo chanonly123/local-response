@@ -103,14 +103,24 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
             if let item = getSelectedItem() {
                 let index = list?.firstIndex(of: item)
                 r.delete(item)
-                if let index, let list, !list.isEmpty {
-                    if index < list.count {
-                        selectedAnimated = list[index].id
-                    } else if index-1 < list.count {
-                        selectedAnimated = list[index-1].id
-                    }
+                DispatchQueue.main.async {
+                    self.selectNearby(index: index)
                 }
             }
+        }
+    }
+
+    func selectNearby(index: Int?) {
+        if let index, let list, !list.isEmpty {
+            if index < list.count {
+                selectedAnimated = list[index].id
+            } else if index-1 < list.count {
+                selectedAnimated = list[index-1].id
+            } else {
+                selected = nil
+            }
+        } else {
+            selected = nil
         }
     }
 

@@ -76,7 +76,7 @@ class DB: DBProtocol {
         var items = try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
         if !filter.isEmpty {
             items = items.where {
-                $0.url.contains(filter) || $0.bundleID.contains(filter)
+                $0.url.contains(filter, options: .caseInsensitive) || $0.bundleID.contains(filter, options: .caseInsensitive)
             }
         }
         return items
