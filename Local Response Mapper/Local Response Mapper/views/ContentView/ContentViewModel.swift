@@ -125,6 +125,10 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             let tag_name: String?
         }
 
+        func versionToInt(_ ver: String) -> Int? {
+            Int(ver.replacingOccurrences(of: ".", with: ""))
+        }
+
         Task {
             guard let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
                 return
@@ -141,7 +145,11 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
                 return
             }
 
-            if new > current {
+            if
+                let newVer = versionToInt(new),
+                let currentVer = versionToInt(current),
+                newVer > currentVer
+            {
                 newVersion = new
                 newVersionAlert = true
             }
