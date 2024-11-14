@@ -28,7 +28,7 @@ struct ContentView: View {
                     rightView
                         .frame(minWidth: geo.size.width/3)
                         .frame(height: geo.size.height)
-                        .navigationTitle("Local Response Mapper")
+                        .navigationTitle("Local Response Mapper (\(viewm.getCurrentVersion() ?? ""))")
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }

@@ -120,6 +120,10 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         Link("Update", destination: URL(string: "https://github.com/chanonly123/local-response/releases")!)
     }
 
+    func getCurrentVersion() -> String? {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    }
+
     func checkForNewVersion() {
         struct Root: Codable {
             let tag_name: String?
@@ -130,7 +134,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
 
         Task {
-            guard let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+            guard let current = getCurrentVersion() else {
                 return
             }
 
