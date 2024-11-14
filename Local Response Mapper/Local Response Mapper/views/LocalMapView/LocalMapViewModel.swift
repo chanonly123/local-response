@@ -69,13 +69,18 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    func getSetValue<T: InitProvider>(_ item: MapLocalObject, keyPath: WritableKeyPath<MapLocalObject, T>) -> Binding<T> {
-        var item = item
-        return Binding(get: {
-            item.isInvalidated ? T() : item[keyPath: keyPath]
+    func getSetValue<T: InitProvider>(_ id: String, keyPath: WritableKeyPath<MapLocalObject, T>) -> Binding<T> {
+        return Binding(get: { [weak self] in
+            if let itemVar = try? self?.db.getItemMapLocal(id: id) {
+                return itemVar.isInvalidated ? T() : itemVar[keyPath: keyPath]
+            } else {
+                return T()
+            }
         }, set: { [weak self] new in
-            self?.db.write { r in
-                item[keyPath: keyPath] = new
+            if var itemVar = try? self?.db.getItemMapLocal(id: id) {
+                self?.db.write { r in
+                    itemVar[keyPath: keyPath] = new
+                }
             }
         })
     }

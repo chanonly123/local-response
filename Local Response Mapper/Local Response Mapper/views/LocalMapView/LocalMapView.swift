@@ -36,12 +36,12 @@ struct LocalMapView: View {
             if let items = viewm.list {
                 Table(items, selection: $viewm.selected) {
                     TableColumn("Enable", content: { val in
-                        Toggle("", isOn: viewm.getSetValue(val, keyPath: \.enable))
+                        Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
                     })
                     .width(min: 50, ideal: 50, max: 80)
 
                     TableColumn("Method (match)", content: { val in
-                        Picker("", selection: viewm.getSetValue(val, keyPath: \.method)) {
+                        Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
                             ForEach(viewm.httpMethods, id: \.self) {
                                 Text($0)
                             }
@@ -86,6 +86,7 @@ struct LocalMapView: View {
     var rightView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let item = viewm.getSelectedItem() {
+                Text("id: \(item.id)")
                 VStack(alignment: .leading, spacing: 4) {
 
                     HStack {
@@ -101,7 +102,7 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    TextField("", text: viewm.getSetValue(item, keyPath: \.statusCode))
+                    TextField("", text: viewm.getSetValue(item.id, keyPath: \.statusCode))
                         .overlay(alignment: .trailing) {
                             Text(Utils.getCommonDescription(httpStatusCode: Int(item.status)) ?? "")
                                 .foregroundColor(.gray)
@@ -109,7 +110,7 @@ struct LocalMapView: View {
                         }
 
                     Text("Response Headers")
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resHeaders), language: .yaml, theme: theme, flags: [.editable, .selectable])
+                    CodeEditor(source: viewm.getSetValue(item.id, keyPath: \.resHeaders), language: .yaml, theme: theme, flags: [.editable, .selectable])
                         .frame(maxHeight: 100)
 
                     HStack {
@@ -131,8 +132,9 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    CodeEditor(source: viewm.getSetValue(item, keyPath: \.resString), language: .json, theme: theme, flags: [.editable, .selectable])
+                    CodeEditor(source: viewm.getSetValue(item.id, keyPath: \.resString), language: .json, theme: theme, flags: [.editable, .selectable])
                         .frame(maxHeight: .infinity)
+                        .id(item.id)
                 }
                 .padding(4)
             } else {
