@@ -50,7 +50,7 @@ struct LocalMapView: View {
                     .width(min: 100, ideal: 100, max: 150)
 
                     TableColumn("URL (contains)", content: { val in
-                        TextField("", text: viewm.getSetValue(val, keyPath: \.subUrl))
+                        TextField("", text: viewm.getSetValue(val.id, keyPath: \.subUrl))
                             .truncationMode(.head)
                             .help(val.subUrl)
                     })
