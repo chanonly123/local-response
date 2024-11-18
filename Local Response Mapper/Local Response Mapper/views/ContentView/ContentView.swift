@@ -249,6 +249,7 @@ struct ContentView: View {
                 case .resString:
                     CodeEditor(source: item.responseString, language: .json, theme: theme, flags: [.selectable])
                         .frame(maxHeight: .infinity)
+                        .id(item.id)
                 }
             } else {
                 Image(systemName: "tray")

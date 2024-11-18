@@ -108,7 +108,7 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
             if let item = getSelectedItem() {
                 let index = list?.firstIndex(of: item)
                 r.delete(item)
-                DispatchQueue.main.async {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.selectNearby(index: index)
                 }
             }
