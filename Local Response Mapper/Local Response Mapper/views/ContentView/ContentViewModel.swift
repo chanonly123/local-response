@@ -159,5 +159,19 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             }
         }
     }
-    
+
+    func toCurlCommand(obj: URLTaskObject) {
+        var arr = [String]()
+        let url = obj.url
+        arr.append("curl")
+        arr.append("    --request \(obj.method.uppercased())")
+        obj.reqHeaders.forEach {
+            arr.append("    --header '\($0.key): \($0.value)'")
+        }
+        if !obj.body.isEmpty && (obj.method.uppercased() == "POST" || obj.method.uppercased() == "PUT" || obj.method.uppercased() == "PATCH") {
+            arr.append("    --data '\(obj.body)'")
+        }
+        arr.append("    '\(url)'")
+        Utils.copyToClipboard(arr.joined(separator: " \\\n"))
+    }
 }

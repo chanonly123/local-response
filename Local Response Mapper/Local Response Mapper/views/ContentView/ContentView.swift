@@ -157,6 +157,9 @@ struct ContentView: View {
                                 Button("Copy All") {
                                     viewm.copyAll(obj: val)
                                 }
+                                Button("Copy CURL") {
+                                    viewm.toCurlCommand(obj: val)
+                                }
                             }
                     }
                 }
