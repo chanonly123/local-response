@@ -46,13 +46,13 @@ class URLTaskObject: Object, Identifiable {
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
-        body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? ""
+        body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? task.body ?? ""
     }
 
     func updateFrom(task: URLTaskModelEnd) {
         bundleID = task.bundleID ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
-        responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? ""
+        responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? task.resString ?? ""
         statusCode = task.statusCode ?? 0
     }
 

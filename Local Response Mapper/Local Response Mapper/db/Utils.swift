@@ -97,14 +97,14 @@ struct Utils {
         }
     }
 
-    static func prettyPrintJSON(from jsonString: String) throws -> String {
+    static func prettyPrintJSON(from jsonString: String) throws -> String? {
         guard let jsonData = jsonString.data(using: .utf8) else {
             return jsonString
         }
         let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
         let prettyData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted, .sortedKeys])
 
-        return String(data: prettyData, encoding: .utf8) ?? jsonString
+        return String(data: prettyData, encoding: .utf8)
     }
 
     static func getIPAddress() -> String? {

@@ -87,11 +87,8 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     func formatJsonBody() {
         db.write { _ in
-            do {
-                getSelectedItem()?.resString = try Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
-            } catch let err {
-                self.appendError(err)
-            }
+            let str = try? Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
+            getSelectedItem()?.resString = str ?? getSelectedItem()?.resString ?? ""
         }
     }
 
