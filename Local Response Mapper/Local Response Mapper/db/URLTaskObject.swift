@@ -22,7 +22,8 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var responseString: String = ""
     @Persisted var resHeaders: Map<String, String> = .init()
     @Persisted var statusCode: Int = 0
-    
+    @Persisted var isEdited: Bool = false
+
     convenience init(taskId: String) {
         self.init()
         self.taskId = taskId
@@ -54,6 +55,8 @@ class URLTaskObject: Object, Identifiable {
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? task.resString ?? ""
         statusCode = task.statusCode ?? 0
+        isEdited = resHeaders[LocalServer.isEditedKey] == "1"
+        resHeaders[LocalServer.isEditedKey] = nil
     }
 
     // cache storage
@@ -69,7 +72,7 @@ class URLTaskObject: Object, Identifiable {
         Utils.dictToString(item: resHeaders)
     }()
 
-    lazy var getResBody: AttributedString = {
+    lazy var getReqBody: AttributedString = {
         Utils.highlightJson(body)
     }()
 
@@ -79,5 +82,12 @@ class URLTaskObject: Object, Identifiable {
 
     lazy var getPath: AttributedString = {
         Utils.getPath(url)
+    }()
+
+    lazy var getPathString: String = {
+        guard let urlObj = URL(string: url) else {
+            return ""
+        }
+        return (urlObj.host() ?? "") + urlObj.path()
     }()
 }

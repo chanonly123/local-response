@@ -20,6 +20,8 @@ class LocalServer: ObservableObject {
     @MainActor @Published var isListening: Bool? = false
     @MainActor @Published var error: Error?
 
+    static let isEditedKey = "--isEdited--"
+
     @MainActor
     func startServer() {
         if Utils.isPreview {
@@ -95,10 +97,16 @@ class LocalServer: ObservableObject {
 
                 var resHeaders = [HTTPHeader: String]()
                 obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+                resHeaders[HTTPHeader(Self.isEditedKey)] = "1"
 
-                return HTTPResponse(statusCode: HTTPStatusCode(Int(obj.statusCode) ?? 0, phrase: "custom"),
-                                    headers: resHeaders,
-                                    body: obj.resString.data(using: .utf8) ?? Data())
+                return HTTPResponse(
+                    statusCode: HTTPStatusCode(
+                        Int(obj.statusCode) ?? 0,
+                        phrase: "custom"
+                    ),
+                    headers: resHeaders,
+                    body: obj.resString.data(using: .utf8) ?? Data()
+                )
             }
         } catch let e {
             Logger.debugPrint("error: \(e)")

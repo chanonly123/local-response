@@ -15,12 +15,14 @@ struct Utils {
     static var highlightrLight: Highlightr? = {
         let h = Highlightr()
         h?.setTheme(to: Constants.higlightThemeLight)
+        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
         return h
     }()
 
     static var highlightrDark: Highlightr? = {
         let h = Highlightr()
         h?.setTheme(to: Constants.higlightThemeDark)
+        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
         return h
     }()
 

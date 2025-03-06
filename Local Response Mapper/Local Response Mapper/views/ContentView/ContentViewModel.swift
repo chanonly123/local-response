@@ -13,7 +13,7 @@ import Factory
 class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     enum TabType: String, CaseIterable {
-        case req = "Request", res = "Response", resString = "Response String"
+        case req = "Components", resString = "Response"
     }
 
     @Published var errors: [Error] = []

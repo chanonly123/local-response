@@ -28,6 +28,7 @@ struct LocalMapView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
+        .font(.system(size: Constants.fontSize - 1))
         .monospaced()
     }
 
@@ -44,6 +45,7 @@ struct LocalMapView: View {
                         Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
                             ForEach(viewm.httpMethods, id: \.self) {
                                 Text($0)
+                                    .font(.system(size: Constants.fontSize - 1))
                             }
                         }
                     })
@@ -57,7 +59,6 @@ struct LocalMapView: View {
                     .width(min: 50, ideal: 200)
                 }
                 .frame(minWidth: 300)
-                .font(.system(size: Constants.tableFontSize))
 
                 HStack(spacing: 4) {
                     Button {
@@ -86,7 +87,6 @@ struct LocalMapView: View {
     var rightView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let item = viewm.getSelectedItem() {
-                Text("id: \(item.id)")
                 VStack(alignment: .leading, spacing: 4) {
 
                     HStack {
@@ -95,10 +95,10 @@ struct LocalMapView: View {
                         Spacer()
 
                         if viewm.isValidStatus(item) {
-                            Text("(valid Status)")
+                            Text("Valid Status")
                                 .foregroundStyle(.green)
                         } else {
-                            Text("(invalid Status)")
+                            Text("Invalid Status")
                                 .foregroundStyle(.red)
                         }
                     }
@@ -109,11 +109,21 @@ struct LocalMapView: View {
                                 .padding(.trailing, 8)
                         }
 
-                    Text("Response Headers")
+                    HStack {
+                        Text("Response Headers")
+                        Spacer()
+                        if (item.resHeadersMap[Constants.contentEncodingKey] ?? "").isEmpty == false {
+                            Text("Warning")
+                                .foregroundStyle(.orange)
+                                .help("Response header contains '\(Constants.contentEncodingKey)', mapping may not work.")
+                        }
+                    }
+
                     CodeEditor(
                         source: viewm.getSetValue(item.id, keyPath: \.resHeaders),
                         language: .yaml,
                         theme: theme,
+                        fontSize: .constant(Constants.fontSize),
                         flags: [.editable, .selectable]
                     )
                     .frame(maxHeight: 100)
@@ -131,10 +141,10 @@ struct LocalMapView: View {
                         Spacer()
 
                         if viewm.isValidResponseJSON(item) {
-                            Text("(valid JSON)")
+                            Text("Valid JSON")
                                 .foregroundStyle(.green)
                         } else {
-                            Text("(invalid JSON)")
+                            Text("Invalid JSON")
                                 .foregroundStyle(.red)
                         }
                     }
@@ -142,6 +152,7 @@ struct LocalMapView: View {
                         source: viewm.getSetValue(item.id, keyPath: \.resString),
                         language: .json,
                         theme: theme,
+                        fontSize: .constant(Constants.fontSize),
                         flags: [.editable, .selectable]
                     )
                     .frame(maxHeight: .infinity)

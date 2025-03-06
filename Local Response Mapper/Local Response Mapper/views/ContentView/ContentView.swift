@@ -11,6 +11,7 @@ import CodeEditor
 
 struct ContentView: View {
 
+    @StateObject private var localMapsViewm = LocalMapViewModel()
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = ContentViewModel()
     @StateObject private var server = LocalServer()
@@ -60,6 +61,7 @@ struct ContentView: View {
             }
             .padding(2)
         }
+        .font(.system(size: Constants.fontSize - 1))
         .monospaced()
         .showErrors(errors: viewm.errors)
         .onAppear {
@@ -83,10 +85,12 @@ struct ContentView: View {
                 Label("Theme", systemImage: "circle.lefthalf.striped.horizontal.inverse")
             }
 
+            let enabledCount = localMapsViewm.getEnabledCount
+
             Button {
                 openLocalMapWindow()
             } label: {
-                Text("Map Local")
+                Text("Map Local\(enabledCount == 0 ? "" : " (\(enabledCount))")")
             }
 
             Button {
@@ -120,6 +124,11 @@ struct ContentView: View {
                     })
                     .width(min: 50, ideal: 50, max: 100)
 
+                    TableColumn("Edited", content: { val in
+                        Text("\(val.isEdited ? "Yes" : "-")")
+                    })
+                    .width(min: 50, ideal: 50, max: 100)
+
                     TableColumn("Status", content: { val in
                         HStack {
                             Circle().fill(Utils.getStatusColor(val.statusCode))
@@ -131,7 +140,7 @@ struct ContentView: View {
                     .width(min: 50, ideal: 50, max: 100)
 
                     TableColumn("URL", content: { val in
-                        Text("\(val.url)")
+                        Text("\(val.getPathString)")
                             .truncationMode(.head)
                             .help(val.url)
                     })
@@ -164,8 +173,6 @@ struct ContentView: View {
                     }
                 }
                 .frame(minWidth: 300)
-                .font(.system(size: Constants.tableFontSize))
-
 
                 TextField("Filter", text: $viewm.filter)
                     .textFieldStyle(.roundedBorder)
@@ -199,60 +206,77 @@ struct ContentView: View {
                 }
                 .padding(2)
 
-
-
                 switch viewm.selectedTab {
                 case .req:
-                    List {
-                        Section("BundleID") {
-                            Text(item.bundleID)
-                        }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("BundleID")
+                                .underline()
+                            Text(Utils.highlightYaml(item.bundleID))
 
-                        Section("Host") {
+                            Divider()
+
+                            Text("Host")
+                                .underline()
                             Text(item.getHost)
-                        }
 
-                        Section("Path") {
+                            Divider()
+
+                            Text("Path")
+                                .underline()
                             Text(item.getPath)
-                        }
 
-                        Section("Method") {
+                            Divider()
+
+                            Text("Method")
+                                .underline()
                             Text(Utils.highlightYaml(item.method))
-                        }
 
-                        Section("Query Params") {
+                            Divider()
+
+                            Text("Query Params")
+                                .underline()
                             Text(item.getQuery)
-                        }
 
-                        Section("Request headers") {
+                            Divider()
+
+                            Text("Request headers")
+                                .underline()
                             Text(item.getReqHeaders)
-                        }
 
-                        Section("Request Body") {
-                            Text(item.getResBody)
-                        }
-                    }
-                    .textSelection(.enabled)
-                case .res:
-                    List {
-                        Section("Status") {
-                            HStack {
-                                Text(Utils.highlightYaml("\(item.statusCode)"))
-                                Spacer()
-                                Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                            Divider()
 
-                        Section("Response headers") {
+                            Text("Request Body")
+                                .underline()
+                            Text(item.getReqBody)
+
+                            Divider()
+
+                            Text("Status")
+                                .underline()
+                            Text(Utils.highlightYaml("\(item.statusCode)")) + Text("    ") +
+                            Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
+                                .foregroundColor(.gray)
+
+                            Divider()
+
+                            Text("Response headers")
+                                .underline()
                             Text(item.getResHeaders)
                         }
+                        .padding()
                     }
                     .textSelection(.enabled)
                 case .resString:
-                    CodeEditor(source: item.responseString, language: .json, theme: theme, flags: [.selectable])
-                        .frame(maxHeight: .infinity)
-                        .id(item.id)
+                    CodeEditor(
+                        source: item.responseString,
+                        language: .json,
+                        theme: theme,
+                        fontSize: .constant(Constants.fontSize),
+                        flags: [.selectable]
+                    )
+                    .frame(maxHeight: .infinity)
+                    .id(item.id)
                 }
             } else {
                 Image(systemName: "tray")
@@ -265,7 +289,9 @@ struct ContentView: View {
     }
 
     var theme: CodeEditor.ThemeName {
-        return .init(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
+        let theme = CodeEditor.ThemeName(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
+
+        return theme
     }
 }
 

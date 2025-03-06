@@ -134,6 +134,10 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         let result = try? JSONSerialization.jsonObject(with: item.resString.data(using: .utf8) ?? Data())
         return result != nil
     }
+
+    var getEnabledCount: Int {
+        list?.filter({ $0.enable }).count ?? 0
+    }
 }
 
 protocol InitProvider {
