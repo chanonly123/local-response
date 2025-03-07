@@ -54,8 +54,8 @@
 1. **Download the macOS app:**
    - [Download Latest Release](https://github.com/chanonly123/local-response/releases)
    - Launch the app, and it will automatically start listening for traffic from your iOS app.
-   - Allow it to run from security options from settings.
-   OR
+   - Allow it to run from security options from settings. <br/>
+   OR <br/>
    - Download the repo and open `Local Response Mapper/Local Response Mapper.xcodeproj` in Xcode and run
 
 ## Usage
