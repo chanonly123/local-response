@@ -9,15 +9,26 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @State var response: String? = "<>"
+    @State var response: String? = "-"
 
     var body: some View {
         ScrollView {
             VStack {
-                Button("Call Api") {
-                    callApi()
+
+                VStack(alignment: .leading) {
+                    Text("1. 'LocalResponse.connect()' add to AppDelegate didFinishLaunchingWithOptions")
+                    Text("2. Open the 'Local response' macos app")
+                    Text("3. Hit 'GET' or 'POST', It should show the api calls and components")
                 }
-                Text(response ?? "")
+                .frame(maxWidth: .infinity)
+
+                Divider()
+
+                ApiCallView(url: "https://jsonplaceholder.typicode.com/todos/1", method: "GET")
+                Divider()
+
+                ApiCallView(url: "https://jsonplaceholder.typicode.com/todos/1", method: "POST")
+                Divider()
             }
         }
         .padding()
@@ -25,15 +36,49 @@ struct ContentView: View {
     }
 
     func callApi() {
-        response = nil
         Task {
             do {
+                response = "loading"
                 let req = URLRequest(url: URL(string: "https://jsonplaceholder.typicode.com/todos/1")!)
                 let res = try await URLSession.shared.data(for: req)
                 if let string = String(data: res.0, encoding: .utf8) {
                     response = string
                 } else {
-                    response = "<empty>"
+                    response = "-"
+                }
+            } catch let err {
+                response = "Error: \(err)"
+            }
+        }
+    }
+}
+
+struct ApiCallView: View {
+
+    let url: String
+    let method: String
+    @State private var response: String = "-"
+
+    var body: some View {
+        Button(method) {
+            callApi()
+        }
+        .buttonStyle(.bordered)
+
+        Text(response)
+    }
+
+    func callApi() {
+        Task {
+            do {
+                response = "loading"
+                var req = URLRequest(url: URL(string: url)!)
+                req.httpMethod = method
+                let res = try await URLSession.shared.data(for: req)
+                if let string = String(data: res.0, encoding: .utf8) {
+                    response = string
+                } else {
+                    response = "-"
                 }
             } catch let err {
                 response = "Error: \(err)"

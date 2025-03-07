@@ -18,6 +18,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     @Published var errors: [Error] = []
     @Published var list: Results<URLTaskObject>?
+    var listCount: Int = 0
     @Published var filter: String = "" {
         didSet {
             fetch()
@@ -35,11 +36,14 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     init() {
         do {
             let list = try db.getRecordsList(filter: filter)
+            self.listCount = list.count
             self.list = list
             self.selected = list.first?.taskId
             notificationToken = list.observe { [weak self] _ in
                 do {
-                    self?.list = try self?.db.getRecordsList(filter: self?.filter ?? "")
+                    let newList = try self?.db.getRecordsList(filter: self?.filter ?? "")
+                    self?.listCount = newList?.count ?? 0
+                    self?.list = newList
                 } catch let e {
                     self?.appendError(e)
                 }

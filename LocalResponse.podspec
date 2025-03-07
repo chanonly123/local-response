@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'LocalResponse'
-  s.version          = '2.0.3'
+  s.version          = '2.0.5'
   s.summary          = 'Mock iOS http API calls, without proxy and certificates, uses swizzling'
   s.swift_version    = '4.2'
 

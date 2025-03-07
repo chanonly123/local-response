@@ -12,10 +12,6 @@
 ## How to mock response
 [![](https://markdown-videos-api.jorgenkh.no/youtube/_tsQh9sRV7M)](https://www.youtube.com/watch?v=_tsQh9sRV7M)
 
-## TODO
-- Recording requests directly to Map Local window
-- Adding unit tests
-
 ## Installation
 
 ### iOS Library
@@ -44,10 +40,10 @@
       func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         #if DEBUG
             // When using the iOS simulator in the same network
-            LocalResponse.shared.connect()
+            LocalResponse.connect()
 
             // When using other devices in the same network, pass the local url (availabe in the listener macos app)
-            LocalResponse.shared.connect(connectionUrl: "http://192.168.0.108:4040")
+            LocalResponse.connect(connectionUrl: "http://192.168.0.108:4040")
         #endif
       }
    }
@@ -57,10 +53,10 @@
 
 1. **Download the macOS app:**
    - [Download Latest Release](https://github.com/chanonly123/local-response/releases)
-
-2. **Run the macOS app:**
    - Launch the app, and it will automatically start listening for traffic from your iOS app.
    - Allow it to run from security options from settings.
+   OR
+   - Download the repo and open `Local Response Mapper/Local Response Mapper.xcodeproj` in Xcode and run
 
 ## Usage
 
@@ -80,7 +76,7 @@
 
 ## Screenshots
 
-### Allow the app to run
+### Allow the app to run (if downloaded directly)
 ![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo1.png)
 
 ### Records all http network calls, You can edit (Response, Headers, StatusCode)

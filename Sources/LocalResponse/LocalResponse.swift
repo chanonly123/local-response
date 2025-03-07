@@ -8,7 +8,7 @@
 import Foundation
 
 public class LocalResponse {
-    public static let shared = LocalResponse()
+    static let shared = LocalResponse()
 
     var connectionUrl: String = Constants.localBaseUrl
     private var injector: Injector = NetworkInjector()
@@ -19,7 +19,11 @@ public class LocalResponse {
         injector.delegate = self
     }
 
-    public func connect(connectionUrl: String? = nil, excludes: [String] = []) {
+    public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
+        shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+    }
+
+    private func connect(connectionUrl: String?, excludes: [String]) {
         LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
             assertionFailure("LocalResponse> Bad url! \(connectionUrl ?? "nil")")
@@ -28,7 +32,7 @@ public class LocalResponse {
         self.excludes = excludes
     }
 
-    func createURLRequest(endpoint: String) -> URLRequest {
+    private func createURLRequest(endpoint: String) -> URLRequest {
         let method = String(endpoint.split(separator: " ").first!)
         let endPoint = String(endpoint.split(separator: " ").last!)
         let url = URL(string: connectionUrl + endPoint)!
@@ -37,7 +41,7 @@ public class LocalResponse {
         return req
     }
 
-    func toData(from: Encodable) -> Data? {
+    private func toData(from: Encodable) -> Data? {
         do {
             return try JSONEncoder().encode(from)
         } catch let e {
@@ -46,14 +50,14 @@ public class LocalResponse {
         return nil
     }
 
-    func toString(from: Encodable) -> String? {
+    private func toString(from: Encodable) -> String? {
         if let data = toData(from: from) {
             return String(data: data, encoding: .utf8)
         }
         return nil
     }
 
-    func shouldIgnoreTask(task: URLSessionTask) -> Bool {
+    private func shouldIgnoreTask(task: URLSessionTask) -> Bool {
         let url = task.currentRequest?.url?.absoluteString ?? ""
         if url.contains("overriden-request") {
             return false
