@@ -18,6 +18,7 @@ class Constants {
     static let schemaVersion: UInt64 = 17
 
     static let fontSize: CGFloat = 11
+    static let fontSizeKey: String = "fontSize"
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
     static let checkMapResponse = "POST /check-map-response"

@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var autoScroll: Bool = true
     @State private var scrollToId: String?
     @Environment(\.openWindow) private var openWindow
+    @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,7 +74,7 @@ struct ContentView: View {
             }
             .padding(2)
         }
-        .font(.system(size: Constants.fontSize - 1))
+        .font(.system(size: fontSize - 2))
         .monospaced()
         .showErrors(errors: viewm.errors)
         .onAppear {
@@ -141,7 +142,7 @@ struct ContentView: View {
                         TableColumn("Edited", content: { val in
                             Text("\(val.isEdited ? "Yes" : "-")")
                         })
-                        .width(min: 45, ideal: 45, max: 45)
+                        .width(min: 45, ideal: 45, max: 60)
 
                         TableColumn("Status", content: { val in
                             HStack {
@@ -151,7 +152,7 @@ struct ContentView: View {
                                 Text("\(val.statusCode > 0 ? "\(val.statusCode)" : "")")
                             }
                         })
-                        .width(min: 50, ideal: 50, max: 55)
+                        .width(min: 50, ideal: 50, max: 60)
 
                         TableColumn("URL", content: { val in
                             Text("\(val.getPathString)")

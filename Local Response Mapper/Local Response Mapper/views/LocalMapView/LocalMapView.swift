@@ -12,16 +12,7 @@ struct LocalMapView: View {
 
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = LocalMapViewModel()
-
-    @State private var resHeaderSelection: Range<String.Index> = "".startIndex..<"".endIndex
-    @State private var resHeaderAllMatches: [Range<String.Index>] = []
-    @State private var resHeaderFilter: String = ""
-    @FocusState private var resHeaderFocused: Bool
-
-    @State private var resStringSelection: Range<String.Index> = "".startIndex..<"".endIndex
-    @State private var resStringAllMatches: [Range<String.Index>] = []
-    @State private var resStringFilter: String = ""
-    @FocusState private var resStringFocused: Bool
+    @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
     var body: some View {
         GeometryReader { geo in
@@ -38,7 +29,7 @@ struct LocalMapView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .font(.system(size: Constants.fontSize - 1))
+        .font(.system(size: fontSize - 2))
         .monospaced()
         .toolbar {
             Button {
@@ -56,17 +47,17 @@ struct LocalMapView: View {
                     TableColumn("Enable", content: { val in
                         Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
                     })
-                    .width(min: 45, ideal: 45, max: 45)
+                    .width(min: 45, ideal: 45, max: 60)
 
                     TableColumn("Method (match)", content: { val in
                         Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
                             ForEach(viewm.httpMethods, id: \.self) {
                                 Text($0)
-                                    .font(.system(size: Constants.fontSize - 1))
+                                    .font(.system(size: fontSize - 2))
                             }
                         }
                     })
-                    .width(min: 95, ideal: 95, max: 95)
+                    .width(min: 95, ideal: 95, max: 110)
 
                     TableColumn("URL (contains)", content: { val in
                         TextField("", text: viewm.getSetValue(val.id, keyPath: \.subUrl))
