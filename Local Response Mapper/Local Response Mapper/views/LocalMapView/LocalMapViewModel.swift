@@ -138,6 +138,10 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     var getEnabledCount: Int {
         list?.filter({ $0.enable }).count ?? 0
     }
+
+    func clearAll() {
+        db.clearAllMapRecords()
+    }
 }
 
 protocol InitProvider {

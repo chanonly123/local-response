@@ -16,6 +16,7 @@
 		1820A13E2C6F2E940016934A /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 1820A13D2C6F2E940016934A /* Factory */; };
 		1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC202C77D48F00FEA95A /* ErrorsView.swift */; };
 		1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1848CC242C77D88F00FEA95A /* Color-ext.swift */; };
+		184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184B533F2D815D4800D6EA3A /* MyTextEditor.swift */; };
 		185879D12CC140D10042449B /* tomorrow-night-bright.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D02CC140D10042449B /* tomorrow-night-bright.min.css */; };
 		185879D52CC140E20042449B /* xcode.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D42CC140E20042449B /* xcode.min.css */; };
 		185879D72CC151600042449B /* MyColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 185879D62CC151580042449B /* MyColorScheme.swift */; };
@@ -61,6 +62,7 @@
 		1815D2112C7739C000908A34 /* README.MD */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.MD; path = ../README.MD; sourceTree = "<group>"; };
 		1848CC202C77D48F00FEA95A /* ErrorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorsView.swift; sourceTree = "<group>"; };
 		1848CC242C77D88F00FEA95A /* Color-ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color-ext.swift"; sourceTree = "<group>"; };
+		184B533F2D815D4800D6EA3A /* MyTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTextEditor.swift; sourceTree = "<group>"; };
 		185879D02CC140D10042449B /* tomorrow-night-bright.min.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night-bright.min.css"; sourceTree = "<group>"; };
 		185879D42CC140E20042449B /* xcode.min.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = xcode.min.css; sourceTree = "<group>"; };
 		185879D62CC151580042449B /* MyColorScheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyColorScheme.swift; sourceTree = "<group>"; };
@@ -181,6 +183,7 @@
 				188A7D8A2C73142100B09A7F /* ContentView */,
 				1848CC202C77D48F00FEA95A /* ErrorsView.swift */,
 				1848CC242C77D88F00FEA95A /* Color-ext.swift */,
+				184B533F2D815D4800D6EA3A /* MyTextEditor.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -283,6 +286,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */,
+				184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */,
 				1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */,
 				18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */,
 				188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */,
@@ -443,8 +447,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 2.0.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -472,8 +476,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 2.0.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

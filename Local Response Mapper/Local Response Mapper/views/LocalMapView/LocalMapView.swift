@@ -13,6 +13,16 @@ struct LocalMapView: View {
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = LocalMapViewModel()
 
+    @State private var resHeaderSelection: Range<String.Index> = "".startIndex..<"".endIndex
+    @State private var resHeaderAllMatches: [Range<String.Index>] = []
+    @State private var resHeaderFilter: String = ""
+    @FocusState private var resHeaderFocused: Bool
+
+    @State private var resStringSelection: Range<String.Index> = "".startIndex..<"".endIndex
+    @State private var resStringAllMatches: [Range<String.Index>] = []
+    @State private var resStringFilter: String = ""
+    @FocusState private var resStringFocused: Bool
+
     var body: some View {
         GeometryReader { geo in
 
@@ -30,6 +40,13 @@ struct LocalMapView: View {
         }
         .font(.system(size: Constants.fontSize - 1))
         .monospaced()
+        .toolbar {
+            Button {
+                viewm.clearAll()
+            } label: {
+                Text("Clear All")
+            }
+        }
     }
 
     var leftView: some View {
@@ -39,7 +56,7 @@ struct LocalMapView: View {
                     TableColumn("Enable", content: { val in
                         Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
                     })
-                    .width(min: 50, ideal: 50, max: 80)
+                    .width(min: 45, ideal: 45, max: 45)
 
                     TableColumn("Method (match)", content: { val in
                         Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
@@ -49,7 +66,7 @@ struct LocalMapView: View {
                             }
                         }
                     })
-                    .width(min: 100, ideal: 100, max: 150)
+                    .width(min: 95, ideal: 95, max: 95)
 
                     TableColumn("URL (contains)", content: { val in
                         TextField("", text: viewm.getSetValue(val.id, keyPath: \.subUrl))
@@ -119,11 +136,10 @@ struct LocalMapView: View {
                         }
                     }
 
-                    CodeEditor(
+                    MyTextEditor(
                         source: viewm.getSetValue(item.id, keyPath: \.resHeaders),
                         language: .yaml,
                         theme: theme,
-                        fontSize: .constant(Constants.fontSize),
                         flags: [.editable, .selectable]
                     )
                     .frame(maxHeight: 100)
@@ -132,13 +148,13 @@ struct LocalMapView: View {
                     HStack {
                         Text("Response String")
 
+                        Spacer()
+
                         Button {
                             viewm.formatJsonBody()
                         } label: {
-                            Text("Format JSON")
+                            Image(systemName: "list.bullet.indent")
                         }
-
-                        Spacer()
 
                         if viewm.isValidResponseJSON(item) {
                             Text("Valid JSON")
@@ -148,11 +164,10 @@ struct LocalMapView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    CodeEditor(
+                    MyTextEditor(
                         source: viewm.getSetValue(item.id, keyPath: \.resString),
                         language: .json,
                         theme: theme,
-                        fontSize: .constant(Constants.fontSize),
                         flags: [.editable, .selectable]
                     )
                     .frame(maxHeight: .infinity)

@@ -108,7 +108,7 @@ struct ContentView: View {
             Button {
                 viewm.clearAll()
             } label: {
-                Text("Clear")
+                Text("Clear All")
             }
         }
         .alert("New version available\n\(viewm.newVersion ?? "")", isPresented: $viewm.newVersionAlert) {
@@ -288,11 +288,10 @@ struct ContentView: View {
                     }
                     .textSelection(.enabled)
                 case .resString:
-                    CodeEditor(
-                        source: item.responseString,
+                    MyTextEditor(
+                        source: .constant(item.responseString),
                         language: .json,
                         theme: theme,
-                        fontSize: .constant(Constants.fontSize),
                         flags: [.selectable]
                     )
                     .frame(maxHeight: .infinity)

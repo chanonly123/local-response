@@ -25,6 +25,7 @@ protocol DBProtocol {
     @MainActor func getItemTask(taskId: String?) throws -> URLTaskObject?
     @MainActor func getItemMapLocal(id: String?) throws -> MapLocalObject?
     @MainActor func clearAllRecords()
+    @MainActor func clearAllMapRecords()
     @MainActor func createDummyForPreview()
     @MainActor func write(block: (Realm) throws -> Void)
     @MainActor func deleteLocalMap(id: String) throws
@@ -58,6 +59,13 @@ class DB: DBProtocol {
     func clearAllRecords() {
         write { r in
             let items = r.objects(URLTaskObject.self)
+            r.delete(items)
+        }
+    }
+
+    func clearAllMapRecords() {
+        write { r in
+            let items = r.objects(MapLocalObject.self)
             r.delete(items)
         }
     }
