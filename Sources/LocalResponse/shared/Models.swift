@@ -33,10 +33,32 @@ struct URLTaskModelBegin: Codable {
 struct URLTaskModelEnd: Codable {
     let taskId: String
     let resString: String?
+    let resStringB64: String?
     let resHeaders: [String: String]?
     let statusCode: Int?
     let error: String?
     let bundleID: String?
+    let mimeType: String?
+
+    init(
+        taskId: String,
+        resString: String?,
+        resStringB64: String?,
+        resHeaders: [String : String]?,
+        statusCode: Int?,
+        error: String?,
+        bundleID: String?,
+        mimeType: String?
+    ) {
+        self.taskId = taskId
+        self.resString = resString
+        self.resStringB64 = resStringB64
+        self.resHeaders = resHeaders
+        self.statusCode = statusCode
+        self.error = error
+        self.bundleID = bundleID
+        self.mimeType = mimeType
+    }
 
     init(task: URLSessionTask, response: URLResponse?, responseData: Data?, err: String?) {
         bundleID = Bundle.main.bundleIdentifier
@@ -54,13 +76,17 @@ struct URLTaskModelEnd: Codable {
             } else {
                 resString = nil
             }
+            resStringB64 = responseData?.base64EncodedString()
             statusCode = res.statusCode
             error = err
+            mimeType = res.mimeType
         } else {
             error = err ?? "Unknown"
             resString = nil
             resHeaders = nil
+            resStringB64 = nil
             statusCode = 0
+            mimeType = nil
         }
     }
 }

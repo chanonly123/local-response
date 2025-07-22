@@ -68,6 +68,9 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     func clearAll() {
         db.clearAllRecords()
         fetch()
+        if let first = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("cache") {
+            try? FileManager.default.removeItem(atPath: first.path)
+        }
     }
 
     func fetch(taskId: String?) -> URLTaskObject? {

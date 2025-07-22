@@ -54,7 +54,7 @@ class LocalServer: ObservableObject {
         Task { [weak self] in
             guard let `self` = self else { return }
             do {
-                try await server.start()
+                try await server.run()
             } catch let e {
                 Logger.debugPrint("Error: \(e)")
                 error = e

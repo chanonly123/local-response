@@ -133,6 +133,12 @@ struct ContentView: View {
                         })
                         .width(min: 50, ideal: 50, max: 200)
 
+                        TableColumn("Mime type", content: { val in
+                            Text("\(val.mimeType)")
+                                .help(val.mimeType)
+                        })
+                        .width(min: 50, ideal: 50, max: 110)
+
                         TableColumn("Method", content: { val in
                             Text("\(val.method)")
                                 .help(val.method)
@@ -165,21 +171,23 @@ struct ContentView: View {
                         ForEach(items) { val in
                             TableRow(val)
                                 .contextMenu {
-                                    Button("Map local") {
-                                        viewm.addNewMapLocal(obj: val)
-                                        openLocalMapWindow()
+                                    if val.contentType == .text {
+                                        Button("Map local") {
+                                            viewm.addNewMapLocal(obj: val)
+                                            openLocalMapWindow()
+                                        }
+                                        Button("Copy Request Body") {
+                                            viewm.copyValue(obj: val, keyPath: \.body)
+                                        }
+                                        Button("Copy Response String") {
+                                            viewm.copyValue(obj: val, keyPath: \.responseString)
+                                        }
+                                        Button("Copy All") {
+                                            viewm.copyAll(obj: val)
+                                        }
                                     }
                                     Button("Copy URL") {
                                         viewm.copyValue(obj: val, keyPath: \.url)
-                                    }
-                                    Button("Copy Request Body") {
-                                        viewm.copyValue(obj: val, keyPath: \.body)
-                                    }
-                                    Button("Copy Response String") {
-                                        viewm.copyValue(obj: val, keyPath: \.responseString)
-                                    }
-                                    Button("Copy All") {
-                                        viewm.copyAll(obj: val)
                                     }
                                     Button("Copy CURL") {
                                         viewm.toCurlCommand(obj: val)
@@ -204,7 +212,7 @@ struct ContentView: View {
     }
 
     var rightView: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .center, spacing: 0) {
             if let item = viewm.fetch(taskId: viewm.selected) {
 
                 HStack {
@@ -289,14 +297,8 @@ struct ContentView: View {
                     }
                     .textSelection(.enabled)
                 case .resString:
-                    MyTextEditor(
-                        source: .constant(item.responseString),
-                        language: .json,
-                        theme: theme,
-                        flags: [.selectable]
-                    )
-                    .frame(maxHeight: .infinity)
-                    .id(item.id)
+                    ResponseView(item: item, theme: theme)
+                        .frame(maxHeight: .infinity)
                 }
             } else {
                 Image(systemName: "tray")

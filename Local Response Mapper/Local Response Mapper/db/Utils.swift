@@ -9,6 +9,7 @@ import Foundation
 import RealmSwift
 import SwiftUI
 import Highlightr
+import UniformTypeIdentifiers
 
 struct Utils {
 
@@ -223,5 +224,63 @@ struct Utils {
 
     static var isPreview: Bool {
         return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+
+    /// Determines the best file extension from response headers or URL.
+    static func determineFileExtensionAndType(
+        from: URLTaskObject
+    ) -> (ext: String, type: ContentType) {
+
+        func extractFilename(from contentDisposition: String) -> String? {
+            let pattern = "filename=\"?([^\";]+)\"?"
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: contentDisposition, range: NSRange(contentDisposition.startIndex..., in: contentDisposition)),
+                  let range = Range(match.range(at: 1), in: contentDisposition) else {
+                return nil
+            }
+            return String(contentDisposition[range])
+        }
+
+        var ext: String?
+
+        // 1. Try filename from Content-Disposition
+        if
+            let contentDisposition = from.resHeaders["Content-Disposition"],
+            let filename = extractFilename(from: contentDisposition)
+        {
+            ext = URL(fileURLWithPath: filename).pathExtension
+        }
+
+        // 2. If not found, try MIME → UTType → extension
+        if ext?.isEmpty ?? true,
+           let utType = UTType(mimeType: from.mimeType),
+           let utExt = utType.preferredFilenameExtension
+        {
+            ext = utExt
+        }
+
+        // 3. If still not found, use URL path extension
+        if ext?.isEmpty ?? true,
+           let urlExt = URL(string: from.url)?.pathExtension,
+           !urlExt.isEmpty
+        {
+            ext = urlExt
+        }
+
+        let finalExt = ext?.lowercased() ?? "bin"
+
+        // Determine ContentType:
+        let mimeType = from.resHeaders["Content-Type"] ?? from.mimeType
+        var contentType = ContentType(fromMimeType: mimeType)
+
+        // If MIME type was unhelpful, guess from extension
+        if contentType == .unknown || contentType == .binary {
+            let extBasedType = ContentType(fromExtension: finalExt)
+            if extBasedType != .unknown {
+                contentType = extBasedType
+            }
+        }
+
+        return (finalExt, contentType)
     }
 }

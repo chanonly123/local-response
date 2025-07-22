@@ -7,6 +7,7 @@
 
 import Foundation
 import RealmSwift
+import SwiftUI
 
 class URLTaskObject: Object, Identifiable {
     var id: String { taskId }
@@ -17,7 +18,8 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var method: String = ""
     @Persisted var bundleID: String = ""
     @Persisted var reqHeaders: Map<String, String> = .init()
-    
+    @Persisted var mimeType: String = ""
+
     // after response
     @Persisted var responseString: String = ""
     @Persisted var resHeaders: Map<String, String> = .init()
@@ -39,6 +41,7 @@ class URLTaskObject: Object, Identifiable {
         new.responseString = responseString
         new.resHeaders = resHeaders
         new.statusCode = statusCode
+        new.mimeType = mimeType
         return new
     }
 
@@ -57,7 +60,44 @@ class URLTaskObject: Object, Identifiable {
         statusCode = task.statusCode ?? 0
         isEdited = resHeaders[LocalServer.isEditedKey] == "1"
         resHeaders[LocalServer.isEditedKey] = nil
+        mimeType = task.mimeType ?? ""
+        if
+            let data = Data(base64Encoded: task.resStringB64 ?? ""),
+            contentType != .text,
+            let path = fileURL
+        {
+            do {
+                try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
+                try data.write(to: path)
+            } catch {
+                print("Error saving video data: \(error)")
+            }
+        }
     }
+
+    lazy var contentType: ContentType? = {
+        Utils.determineFileExtensionAndType(from: self).type
+    }()
+    
+    lazy var image: (Image, CGSize)? = {
+        guard
+            contentType == .image,
+            let url = fileURL,
+            let data = try? Data(contentsOf: url),
+            let nsImage = NSImage(data: data)
+        else {
+            return nil
+        }
+        return (Image(nsImage: nsImage), nsImage.size)
+    }()
+
+    lazy var fileURL: URL? = {
+        if contentType != .text {
+            let ext = Utils.determineFileExtensionAndType(from: self).ext
+            return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("cache/\(taskId).\(ext)")
+        }
+        return nil
+    }()
 
     // cache storage
     lazy var getQuery: AttributedString = {

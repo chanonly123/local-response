@@ -103,7 +103,7 @@ class DB: DBProtocol {
         item.reqHeaders["req_header"] = "Some value"
         item.statusCode = (200...500).randomElement()!
         item.responseString = #"{"id":0,"name":"Mitzi Fields"}"#
-        item.resHeaders["res_header"] = "Some value"
+        item.resHeaders["Content-Type"] = "application/json"
         item.body = #"{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}"#
         write { r in
             r.add(item)

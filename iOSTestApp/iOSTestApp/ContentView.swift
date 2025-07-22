@@ -24,8 +24,16 @@ struct ContentView: View {
 
                 Divider()
 
-                ApiCallView(url: "https://jsonplaceholder.typicode.com/todos/1", method: "GET")
+                ApiCallView(url: "https://yavuzceliker.github.io/sample-images/image-\((1...100).randomElement()!).jpg", method: "GET")
                 Divider()
+
+                ApiCallView(url: "https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4", method: "GET")
+                Divider()
+
+                ApiCallView(url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", method: "GET")
+                Divider()
+
+                ApiCallView(url: "https://jsonplaceholder.typicode.com/todos/1", method: "GET")
 
                 ApiCallView(url: "https://jsonplaceholder.typicode.com/todos/1", method: "POST")
                 Divider()

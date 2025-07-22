@@ -35,6 +35,9 @@
 		18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558B2CBEB88A001CCD17 /* Constants.swift */; };
 		18F855902CBEB88B001CCD17 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558D2CBEB88A001CCD17 /* Models.swift */; };
 		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
+		8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559C2E2FA79B00C50B67 /* ResponseView.swift */; };
+		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
+		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -77,6 +80,9 @@
 		18F8558B2CBEB88A001CCD17 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		18F8558C2CBEB88A001CCD17 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		8D15559C2E2FA79B00C50B67 /* ResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseView.swift; sourceTree = "<group>"; };
+		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
+		8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FittingImageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +121,7 @@
 		1805D02C2C6CF8E200333A88 /* Local Response Mapper */ = {
 			isa = PBXGroup;
 			children = (
+				8D15559E2E2FAA0F00C50B67 /* Models */,
 				1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */,
 				18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */,
 				18F8558E2CBEB88A001CCD17 /* shared */,
@@ -162,6 +169,7 @@
 				1805D02F2C6CF8E200333A88 /* ContentView.swift */,
 				1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */,
 				18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */,
+				8D15559C2E2FA79B00C50B67 /* ResponseView.swift */,
 			);
 			path = ContentView;
 			sourceTree = "<group>";
@@ -178,6 +186,7 @@
 		18BA66E82C7080CA005D86E7 /* views */ = {
 			isa = PBXGroup;
 			children = (
+				8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */,
 				185879D62CC151580042449B /* MyColorScheme.swift */,
 				188A7D8B2C73142B00B09A7F /* LocalMapView */,
 				188A7D8A2C73142100B09A7F /* ContentView */,
@@ -198,6 +207,14 @@
 			name = shared;
 			path = ../Sources/LocalResponse/shared;
 			sourceTree = SOURCE_ROOT;
+		};
+		8D15559E2E2FAA0F00C50B67 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8D15559F2E2FAA1300C50B67 /* ContentType.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -287,11 +304,14 @@
 			files = (
 				18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */,
 				184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */,
+				8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */,
 				1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */,
 				18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */,
 				188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */,
+				8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */,
 				1805D02E2C6CF8E200333A88 /* Local_Response_MapperApp.swift in Sources */,
 				1805D03D2C6CF9CE00333A88 /* ContentViewModel.swift in Sources */,
+				8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */,
 				18D50D392C7093DE004B0D44 /* Utils.swift in Sources */,
 				1848CC252C77D88F00FEA95A /* Color-ext.swift in Sources */,
 				18CB6DA22C6E51770074B8E0 /* AppDelegate.swift in Sources */,
@@ -438,7 +458,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Local Response Mapper/supporting/Preview Content\"";
-				DEVELOPMENT_TEAM = 5WW76S3NRC;
+				DEVELOPMENT_TEAM = C4CZBNFBQY;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -449,7 +469,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.8;
+				MARKETING_VERSION = 2.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -468,7 +488,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Local Response Mapper/supporting/Preview Content\"";
-				DEVELOPMENT_TEAM = 5WW76S3NRC;
+				DEVELOPMENT_TEAM = C4CZBNFBQY;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -479,7 +499,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.8;
+				MARKETING_VERSION = 2.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
