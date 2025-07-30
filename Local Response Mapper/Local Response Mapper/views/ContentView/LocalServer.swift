@@ -95,17 +95,21 @@ class LocalServer: ObservableObject {
         do {
             if let id = req.query["id"], let obj = try self.db.getLocalMap(id: id) {
 
+                let body = obj.resString.data(using: .utf8) ?? Data()
+                let statusCode = Int(obj.statusCode) ?? 0
                 var resHeaders = [HTTPHeader: String]()
                 obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
                 resHeaders[HTTPHeader(Self.isEditedKey)] = "1"
+                resHeaders[HTTPHeader("Content-Length")] = "\(body.count)"
+                resHeaders[HTTPHeader("Content-Type")] = "application/json; charset=utf-8"
 
                 return HTTPResponse(
                     statusCode: HTTPStatusCode(
-                        Int(obj.statusCode) ?? 0,
+                        statusCode,
                         phrase: "custom"
                     ),
                     headers: resHeaders,
-                    body: obj.resString.data(using: .utf8) ?? Data()
+                    body: body
                 )
             }
         } catch let e {

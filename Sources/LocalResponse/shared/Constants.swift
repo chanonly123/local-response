@@ -22,5 +22,5 @@ class Constants {
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
     static let checkMapResponse = "POST /check-map-response"
-    static let overridenRequest = "POST /overriden-request"
+    static let overridenRequest = "GET /overriden-request"
 }
