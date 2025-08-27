@@ -37,6 +37,7 @@
 		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
 		8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559C2E2FA79B00C50B67 /* ResponseView.swift */; };
 		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
+		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
 		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
 /* End PBXBuildFile section */
 
@@ -82,6 +83,7 @@
 		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		8D15559C2E2FA79B00C50B67 /* ResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseView.swift; sourceTree = "<group>"; };
 		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
+		8D64EBA62E5F288C0077DA50 /* IPFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFinder.swift; sourceTree = "<group>"; };
 		8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FittingImageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -203,6 +205,7 @@
 				18F8558B2CBEB88A001CCD17 /* Constants.swift */,
 				18F8558C2CBEB88A001CCD17 /* Logger.swift */,
 				18F8558D2CBEB88A001CCD17 /* Models.swift */,
+				8D64EBA62E5F288C0077DA50 /* IPFinder.swift */,
 			);
 			name = shared;
 			path = ../Sources/LocalResponse/shared;
@@ -302,6 +305,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */,
 				18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */,
 				184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */,
 				8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */,
@@ -458,7 +462,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Local Response Mapper/supporting/Preview Content\"";
-				DEVELOPMENT_TEAM = C4CZBNFBQY;
+				DEVELOPMENT_TEAM = 5WW76S3NRC;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -488,7 +492,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Local Response Mapper/supporting/Preview Content\"";
-				DEVELOPMENT_TEAM = C4CZBNFBQY;
+				DEVELOPMENT_TEAM = 5WW76S3NRC;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

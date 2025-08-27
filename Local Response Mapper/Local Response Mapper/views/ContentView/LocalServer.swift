@@ -65,7 +65,7 @@ class LocalServer: ObservableObject {
 
     @MainActor
     func reloadLocalAddress() {
-        let ipAddr = Utils.getIPAddress() ?? "localhost"
+        let ipAddr = IPFinder.getIPAddress() ?? "localhost"
         listeningAddress = "http://\(ipAddr):\(Constants.localBaseUrlPort)"
     }
 

@@ -26,10 +26,23 @@ public class LocalResponse {
     private func connect(connectionUrl: String?, excludes: [String]) {
         LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
-            assertionFailure("LocalResponse> Bad url! \(connectionUrl ?? "nil")")
+            assertionFailure("❌ LocalResponse> Bad url! \(connectionUrl ?? "nil")")
         }
         LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
         self.excludes = excludes
+
+        Task.detached {
+            if await IPFinder.isServerRunning(urlString: LocalResponse.shared.connectionUrl) {
+                print("✅ LocalResponse> is running at \(LocalResponse.shared.connectionUrl)")
+            } else if let myIp = IPFinder.getIPAddress() {
+                if let ip = await IPFinder.findWorkingIP(baseIP: myIp, port: Constants.localBaseUrlPort) {
+                    LocalResponse.shared.connectionUrl = "http://\(ip):\(Constants.localBaseUrlPort)"
+                    print("✅ LocalResponse> Found working IP: \(ip)")
+                } else {
+                    print("❌ LocalResponse> No working IP found")
+                }
+            }
+        }
     }
 
     private func createURLRequest(endpoint: String) -> URLRequest {
