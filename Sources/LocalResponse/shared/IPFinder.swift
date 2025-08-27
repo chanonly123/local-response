@@ -11,8 +11,8 @@ class IPFinder {
         return session
     }()
 
-    static func isLocalhost(port: Int) async -> Bool {
-        guard let url = URL(string: "http://localhost:4040/") else { return false }
+    static func isServerRunning(urlString: String) async -> Bool {
+        guard let url = URL(string: urlString) else { return false }
         do {
             let (_, response) = try await session.data(from: url)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {

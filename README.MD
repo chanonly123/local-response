@@ -16,7 +16,9 @@
 
 ### iOS Library
 
-1. **Add the library to your project:**
+1. **Start the server**
+
+2. **Add the library to your project:**
 
    - Using Swift Package Manager:
      ```swift
@@ -30,7 +32,7 @@
 
    - Or by manually integrating the library into your project.
 
-2. **Initialize the Interceptor:**
+3. **Initialize the Interceptor:**
 
   In your AppDelegate or at the start of your app:
    ```
@@ -39,11 +41,8 @@
    class AppDelegate: NSObject, UIApplicationDelegate {
       func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         #if DEBUG
-            // When using the iOS simulator in the same network
+            // Automatic server discovery
             LocalResponse.connect()
-
-            // When using other devices in the same network, pass the local url (availabe in the listener macos app)
-            LocalResponse.connect(connectionUrl: "http://192.168.0.108:4040")
         #endif
       }
    }
@@ -51,7 +50,7 @@
 
 ### macOS App
 
-1. **Download the macOS app:**
+1. **Download the macOS server app:**
    - [Download Latest Release](https://github.com/chanonly123/local-response/releases)
    - Launch the app, and it will automatically start listening for traffic from your iOS app.
    - Allow it to run from security options from settings. <br/>
