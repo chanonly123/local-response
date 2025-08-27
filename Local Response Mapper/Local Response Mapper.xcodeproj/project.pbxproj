@@ -82,6 +82,7 @@
 		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		8D15559C2E2FA79B00C50B67 /* ResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseView.swift; sourceTree = "<group>"; };
 		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
+		8D64EBA42E5F228D0077DA50 /* Local-Response-Mapper-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Local-Response-Mapper-Info.plist"; sourceTree = SOURCE_ROOT; };
 		8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FittingImageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -121,6 +122,7 @@
 		1805D02C2C6CF8E200333A88 /* Local Response Mapper */ = {
 			isa = PBXGroup;
 			children = (
+				8D64EBA42E5F228D0077DA50 /* Local-Response-Mapper-Info.plist */,
 				8D15559E2E2FAA0F00C50B67 /* Models */,
 				1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */,
 				18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */,
@@ -462,8 +464,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Local-Response-Mapper-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Please allow";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -492,8 +496,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Local-Response-Mapper-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Please allow";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

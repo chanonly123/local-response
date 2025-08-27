@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Network
 
 public class LocalResponse {
     static let shared = LocalResponse()
@@ -22,10 +23,10 @@ public class LocalResponse {
 
     public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
         shared.connect(connectionUrl: connectionUrl, excludes: excludes)
-        shared.bonjourClient.startBrowsing()
         shared.bonjourClient.setOnUpdate { url in
             LocalResponse.shared.connectionUrl = url
         }
+        shared.bonjourClient.startBrowsing()
     }
 
     private func connect(connectionUrl: String?, excludes: [String]) {
@@ -146,52 +147,57 @@ extension LocalResponse: InjectorDelegate {
     }
 }
 
-class BonjourClient: NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
-    let browser = NetServiceBrowser()
-    var services: [NetService] = []
+final class BonjourClient {
+    private var browser: NWBrowser?
 
     private var onUpdate: ((String) -> Void)?
-
-    override init() {
-        super.init()
-        browser.delegate = self
-    }
 
     func setOnUpdate(callback: @escaping (String) -> Void) {
         onUpdate = callback
     }
 
     func startBrowsing() {
-        // Look for services of type "_myapp._tcp."
-        browser.searchForServices(ofType: "_http._tcp.", inDomain: "local.")
-    }
+        // Look for HTTP services advertised with Bonjour
+        let parameters = NWParameters.tcp
+        browser = NWBrowser(for: .bonjour(type: "_http._tcp", domain: "local."), using: parameters)
 
-    // Found a service
-    func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
-        services.append(service)
-        service.delegate = self
-        service.resolve(withTimeout: 5.0)
-    }
+        browser?.stateUpdateHandler = { newState in
+            switch newState {
+            case .ready:
+                print("Browser ready")
+            case .failed(let error):
+                print("Browser failed with error: \(error)")
+            default:
+                break
+            }
+        }
 
-    // Resolved to hostname + IP
-    func netServiceDidResolveAddress(_ sender: NetService) {
-        if let addresses = sender.addresses {
-            for addrData in addresses {
-                let ip = addrData.withUnsafeBytes { (pointer: UnsafeRawBufferPointer) -> String? in
-                    let sockaddrPtr = pointer.baseAddress!.assumingMemoryBound(to: sockaddr.self)
-                    if sockaddrPtr.pointee.sa_family == sa_family_t(AF_INET) {
-                        var addr = sockaddr_in()
-                        memcpy(&addr, sockaddrPtr, MemoryLayout<sockaddr_in>.size)
-                        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-                        inet_ntop(AF_INET, &addr.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
-                        return String(cString: buffer)
+        browser?.browseResultsChangedHandler = { results, changes in
+            for result in results {
+                switch result.endpoint {
+                case let .service(name: name, type: type, domain: domain, interface: _):
+                    print("Found service: \(name) (\(type)) in \(domain)")
+
+                    // Resolve connection
+                    let connection = NWConnection(to: result.endpoint, using: parameters)
+                    connection.stateUpdateHandler = { state in
+                        switch state {
+                        case .ready:
+                            print("Resolved service \(name) to: \(connection.endpoint)")
+                        case .failed(let error):
+                            print("Failed to connect: \(error)")
+                        default:
+                            break
+                        }
                     }
-                    return nil
-                }
-                if let ip = ip {
-                    onUpdate?("http://\(ip):\(sender.port)")
+                    connection.start(queue: .main)
+
+                default:
+                    break
                 }
             }
         }
+
+        browser?.start(queue: .main)
     }
 }

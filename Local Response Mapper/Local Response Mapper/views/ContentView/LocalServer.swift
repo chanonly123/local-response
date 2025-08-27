@@ -8,6 +8,7 @@
 import FlyingFox
 import Foundation
 import Factory
+import Network
 
 class LocalServer: NSObject, ObservableObject {
 
@@ -16,7 +17,7 @@ class LocalServer: NSObject, ObservableObject {
     }
 
     let server = HTTPServer(address: .inet(port: UInt16(Constants.localBaseUrlPort)))
-    private var service: NetService?
+    private var listener: NWListener?
     @Injected(\.db) var db
 
     @MainActor @Published var listeningAddress: String = ""
@@ -68,13 +69,30 @@ class LocalServer: NSObject, ObservableObject {
     }
 
     func startBonjourService() {
-        // Publish service: type "_myapp._tcp.", domain "local.", name "My Local Server"
-        service = NetService(domain: "local.",
-                             type: "_http._tcp.",
-                             name: "Local Response Mapper Server",
-                             port: Int32(Constants.localBaseUrlPort))
-        service?.delegate = self
-        service?.publish()
+        do {
+            // Create listener on TCP port 4040
+            listener = try NWListener(
+                using: .tcp,
+                on: 4040
+            )
+
+            // Advertise as Bonjour service
+            listener?.service = NWListener.Service(
+                name: "Local Response Mapper Server",
+                type: "_http._tcp",
+                domain: "local"
+            )
+
+            listener?.newConnectionHandler = { connection in
+                Logger.debugPrint("New connection from: \(connection.endpoint)")
+                connection.start(queue: .main)
+            }
+
+            listener?.start(queue: .main)
+            Logger.debugPrint("Server started and Bonjour service published.")
+        } catch {
+            Logger.debugPrint("Failed to start listener: \(error)")
+        }
     }
 
     @MainActor
