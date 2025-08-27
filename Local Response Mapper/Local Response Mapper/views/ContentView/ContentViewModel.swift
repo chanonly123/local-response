@@ -28,6 +28,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var selectedTab: TabType = .req
 
     @Published var newVersion: String?
+    @Published var newVersionDesc: String?
     @Published var newVersionAlert: Bool = false
 
     var notificationToken: NotificationToken?
@@ -134,6 +135,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     func checkForNewVersion() {
         struct Root: Codable {
             let tag_name: String?
+            let body: String?
         }
 
         func versionToInt(_ ver: String) -> Int? {
@@ -162,6 +164,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
                 newVer > currentVer
             {
                 newVersion = new
+                newVersionDesc = root.body
                 newVersionAlert = true
             }
         }

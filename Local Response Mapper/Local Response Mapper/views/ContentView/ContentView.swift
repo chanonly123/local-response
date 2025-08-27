@@ -112,11 +112,17 @@ struct ContentView: View {
                 Text("Clear All")
             }
         }
-        .alert("New version available\n\(viewm.newVersion ?? "")", isPresented: $viewm.newVersionAlert) {
-            viewm.getUpdateLink()
-            Button("Cancel") { }
-        }
-
+        .alert(
+            "New version available\n\(viewm.newVersion ?? "")",
+            isPresented: $viewm.newVersionAlert,
+            actions: {
+                viewm.getUpdateLink()
+                Button("Cancel") { }
+            },
+            message: {
+                Text(viewm.newVersionDesc ?? "")
+            }
+        )
     }
 
     var leftView: some View {
