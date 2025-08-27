@@ -30,6 +30,19 @@ public class LocalResponse {
         }
         LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
         self.excludes = excludes
+
+        Task.detached {
+
+            if await IPFinder.isLocalhost(port: Constants.localBaseUrlPort) {
+                print("✅ Local server is running at \(Constants.localBaseUrl)")
+            } else if let myIp = IPFinder.getIPAddress() {
+                if let ip = await IPFinder.findWorkingIP(baseIP: myIp, port: 4040) {
+                    print("✅ Found working IP: \(ip)")
+                } else {
+                    print("❌ No working IP found")
+                }
+            }
+        }
     }
 
     private func createURLRequest(endpoint: String) -> URLRequest {
