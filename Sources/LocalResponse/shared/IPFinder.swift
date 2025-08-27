@@ -5,8 +5,8 @@ class IPFinder {
     static let session: URLSession = {
         let config = URLSessionConfiguration.default
         let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.timeoutIntervalForRequest = 1
-        sessionConfig.timeoutIntervalForResource = 1
+        sessionConfig.timeoutIntervalForRequest = 2
+        sessionConfig.timeoutIntervalForResource = 2
         let session = URLSession(configuration: sessionConfig)
         return session
     }()
@@ -42,7 +42,8 @@ class IPFinder {
             return nil
         }
 
-        let ips = (0..<256).map { "\(prefix).\($0)" }
+        // 0 is network address, 1 is router address, 255 is broadcast address
+        let ips = (2...254).map { "\(prefix).\($0)" }
 
         // scan in batches of 20
         for batchStart in stride(from: 0, to: ips.count, by: 20) {
