@@ -9,11 +9,14 @@ import FlyingFox
 import Foundation
 import Factory
 
-class LocalServer: ObservableObject {
+class LocalServer: NSObject, ObservableObject {
 
-    @MainActor init() {}
+    @MainActor override init() {
+        super.init()
+    }
 
     let server = HTTPServer(address: .inet(port: UInt16(Constants.localBaseUrlPort)))
+    private var service: NetService?
     @Injected(\.db) var db
 
     @MainActor @Published var listeningAddress: String = ""
@@ -38,12 +41,13 @@ class LocalServer: ObservableObject {
                 try await server.waitUntilListening(timeout: 10)
                 isListening = await server.isListening
                 await server.appendRoute("/") { request in
-                    return HTTPResponse(statusCode: .ok, body: "Success".data(using: .utf8) ?? Data())
+                    return HTTPResponse(statusCode: .ok, body: "Local Response Mapper Running".data(using: .utf8) ?? Data())
                 }
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordBeginUrl), handler: recordBegin)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordEndUrl), handler: recordEnd)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.checkMapResponse), handler: returnMappedIfAny)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.overridenRequest), handler: overridenRequestHandler)
+                startBonjourService()
             } catch let e {
                 Logger.debugPrint("Error: \(e)")
                 error = e
@@ -61,6 +65,16 @@ class LocalServer: ObservableObject {
                 isListening = false
             }
         }
+    }
+
+    func startBonjourService() {
+        // Publish service: type "_myapp._tcp.", domain "local.", name "My Local Server"
+        service = NetService(domain: "local.",
+                             type: "_http._tcp.",
+                             name: "Local Response Mapper Server",
+                             port: Int32(Constants.localBaseUrlPort))
+        service?.delegate = self
+        service?.publish()
     }
 
     @MainActor
@@ -119,3 +133,13 @@ class LocalServer: ObservableObject {
     }
 }
 
+extension LocalServer: NetServiceDelegate {
+
+    func netServiceDidPublish(_ sender: NetService) {
+        Logger.debugPrint("Bonjour Service published: domain=\(sender.domain) type=\(sender.type) name=\(sender.name) port=\(sender.port)")
+    }
+
+    func netService(_ sender: NetService, didNotPublish errorDict: [String : NSNumber]) {
+        Logger.debugPrint("Bonjour Service failed to publish: \(errorDict)")
+    }
+}

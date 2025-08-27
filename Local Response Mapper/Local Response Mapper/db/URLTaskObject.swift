@@ -70,7 +70,7 @@ class URLTaskObject: Object, Identifiable {
                 try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
                 try data.write(to: path)
             } catch {
-                print("Error saving video data: \(error)")
+                Logger.debugPrint("Error saving video data: \(error)")
             }
         }
     }

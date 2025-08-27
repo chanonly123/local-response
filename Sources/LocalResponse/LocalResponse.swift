@@ -14,6 +14,7 @@ public class LocalResponse {
     private var injector: Injector = NetworkInjector()
     private let useCase = ApiUseCase()
     private var excludes: [String] = []
+    private let bonjourClient = BonjourClient()
 
     private init() {
         injector.delegate = self
@@ -21,6 +22,10 @@ public class LocalResponse {
 
     public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
         shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+        shared.bonjourClient.startBrowsing()
+        shared.bonjourClient.setOnUpdate { url in
+            LocalResponse.shared.connectionUrl = url
+        }
     }
 
     private func connect(connectionUrl: String?, excludes: [String]) {
@@ -141,3 +146,52 @@ extension LocalResponse: InjectorDelegate {
     }
 }
 
+class BonjourClient: NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
+    let browser = NetServiceBrowser()
+    var services: [NetService] = []
+
+    private var onUpdate: ((String) -> Void)?
+
+    override init() {
+        super.init()
+        browser.delegate = self
+    }
+
+    func setOnUpdate(callback: @escaping (String) -> Void) {
+        onUpdate = callback
+    }
+
+    func startBrowsing() {
+        // Look for services of type "_myapp._tcp."
+        browser.searchForServices(ofType: "_http._tcp.", inDomain: "local.")
+    }
+
+    // Found a service
+    func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
+        services.append(service)
+        service.delegate = self
+        service.resolve(withTimeout: 5.0)
+    }
+
+    // Resolved to hostname + IP
+    func netServiceDidResolveAddress(_ sender: NetService) {
+        if let addresses = sender.addresses {
+            for addrData in addresses {
+                let ip = addrData.withUnsafeBytes { (pointer: UnsafeRawBufferPointer) -> String? in
+                    let sockaddrPtr = pointer.baseAddress!.assumingMemoryBound(to: sockaddr.self)
+                    if sockaddrPtr.pointee.sa_family == sa_family_t(AF_INET) {
+                        var addr = sockaddr_in()
+                        memcpy(&addr, sockaddrPtr, MemoryLayout<sockaddr_in>.size)
+                        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+                        inet_ntop(AF_INET, &addr.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+                        return String(cString: buffer)
+                    }
+                    return nil
+                }
+                if let ip = ip {
+                    onUpdate?("http://\(ip):\(sender.port)")
+                }
+            }
+        }
+    }
+}
