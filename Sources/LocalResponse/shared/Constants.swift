@@ -15,7 +15,7 @@ class Constants {
     static let higlightThemeDark = "tomorrow-night-bright"
     static let contentEncodingKey = "Content-Encoding"
 
-    static let schemaVersion: UInt64 = 21
+    static let schemaVersion: UInt64 = 22
 
     static let fontSize: CGFloat = 11
     static let fontSizeKey: String = "fontSize"
