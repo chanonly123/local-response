@@ -25,59 +25,64 @@ struct ResponseView: View {
             }
     }
 
+    @ViewBuilder
     var content: some View {
-        VStack {
-            Spacer()
-            if let url = item.fileURL {
-                let imageSize = item.image != nil ? " (\(Int(item.image?.1.width ?? 0))x\(Int(item.image?.1.height ?? 0)))" : ""
-                HStack(alignment: .center) {
-                    Text("\(url.path)\(imageSize)")
-                        .textSelection(.enabled)
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.accentColor)
-                    Button("", systemImage: "folder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([url])
+        if item.statusCode != 0 {
+            VStack {
+                Spacer()
+                if let url = item.fileURL {
+                    let imageSize = item.image != nil ? " (\(Int(item.image?.1.width ?? 0))x\(Int(item.image?.1.height ?? 0)))" : ""
+                    HStack(alignment: .center) {
+                        Text("\(url.path)\(imageSize)")
+                            .textSelection(.enabled)
+                            .padding(.horizontal)
+                            .padding(.vertical, 4)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(Color.accentColor)
+                        Button("", systemImage: "folder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([url])
+                        }
+                        .offset(y: -2)
+                        .buttonStyle(.borderless)
                     }
-                    .offset(y: -2)
-                    .buttonStyle(.borderless)
+                    .padding(4)
+                    .background {
+                        Color.gray.opacity(0.2)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                 }
-                .padding(4)
-                .background {
-                    Color.gray.opacity(0.2)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-            switch item.contentType {
-            case .text:
-                MyTextEditor(
-                    source: .constant(item.responseString),
-                    language: .json,
-                    theme: theme,
-                    flags: [.selectable]
-                )
-                .id(item.id)
-            case .image:
-                if let image = item.image {
-                    FittingImageView(
-                        image: image.0,
-                        originalSize: image.1
+                switch item.contentType {
+                case .text:
+                    MyTextEditor(
+                        source: .constant(item.responseString),
+                        language: .json,
+                        theme: theme,
+                        flags: [.selectable]
                     )
-                } else {
-                    Text("Bad image data")
+                    .id(item.id)
+                case .image:
+                    if let image = item.image {
+                        FittingImageView(
+                            image: image.0,
+                            originalSize: image.1
+                        )
+                    } else {
+                        Text("Bad image data")
+                    }
+                case .video:
+                    if let player = player {
+                        VideoPlayer(player: player)
+                    } else {
+                        Text("Bad video data")
+                    }
+                default:
+                    Text("Unsupported content type")
+                    Text(item.responseString)
                 }
-            case .video:
-                if let player = player {
-                    VideoPlayer(player: player)
-                } else {
-                    Text("Bad video data")
-                }
-            default:
-                Text("Unsupported content type")
-                Text(item.responseString)
+                Spacer()
             }
-            Spacer()
+        } else {
+            ProgressView()
         }
     }
 }

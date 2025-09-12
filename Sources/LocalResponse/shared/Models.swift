@@ -15,6 +15,7 @@ struct URLTaskModelBegin: Codable {
     let reqHeaders: [String: String]
     let body: String?
     let bundleID: String?
+    let startTime: Double?
 
     init(task: URLSessionTask) {
         bundleID = Bundle.main.bundleIdentifier
@@ -27,6 +28,7 @@ struct URLTaskModelBegin: Codable {
             _reqHeaders[$0.key] = $0.value
         }
         reqHeaders = _reqHeaders
+        startTime = Date().timeIntervalSince1970
     }
 }
 
@@ -39,6 +41,7 @@ struct URLTaskModelEnd: Codable {
     let error: String?
     let bundleID: String?
     let mimeType: String?
+    let endTime: Double?
 
     init(
         taskId: String,
@@ -58,6 +61,7 @@ struct URLTaskModelEnd: Codable {
         self.error = error
         self.bundleID = bundleID
         self.mimeType = mimeType
+        self.endTime = Date().timeIntervalSince1970
     }
 
     init(task: URLSessionTask, response: URLResponse?, responseData: Data?, err: String?) {
@@ -80,6 +84,7 @@ struct URLTaskModelEnd: Codable {
             statusCode = res.statusCode
             error = err
             mimeType = res.mimeType
+            endTime = Date().timeIntervalSince1970
         } else {
             error = err ?? "Unknown"
             resString = nil
@@ -87,6 +92,7 @@ struct URLTaskModelEnd: Codable {
             resStringB64 = nil
             statusCode = 0
             mimeType = nil
+            endTime = nil
         }
     }
 }

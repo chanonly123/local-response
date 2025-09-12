@@ -13,6 +13,7 @@ class URLTaskObject: Object, Identifiable {
     var id: String { taskId }
     @Persisted var date: Double = Date().timeIntervalSince1970
     @Persisted(primaryKey: true) var taskId: String
+    @Persisted var startTime: Double = 0
     @Persisted var url: String = ""
     @Persisted var body: String = ""
     @Persisted var method: String = ""
@@ -21,6 +22,7 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var mimeType: String = ""
 
     // after response
+    @Persisted var endTime: Double = 0
     @Persisted var responseString: String = ""
     @Persisted var resHeaders: Map<String, String> = .init()
     @Persisted var statusCode: Int = 0
@@ -34,6 +36,8 @@ class URLTaskObject: Object, Identifiable {
     func createCopy() -> URLTaskObject {
         let new = URLTaskObject(taskId: UUID().uuidString)
         new.date = date
+        new.startTime = startTime
+        new.endTime = endTime
         new.url = url
         new.body = body
         new.method = method
@@ -46,6 +50,7 @@ class URLTaskObject: Object, Identifiable {
     }
 
     func updateFrom(task: URLTaskModelBegin) {
+        startTime = task.startTime ?? 0
         bundleID = task.bundleID ?? ""
         url = task.url
         method = task.method
@@ -54,6 +59,7 @@ class URLTaskObject: Object, Identifiable {
     }
 
     func updateFrom(task: URLTaskModelEnd) {
+        endTime = task.endTime ?? 0
         bundleID = task.bundleID ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
         responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? task.resString ?? ""
@@ -130,4 +136,17 @@ class URLTaskObject: Object, Identifiable {
         }
         return (urlObj.host() ?? "") + urlObj.path()
     }()
+
+    var timeDelay: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        let diff = endTime - startTime
+        let number = NSNumber(value: diff)
+        guard diff > 0, let str = formatter.string(from: number) else {
+            return ""
+        }
+        return str
+    }
 }

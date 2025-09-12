@@ -43,29 +43,33 @@ struct LocalMapView: View {
     var leftView: some View {
         VStack(spacing: 0) {
             if let items = viewm.list {
-                Table(items, selection: $viewm.selected) {
-                    TableColumn("Enable", content: { val in
-                        Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
-                    })
-                    .width(min: 45, ideal: 45, max: 60)
+                Table(
+                    items,
+                    selection: $viewm.selected,
+                    columns: {
+                        TableColumn("Enable", content: { val in
+                            Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
+                        })
+                        .width(min: 45, ideal: 45, max: 60)
 
-                    TableColumn("Method (match)", content: { val in
-                        Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
-                            ForEach(viewm.httpMethods, id: \.self) {
-                                Text($0)
-                                    .font(.system(size: fontSize - 2))
+                        TableColumn("Method (match)", content: { val in
+                            Picker("", selection: viewm.getSetValue(val.id, keyPath: \.method)) {
+                                ForEach(viewm.httpMethods, id: \.self) {
+                                    Text($0)
+                                        .font(.system(size: fontSize - 2))
+                                }
                             }
-                        }
-                    })
-                    .width(min: 95, ideal: 95, max: 110)
+                        })
+                        .width(min: 95, ideal: 95, max: 110)
 
-                    TableColumn("URL (contains)", content: { val in
-                        TextField("", text: viewm.getSetValue(val.id, keyPath: \.subUrl))
-                            .truncationMode(.head)
-                            .help(val.subUrl)
-                    })
-                    .width(min: 50, ideal: 200)
-                }
+                        TableColumn("URL (contains)", content: { val in
+                            TextField("", text: viewm.getSetValue(val.id, keyPath: \.subUrl))
+                                .truncationMode(.head)
+                                .help(val.subUrl)
+                        })
+                        .width(min: 50, ideal: 200)
+                    }
+                )
                 .frame(minWidth: 300)
 
                 HStack(spacing: 4) {

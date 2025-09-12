@@ -20,6 +20,9 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
+    @SceneStorage("ContentViewCustomization")
+    private var customization: TableColumnCustomization<URLTaskObject>
+
     var body: some View {
         VStack(spacing: 0) {
             GeometryReader { geo in
@@ -130,77 +133,99 @@ struct ContentView: View {
             if let items = viewm.list {
 
                 ScrollViewReader { proxy in
-                    Table(of: URLTaskObject.self, selection: $viewm.selected) {
-                        TableColumn("BundleID", content: { val in
-                            Text(val.bundleID)
-                                .truncationMode(.head)
-                                .help(val.bundleID)
-                                .id(val.id)
-                        })
-                        .width(min: 50, ideal: 50, max: 200)
-
-                        TableColumn("Mime type", content: { val in
-                            Text("\(val.mimeType)")
-                                .help(val.mimeType)
-                        })
-                        .width(min: 50, ideal: 50, max: 110)
-
-                        TableColumn("Method", content: { val in
-                            Text("\(val.method)")
-                                .help(val.method)
-                        })
-                        .width(min: 50, ideal: 50, max: 60)
-
-                        TableColumn("Edited", content: { val in
-                            Text("\(val.isEdited ? "Yes" : "-")")
-                        })
-                        .width(min: 45, ideal: 45, max: 60)
-
-                        TableColumn("Status", content: { val in
-                            HStack {
-                                Circle().fill(Utils.getStatusColor(val.statusCode))
-                                    .frame(width: 10, height: 10)
-                                    .padding(.top, 1)
-                                Text("\(val.statusCode > 0 ? "\(val.statusCode)" : "")")
-                            }
-                        })
-                        .width(min: 50, ideal: 50, max: 60)
-
-                        TableColumn("URL", content: { val in
-                            Text("\(val.getPathString)")
-                                .truncationMode(.head)
-                                .help(val.url)
-                        })
-                        .width(min: 50, ideal: 200)
-
-                    } rows: {
-                        ForEach(items) { val in
-                            TableRow(val)
-                                .contextMenu {
-                                    if val.contentType == .text {
-                                        Button("Map local") {
-                                            viewm.addNewMapLocal(obj: val)
-                                            openLocalMapWindow()
-                                        }
-                                        Button("Copy Request Body") {
-                                            viewm.copyValue(obj: val, keyPath: \.body)
-                                        }
-                                        Button("Copy Response String") {
-                                            viewm.copyValue(obj: val, keyPath: \.responseString)
-                                        }
-                                        Button("Copy All") {
-                                            viewm.copyAll(obj: val)
-                                        }
-                                    }
-                                    Button("Copy URL") {
-                                        viewm.copyValue(obj: val, keyPath: \.url)
-                                    }
-                                    Button("Copy CURL") {
-                                        viewm.toCurlCommand(obj: val)
-                                    }
+                    Table(
+                        of: URLTaskObject.self,
+                        selection: $viewm.selected,
+                        columnCustomization: $customization,
+                        columns: {
+                            TableColumn(
+                                "BundleID",
+                                content: { val in
+                                Text(val.bundleID)
+                                    .truncationMode(.head)
+                                    .help(val.bundleID)
+                                    .id(val.id)
                                 }
+                            )
+                            .width(min: 50, ideal: 50, max: 200)
+                            .customizationID("BundleID")
+
+                            TableColumn("MimeType", content: { val in
+                                Text("\(val.mimeType)")
+                                    .help(val.mimeType)
+                            })
+                            .width(min: 50, ideal: 50, max: 110)
+                            .customizationID("MimeType")
+
+
+                            TableColumn("Method", content: { val in
+                                Text("\(val.method)")
+                                    .help(val.method)
+                            })
+                            .width(min: 50, ideal: 50, max: 60)
+                            .customizationID("Method")
+
+                            TableColumn("Edited", content: { val in
+                                Text("\(val.isEdited ? "Yes" : "-")")
+                            })
+                            .width(min: 45, ideal: 45, max: 60)
+                            .customizationID("Edited")
+
+                            TableColumn("Time", content: { val in
+                                Text(val.timeDelay)
+                            })
+                            .width(min: 45, ideal: 45, max: 60)
+                            .customizationID("Time")
+
+                            TableColumn("Status", content: { val in
+                                HStack {
+                                    Circle().fill(Utils.getStatusColor(val.statusCode))
+                                        .frame(width: 10, height: 10)
+                                        .padding(.top, 1)
+                                    Text("\(val.statusCode > 0 ? "\(val.statusCode)" : "")")
+                                }
+                            })
+                            .width(min: 50, ideal: 50, max: 60)
+                            .customizationID("Status")
+
+                            TableColumn("URL", content: { val in
+                                Text("\(val.getPathString)")
+                                    .truncationMode(.head)
+                                    .help(val.url)
+                            })
+                            .width(min: 50, ideal: 200)
+                            .customizationID("URL")
+
+                        },
+                        rows: {
+                            ForEach(items) { val in
+                                TableRow(val)
+                                    .contextMenu {
+                                        if val.contentType == .text {
+                                            Button("Map local") {
+                                                viewm.addNewMapLocal(obj: val)
+                                                openLocalMapWindow()
+                                            }
+                                            Button("Copy Request Body") {
+                                                viewm.copyValue(obj: val, keyPath: \.body)
+                                            }
+                                            Button("Copy Response String") {
+                                                viewm.copyValue(obj: val, keyPath: \.responseString)
+                                            }
+                                            Button("Copy All") {
+                                                viewm.copyAll(obj: val)
+                                            }
+                                        }
+                                        Button("Copy URL") {
+                                            viewm.copyValue(obj: val, keyPath: \.url)
+                                        }
+                                        Button("Copy CURL") {
+                                            viewm.toCurlCommand(obj: val)
+                                        }
+                                    }
+                            }
                         }
-                    }
+                    )
                     .frame(minWidth: 300)
                     .onChange(of: viewm.listCount) { val in
                         if autoScroll, let last = viewm.list?.last {
