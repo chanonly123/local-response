@@ -20,33 +20,23 @@ public class LocalResponse {
     }
 
     public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
-        shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+        Task {
+            await shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+        }
     }
 
-    private func connect(connectionUrl: String?, excludes: [String]) {
-        func swizzle() {
+    private func connect(connectionUrl: String?, excludes: [String]) async {
+        if await IPFinder.isServerRunning(urlString: Constants.localBaseUrl) {
+            LocalResponse.shared.connectionUrl = Constants.localBaseUrl
+        } else {
             LocalResponse.shared.connectionUrl = connectionUrl ?? Constants.localBaseUrl
-            if URL(string: LocalResponse.shared.connectionUrl) == nil {
-                assertionFailure("❌ LocalResponse> Bad url! \(connectionUrl ?? "nil")")
-            }
-            LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
-            self.excludes = excludes
         }
 
-        Task.detached {
-            if await IPFinder.isServerRunning(urlString: LocalResponse.shared.connectionUrl) {
-                print("✅ LocalResponse> is running at \(LocalResponse.shared.connectionUrl)")
-                swizzle()
-            } else if let myIp = IPFinder.getIPAddress() {
-                if let ip = await IPFinder.findWorkingIP(baseIP: myIp, port: Constants.localBaseUrlPort) {
-                    LocalResponse.shared.connectionUrl = "http://\(ip):\(Constants.localBaseUrlPort)"
-                    print("✅ LocalResponse> Found working IP: \(ip)")
-                    swizzle()
-                } else {
-                    print("❌ LocalResponse> No working IP found")
-                }
-            }
+        if URL(string: LocalResponse.shared.connectionUrl) == nil {
+            assertionFailure("❌ LocalResponse> Bad url! \(connectionUrl ?? "nil")")
         }
+        LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
+        self.excludes = excludes
     }
 
     private func createURLRequest(endpoint: String) -> URLRequest {

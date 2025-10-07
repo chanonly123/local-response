@@ -41,8 +41,10 @@
    class AppDelegate: NSObject, UIApplicationDelegate {
       func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         #if DEBUG
-            // Automatic server discovery
+            // for simulator
             LocalResponse.connect()
+            // for simulator and other physical devices
+            LocalResponse.connect(connectionUrl: "http://192.168.31.24:4040")
         #endif
       }
    }
