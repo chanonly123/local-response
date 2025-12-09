@@ -24,7 +24,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             fetch()
         }
     }
-    @Published var selected: String?
+    @Published var selected = Set<String>()
     @Published var selectedTab: TabType = .req
 
     @Published var newVersion: String?
@@ -39,7 +39,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             let list = try db.getRecordsList(filter: filter)
             self.listCount = list.count
             self.list = list
-            self.selected = list.first?.taskId
+            self.selected = Set([list.first?.taskId].compactMap { $0 })
             notificationToken = list.observe { [weak self] _ in
                 do {
                     let newList = try self?.db.getRecordsList(filter: self?.filter ?? "")
@@ -120,6 +120,55 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
         arr.append("== RESPONSE_BODY ==")
         arr.append(obj.responseString)
+
+        Utils.copyToClipboard(arr.joined(separator: "\n"))
+    }
+
+    func copy(options: Set<CopyOptions>) {
+        var arr = [String]()
+
+        for taskId in selected {
+            guard let obj = fetch(taskId: taskId) else {
+                continue
+            }
+
+            // Add method
+            if options.contains(.method) {
+                arr.append(obj.method.uppercased())
+            }
+
+            // Add URL
+            if options.contains(.url) {
+                arr.append("url: \(obj.url)")
+            }
+
+            // Add request body
+            if options.contains(.body) && !obj.body.isEmpty {
+                arr.append("body: \(obj.body)")
+            }
+
+            // Add request headers
+            if options.contains(.reqHeaders) {
+                arr.append("reqh: " + NSAttributedString(obj.getReqHeaders).string)
+            }
+
+            // Add status code
+            if options.contains(.statusCode) {
+                arr.append("status: \(obj.statusCode)")
+            }
+
+            // Add response headers
+            if options.contains(.resHeaders) {
+                arr.append("resh: " + NSAttributedString(obj.getResHeaders).string)
+            }
+
+            // Add response body
+            if options.contains(.response) && !obj.responseString.isEmpty {
+                arr.append("res: " + obj.responseString)
+            }
+
+            arr.append("-------------")
+        }
 
         Utils.copyToClipboard(arr.joined(separator: "\n"))
     }

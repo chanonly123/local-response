@@ -23,6 +23,9 @@ struct ContentView: View {
     @SceneStorage("ContentViewCustomization")
     private var customization: TableColumnCustomization<URLTaskObject>
 
+    @State private var showMultiCopyPopover = false
+    @State private var multiCopySelectedItems: Set<CopyOptions> = [.method, .url, .body, .statusCode]
+
     var body: some View {
         VStack(spacing: 0) {
             GeometryReader { geo in
@@ -126,7 +129,21 @@ struct ContentView: View {
                 Text(viewm.newVersionDesc ?? "")
             }
         )
+        .popover(
+            isPresented: $showMultiCopyPopover,
+            attachmentAnchor: .point(.center),
+            arrowEdge: .bottom
+        ) {
+            SelectionPopoverView(
+                items: CopyOptions.allCases,
+                viewm: viewm,
+                selectedItems: $multiCopySelectedItems,
+                isPresented: $showMultiCopyPopover
+            )
+        }
     }
+
+    @State var selectedOptions: String = "0"
 
     var leftView: some View {
         VStack(spacing: 0) {
@@ -201,33 +218,13 @@ struct ContentView: View {
                             ForEach(items) { val in
                                 TableRow(val)
                                     .contextMenu {
-                                        if val.contentType == .text {
-                                            Button("Map local") {
-                                                viewm.addNewMapLocal(obj: val)
-                                                openLocalMapWindow()
-                                            }
-                                            Button("Copy Request Body") {
-                                                viewm.copyValue(obj: val, keyPath: \.body)
-                                            }
-                                            Button("Copy Response String") {
-                                                viewm.copyValue(obj: val, keyPath: \.responseString)
-                                            }
-                                            Button("Copy All") {
-                                                viewm.copyAll(obj: val)
-                                            }
-                                        }
-                                        Button("Copy URL") {
-                                            viewm.copyValue(obj: val, keyPath: \.url)
-                                        }
-                                        Button("Copy CURL") {
-                                            viewm.toCurlCommand(obj: val)
-                                        }
+                                        getContextMenuForSingleRow(val: val)
                                     }
                             }
                         }
                     )
                     .frame(minWidth: 300)
-                    .onChange(of: viewm.listCount) { val in
+                    .onChange(of: viewm.listCount) { _, _ in
                         if autoScroll, let last = viewm.list?.last {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
@@ -244,7 +241,7 @@ struct ContentView: View {
 
     var rightView: some View {
         VStack(alignment: .center, spacing: 0) {
-            if let item = viewm.fetch(taskId: viewm.selected) {
+            if let item = viewm.fetch(taskId: viewm.selected.first) {
 
                 HStack {
                     Spacer()
@@ -345,6 +342,102 @@ struct ContentView: View {
         let theme = CodeEditor.ThemeName(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
 
         return theme
+    }
+
+    func getContextMenuForSingleRow(val: URLTaskObject) -> some View {
+        VStack {
+            if viewm.selected.count > 1 {
+                Button("Copy Requests") {
+                    showMultiCopyPopover.toggle()
+                }
+            } else {
+                if val.contentType == .text {
+                    Button("Map local") {
+                        viewm.addNewMapLocal(obj: val)
+                        openLocalMapWindow()
+                    }
+                    Button("Copy Request Body") {
+                        viewm.copyValue(obj: val, keyPath: \.body)
+                    }
+                    Button("Copy Response String") {
+                        viewm.copyValue(obj: val, keyPath: \.responseString)
+                    }
+                    Button("Copy All") {
+                        viewm.copyAll(obj: val)
+                    }
+                }
+                Button("Copy URL") {
+                    viewm.copyValue(obj: val, keyPath: \.url)
+                }
+                Button("Copy CURL") {
+                    viewm.toCurlCommand(obj: val)
+                }
+            }
+        }
+    }
+
+}
+
+
+enum CopyOptions: String, CaseIterable, Hashable, Identifiable {
+    case method, url, body, statusCode, reqHeaders, resHeaders, response
+    var id: Self { self }
+}
+
+struct SelectionPopoverView: View {
+    private let items: [CopyOptions]
+    private let viewm: ContentViewModel
+    @Binding private var selectedItems: Set<CopyOptions>
+    @Binding private var isPresented: Bool
+
+    init(
+        items: [CopyOptions],
+        viewm: ContentViewModel,
+        selectedItems: Binding<Set<CopyOptions>>,
+        isPresented: Binding<Bool>
+    ) {
+        self.items = items
+        self.viewm = viewm
+        self._selectedItems = selectedItems
+        self._isPresented = isPresented
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Select items to Copy")
+                .font(.headline)
+                .padding(.top)
+
+            List {
+                ForEach(items, id: \.self) { item in
+                    HStack {
+                        Text(item.rawValue)
+                        Spacer()
+                        if selectedItems.contains(item) {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectedItems.contains(item) {
+                            selectedItems.remove(item)
+                        } else {
+                            selectedItems.insert(item)
+                        }
+                    }
+                }
+            }
+            .frame(height: 200)
+
+            Button("Copy") {
+                viewm.copy(options: selectedItems)
+                isPresented = false
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.bottom)
+        }
+        .frame(width: 200)
     }
 }
 
