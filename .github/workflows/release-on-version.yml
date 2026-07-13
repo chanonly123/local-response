@@ -1,0 +1,58 @@
+name: Release on version bump
+
+# When MARKETING_VERSION in Local_Response_Mapper/Config.xcconfig changes on
+# main, create a matching git tag and GitHub release. Idempotent: if a release
+# for that version already exists, it does nothing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Local_Response_Mapper/Config.xcconfig'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from Config.xcconfig
+        id: ver
+        run: |
+          VERSION=$(grep -E '^[[:space:]]*MARKETING_VERSION' \
+            "Local_Response_Mapper/Config.xcconfig" \
+            | head -1 | sed -E 's/.*=[[:space:]]*//' | tr -d '[:space:];')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read MARKETING_VERSION from Local_Response_Mapper/Config.xcconfig"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      - name: Skip if release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.ver.outputs.version }} already exists — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag and release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.version }}" \
+            --title "${{ steps.ver.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --generate-notes

@@ -35,6 +35,7 @@
 		18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558B2CBEB88A001CCD17 /* Constants.swift */; };
 		18F855902CBEB88B001CCD17 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558D2CBEB88A001CCD17 /* Models.swift */; };
 		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
+		84E15FD8300512D1007B8A05 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 84E15FD7300512D1007B8A05 /* Config.xcconfig */; };
 		8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559C2E2FA79B00C50B67 /* ResponseView.swift */; };
 		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
 		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
@@ -81,6 +82,7 @@
 		18F8558B2CBEB88A001CCD17 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		18F8558C2CBEB88A001CCD17 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		84E15FD7300512D1007B8A05 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		8D15559C2E2FA79B00C50B67 /* ResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseView.swift; sourceTree = "<group>"; };
 		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
 		8D64EBA62E5F288C0077DA50 /* IPFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFinder.swift; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 		1805D0212C6CF8E200333A88 = {
 			isa = PBXGroup;
 			children = (
+				84E15FD7300512D1007B8A05 /* Config.xcconfig */,
 				1815D2112C7739C000908A34 /* README.MD */,
 				1805D02C2C6CF8E200333A88 /* Local Response Mapper */,
 				1805D02B2C6CF8E200333A88 /* Products */,
@@ -292,6 +295,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1805D0352C6CF8E300333A88 /* Preview Assets.xcassets in Resources */,
+				84E15FD8300512D1007B8A05 /* Config.xcconfig in Resources */,
 				185879D52CC140E20042449B /* xcode.min.css in Resources */,
 				185879D12CC140D10042449B /* tomorrow-night-bright.min.css in Resources */,
 				1805D0322C6CF8E300333A88 /* Assets.xcassets in Resources */,
@@ -453,6 +457,7 @@
 		};
 		1805D03A2C6CF8E300333A88 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 84E15FD7300512D1007B8A05 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -473,7 +478,6 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -483,6 +487,7 @@
 		};
 		1805D03B2C6CF8E300333A88 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 84E15FD7300512D1007B8A05 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -503,7 +508,6 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chanonly123.Local-Response-Mapper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
