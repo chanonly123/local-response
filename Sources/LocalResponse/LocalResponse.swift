@@ -20,12 +20,16 @@ public class LocalResponse {
     }
 
     public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
+        // Swizzle synchronously so requests fired immediately after this call are intercepted.
+        shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
+        shared.excludes = excludes
+        // Resolve the actual server URL asynchronously (needs a network check for simulator vs device).
         Task {
-            await shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+            await shared.resolveConnectionUrl(connectionUrl: connectionUrl)
         }
     }
 
-    private func connect(connectionUrl: String?, excludes: [String]) async {
+    private func resolveConnectionUrl(connectionUrl: String?) async {
         if await IPFinder.isServerRunning(urlString: Constants.localBaseUrl) {
             LocalResponse.shared.connectionUrl = Constants.localBaseUrl
         } else {
@@ -35,8 +39,6 @@ public class LocalResponse {
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
             assertionFailure("❌ LocalResponse> Bad url! \(connectionUrl ?? "nil")")
         }
-        LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
-        self.excludes = excludes
     }
 
     private func createURLRequest(endpoint: String) -> URLRequest {
