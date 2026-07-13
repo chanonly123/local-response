@@ -122,7 +122,7 @@ struct ContentView: View {
             "New version available\n\(viewm.newVersion ?? "")",
             isPresented: $viewm.newVersionAlert,
             actions: {
-                viewm.getUpdateLink()
+                viewm.getUpdateButton()
                 Button("Cancel") { }
             },
             message: {

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 import RealmSwift
 import Factory
 
@@ -173,8 +174,66 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         Utils.copyToClipboard(arr.joined(separator: "\n"))
     }
 
-    func getUpdateLink() -> some View {
-        Link("Update", destination: URL(string: "https://github.com/chanonly123/local-response/releases")!)
+    static let releasesURL = URL(string: "https://github.com/chanonly123/local-response/releases")!
+
+    func getUpdateButton() -> some View {
+        Button("Update") { [weak self] in
+            self?.runUpdate()
+        }
+    }
+
+    /// Launches `update.sh` in a new Terminal window and quits the app.
+    ///
+    /// A running process can't replace its own binary, so `update.sh` waits for
+    /// this instance to quit before it pulls `main`, rebuilds, and relaunches.
+    /// The build/pull happens in Terminal (unsandboxed), so it works even though
+    /// this app is sandboxed and can't touch the repo itself.
+    func runUpdate() {
+        guard let scriptURL = locateUpdateScript() else {
+            // Couldn't find the source checkout (e.g. a downloaded release
+            // binary) — fall back to the releases page.
+            NSWorkspace.shared.open(Self.releasesURL)
+            return
+        }
+
+        // Write a launcher `.command` into our container's temp dir. Terminal
+        // (unsandboxed) opens and executes it, so it can read/run update.sh.
+        let launcher = FileManager.default.temporaryDirectory
+            .appendingPathComponent("update-local-response.command")
+        let contents = """
+        #!/bin/bash
+        exec bash "\(scriptURL.path)"
+        """
+
+        do {
+            try contents.write(to: launcher, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o755], ofItemAtPath: launcher.path
+            )
+            NSWorkspace.shared.open(launcher)
+            // Give Terminal a moment to launch before we quit so update.sh can
+            // detect our exit and safely rebuild.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NSApplication.shared.terminate(nil)
+            }
+        } catch let e {
+            appendError(e)
+        }
+    }
+
+    /// Derives the repo's `update.sh` path from the app bundle location.
+    ///
+    /// `run.sh` builds land at `<repo>/Local_Response_Mapper/DerivedData/Build/…/App.app`,
+    /// so we can recover `<repo>` by string, without any filesystem access (the
+    /// sandbox blocks reading the repo, but Terminal will run the script for us).
+    /// Returns `nil` for other layouts (Xcode's shared DerivedData, a downloaded
+    /// release binary), so those fall back to the releases page.
+    private func locateUpdateScript() -> URL? {
+        let bundlePath = Bundle.main.bundleURL.path
+        let marker = "/Local_Response_Mapper/DerivedData/"
+        guard let range = bundlePath.range(of: marker) else { return nil }
+        let repoRoot = String(bundlePath[..<range.lowerBound])
+        return URL(fileURLWithPath: repoRoot).appendingPathComponent("update.sh")
     }
 
     func getCurrentVersion() -> String? {
