@@ -52,12 +52,18 @@
 
 ### macOS App
 
-1. **Download the macOS server app:**
-   - [Download Latest Release](https://github.com/chanonly123/local-response/releases)
-   - Launch the app, and it will automatically start listening for traffic from your iOS app.
-   - Allow it to run from security options from settings. <br/>
-   OR <br/>
-   - Download the repo and open `Local Response Mapper/Local Response Mapper.xcodeproj` in Xcode and run
+Clone the repo and run the launch script — it builds the app and opens it for you:
+
+```sh
+git clone https://github.com/chanonly123/local-response.git
+cd local-response
+sh run.sh
+```
+
+That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launches the app.
+
+- **Clean build:** `sh run.sh -clean`
+- **Xcode instead:** open `Local_Response_Mapper/Local Response Mapper.xcodeproj` and run with `Cmd+R`.
 
 ## Usage
 
@@ -76,9 +82,6 @@
   - Override network responses to simulate server errors, or custom data responses.
 
 ## Screenshots
-
-### Allow the app to run (if downloaded directly)
-![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo1.png)
 
 ### Records all http network calls, You can edit (Response, Headers, StatusCode)
 ![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo2.gif)
