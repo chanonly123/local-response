@@ -196,21 +196,27 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             return
         }
 
-        // Write a launcher `.command` into our container's temp dir. Terminal
-        // (unsandboxed) opens and executes it, so it can read/run update.sh.
-        let launcher = FileManager.default.temporaryDirectory
-            .appendingPathComponent("update-local-response.command")
-        let contents = """
-        #!/bin/bash
-        exec bash "\(scriptURL.path)"
+        // Hand off to Terminal via AppleScript rather than writing a `.command`
+        // launcher. A file written by this sandboxed app gets stamped with the
+        // quarantine attribute, which makes Gatekeeper report it as "damaged".
+        // `osascript` telling Terminal to `do script` avoids the file entirely.
+        //
+        // Single-quote the script path for the shell; no double quotes inside,
+        // so the command embeds cleanly in the AppleScript string.
+        let shellCommand = "bash '\(scriptURL.path)'"
+        let appleScript = """
+        tell application "Terminal"
+            do script "\(shellCommand)"
+            activate
+        end tell
         """
 
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", appleScript]
+
         do {
-            try contents.write(to: launcher, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes(
-                [.posixPermissions: 0o755], ofItemAtPath: launcher.path
-            )
-            NSWorkspace.shared.open(launcher)
+            try process.run()
             // Give Terminal a moment to launch before we quit so update.sh can
             // detect our exit and safely rebuild.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
