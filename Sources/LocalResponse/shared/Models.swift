@@ -23,11 +23,7 @@ struct URLTaskModelBegin: Codable {
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
         body = if let httpBody = task.originalRequest?.httpBody { String(data: httpBody, encoding: .utf8) } else { nil }
-        var _reqHeaders = [String: String]()
-        task.originalRequest?.allHTTPHeaderFields?.forEach {
-            _reqHeaders[$0.key] = $0.value
-        }
-        reqHeaders = _reqHeaders
+        reqHeaders = task.originalRequest?.allHTTPHeaderFields ?? [:]
         startTime = Date().timeIntervalSince1970
     }
 }

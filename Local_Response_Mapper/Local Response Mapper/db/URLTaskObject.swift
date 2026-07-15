@@ -137,14 +137,18 @@ class URLTaskObject: Object, Identifiable {
         return (urlObj.host() ?? "") + urlObj.path()
     }()
 
-    var timeDelay: String {
+    // Reused across every row/render — allocating a NumberFormatter per call is expensive.
+    private static let timeDelayFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = 0
+        return formatter
+    }()
+
+    var timeDelay: String {
         let diff = endTime - startTime
-        let number = NSNumber(value: diff)
-        guard diff > 0, let str = formatter.string(from: number) else {
+        guard diff > 0, let str = Self.timeDelayFormatter.string(from: NSNumber(value: diff)) else {
             return ""
         }
         return str

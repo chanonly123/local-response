@@ -67,9 +67,11 @@ class ApiUseCase {
         lock.lock()
         defer { lock.unlock() }
 
-        var stored = taskIdResponse[task.uniqueId] ?? ResponseBean()
-        stored.data.append(data)
-        taskIdResponse[task.uniqueId] = stored
+        if taskIdResponse[task.uniqueId] == nil {
+            taskIdResponse[task.uniqueId] = ResponseBean()
+        }
+        // Mutate in place so we don't copy the whole accumulated buffer on each chunk.
+        taskIdResponse[task.uniqueId]?.data.append(data)
     }
 
     func recordWithError(task: URLSessionTask, error: Error?) {

@@ -70,7 +70,6 @@ class LocalServer: ObservableObject {
     }
 
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let data = try await req.bodyData
         let obj = try await JSONDecoder().decode(URLTaskModelBegin.self, from: req.bodyData)
         try self.db.recordBegin(task: obj)
         return HTTPResponse(statusCode: .ok)
