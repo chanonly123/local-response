@@ -8,39 +8,92 @@
 import Foundation
 import RealmSwift
 import SwiftUI
-import Highlightr
+import AppKit
+import CodeEditSourceEditor
 import UniformTypeIdentifiers
 
 struct Utils {
 
-    static var highlightrLight: Highlightr? = {
-        let h = Highlightr()
-        h?.setTheme(to: Constants.higlightThemeLight)
-        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
-        return h
-    }()
+    /// Syntax-highlighting theme for the CodeEditSourceEditor text views,
+    /// picked to match the current app color scheme.
+    static func editorTheme(_ colorScheme: ColorScheme) -> EditorTheme {
+        colorScheme == .dark ? darkEditorTheme : lightEditorTheme
+    }
 
-    static var highlightrDark: Highlightr? = {
-        let h = Highlightr()
-        h?.setTheme(to: Constants.higlightThemeDark)
-        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
-        return h
-    }()
+    private static func ns(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> NSColor {
+        NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
+    }
 
-    static var highlightr: Highlightr? {
-        return switch ColorSchemeViewModel.shared.value {
-        case .light: highlightrLight
-        case .dark: highlightrDark
-        @unknown default: highlightrLight
+    /// Xcode-like light theme.
+    private static let lightEditorTheme = EditorTheme(
+        text: .init(color: ns(0, 0, 0)),
+        insertionPoint: ns(0, 0, 0),
+        invisibles: .init(color: ns(0.8, 0.8, 0.8)),
+        background: ns(1, 1, 1),
+        lineHighlight: ns(0.91, 0.95, 1.0),
+        selection: ns(0.70, 0.84, 1.0),
+        keywords: .init(color: ns(0.67, 0.05, 0.57)),
+        commands: .init(color: ns(0.15, 0.30, 0.85)),
+        types: .init(color: ns(0.16, 0.34, 0.52)),
+        attributes: .init(color: ns(0.44, 0.30, 0.60)),
+        variables: .init(color: ns(0.15, 0.30, 0.85)),
+        values: .init(color: ns(0, 0, 0)),
+        numbers: .init(color: ns(0.11, 0.0, 0.81)),
+        strings: .init(color: ns(0.77, 0.10, 0.09)),
+        characters: .init(color: ns(0.11, 0.0, 0.81)),
+        comments: .init(color: ns(0.0, 0.45, 0.0))
+    )
+
+    /// Tomorrow-Night-Bright-like dark theme.
+    private static let darkEditorTheme = EditorTheme(
+        text: .init(color: ns(0.92, 0.92, 0.92)),
+        insertionPoint: ns(1, 1, 1),
+        invisibles: .init(color: ns(0.30, 0.30, 0.30)),
+        background: ns(0, 0, 0),
+        lineHighlight: ns(0.15, 0.15, 0.15),
+        selection: ns(0.24, 0.28, 0.34),
+        keywords: .init(color: ns(0.76, 0.59, 0.85)),
+        commands: .init(color: ns(0.48, 0.65, 0.85)),
+        types: .init(color: ns(0.91, 0.77, 0.28)),
+        attributes: .init(color: ns(0.91, 0.55, 0.27)),
+        variables: .init(color: ns(0.84, 0.31, 0.33)),
+        values: .init(color: ns(0.92, 0.92, 0.92)),
+        numbers: .init(color: ns(0.91, 0.55, 0.27)),
+        strings: .init(color: ns(0.72, 0.79, 0.29)),
+        characters: .init(color: ns(0.72, 0.79, 0.29)),
+        comments: .init(color: ns(0.59, 0.60, 0.59))
+    )
+
+    /// Scheme-aware colors for the lightweight `AttributedString` highlighters below.
+    private struct SyntaxColors {
+        let key: Color
+        let string: Color
+        let number: Color
+        let keyword: Color
+
+        static var current: SyntaxColors {
+            if ColorSchemeViewModel.shared.value == .dark {
+                return .init(
+                    key: Color(red: 0.48, green: 0.65, blue: 0.85),
+                    string: Color(red: 0.72, green: 0.79, blue: 0.29),
+                    number: Color(red: 0.91, green: 0.55, blue: 0.27),
+                    keyword: Color(red: 0.76, green: 0.59, blue: 0.85)
+                )
+            } else {
+                return .init(
+                    key: Color(red: 0.15, green: 0.30, blue: 0.85),
+                    string: Color(red: 0.77, green: 0.10, blue: 0.09),
+                    number: Color(red: 0.11, green: 0.0, blue: 0.81),
+                    keyword: Color(red: 0.67, green: 0.05, blue: 0.57)
+                )
+            }
         }
     }
 
-    static func getThemeName(colorScheme: ColorScheme) -> String {
-        return switch colorScheme {
-        case .light: Constants.higlightThemeLight
-        case .dark: Constants.higlightThemeDark
-        @unknown default: Constants.higlightThemeDark
-        }
+    private static func colored(_ string: String, _ color: Color?) -> AttributedString {
+        var a = AttributedString(string)
+        if let color { a.foregroundColor = color }
+        return a
     }
 
     static func getHost(_ from: String) -> AttributedString {
@@ -69,18 +122,83 @@ struct Utils {
         return highlightYaml(code)
     }
 
+    /// Lightweight, dependency-free JSON colorizer for the detail panel.
+    /// Colors strings (keys vs values), numbers and `true`/`false`/`null`.
     static func highlightJson(_ str: String) -> AttributedString {
-        guard let attr = highlightr?.highlight(str, as: "json") else {
-            return AttributedString(str)
+        let colors = SyntaxColors.current
+        let chars = Array(str)
+        var result = AttributedString()
+        var i = 0
+
+        func nextNonSpaceIsColon(from idx: Int) -> Bool {
+            var j = idx
+            while j < chars.count, chars[j] == " " || chars[j] == "\t" { j += 1 }
+            return j < chars.count && chars[j] == ":"
         }
-        return AttributedString(attr)
+
+        while i < chars.count {
+            let c = chars[i]
+            if c == "\"" {
+                var s = "\""
+                var j = i + 1
+                while j < chars.count {
+                    let cc = chars[j]
+                    if cc == "\\", j + 1 < chars.count {
+                        s.append(cc)
+                        s.append(chars[j + 1])
+                        j += 2
+                        continue
+                    }
+                    s.append(cc)
+                    j += 1
+                    if cc == "\"" { break }
+                }
+                let isKey = nextNonSpaceIsColon(from: j)
+                result += colored(s, isKey ? colors.key : colors.string)
+                i = j
+            } else if c.isNumber || (c == "-" && i + 1 < chars.count && chars[i + 1].isNumber) {
+                var s = ""
+                var j = i
+                while j < chars.count, chars[j].isNumber || "+-.eE".contains(chars[j]) {
+                    s.append(chars[j])
+                    j += 1
+                }
+                result += colored(s, colors.number)
+                i = j
+            } else if c.isLetter {
+                var s = ""
+                var j = i
+                while j < chars.count, chars[j].isLetter { s.append(chars[j]); j += 1 }
+                if s == "true" || s == "false" || s == "null" {
+                    result += colored(s, colors.keyword)
+                } else {
+                    result += AttributedString(s)
+                }
+                i = j
+            } else {
+                result += AttributedString(String(c))
+                i += 1
+            }
+        }
+        return result
     }
 
+    /// Lightweight, dependency-free YAML-ish colorizer for the detail panel.
+    /// Colors the `key:` portion of each line.
     static func highlightYaml(_ str: String) -> AttributedString {
-        guard let attr = highlightr?.highlight(str, as: "yaml") else {
-            return AttributedString(str)
+        let colors = SyntaxColors.current
+        var result = AttributedString()
+        let lines = str.components(separatedBy: "\n")
+        for (index, line) in lines.enumerated() {
+            if index > 0 { result += AttributedString("\n") }
+            if let colon = line.firstIndex(of: ":") {
+                result += colored(String(line[..<colon]), colors.key)
+                result += AttributedString(String(line[colon...]))
+            } else {
+                result += AttributedString(line)
+            }
         }
-        return AttributedString(attr)
+        return result
     }
 
     static func getStatusColor(_ status: Int) -> Color {

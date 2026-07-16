@@ -1,16 +1,16 @@
 import SwiftUI
-import CodeEditor
+import CodeEditSourceEditor
 import AVKit
 
 struct ResponseView: View {
 
     private let item: URLTaskObject
-    private let theme: CodeEditor.ThemeName
+    private let theme: EditorTheme
     @State private var player: AVPlayer?
 
     init(
         item: URLTaskObject,
-        theme: CodeEditor.ThemeName
+        theme: EditorTheme
     ) {
         self.item = item
         self.theme = theme
@@ -57,7 +57,7 @@ struct ResponseView: View {
                         source: .constant(item.responseString),
                         language: .json,
                         theme: theme,
-                        flags: [.selectable]
+                        isEditable: false
                     )
                     .id(item.id)
                 case .image:
@@ -138,13 +138,13 @@ struct ResponseView: View {
     }()
 
     Group {
-        ResponseView(item: text, theme: .default)
+        ResponseView(item: text, theme: Utils.editorTheme(.light))
             .frame(width: 400, height: 100)
 
-        ResponseView(item: image, theme: .default)
+        ResponseView(item: image, theme: Utils.editorTheme(.light))
             .frame(width: 400, height: 100)
 
-        ResponseView(item: video, theme: .default)
+        ResponseView(item: video, theme: Utils.editorTheme(.light))
             .frame(width: 400, height: 200)
     }
 }

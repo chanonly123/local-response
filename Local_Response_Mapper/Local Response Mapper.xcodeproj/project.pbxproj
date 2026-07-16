@@ -21,7 +21,8 @@
 		185879D52CC140E20042449B /* xcode.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D42CC140E20042449B /* xcode.min.css */; };
 		185879D72CC151600042449B /* MyColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 185879D62CC151580042449B /* MyColorScheme.swift */; };
 		188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */; };
-		188AFF462C8090EC00E8342B /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 188AFF452C8090EC00E8342B /* CodeEditor */; };
+		CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */ = {isa = PBXBuildFile; productRef = CE20000000000000000000B2 /* CodeEditSourceEditor */; };
+		CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */ = {isa = PBXBuildFile; productRef = CE30000000000000000000C2 /* CodeEditLanguages */; };
 		18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BA66E62C7080C2005D86E7 /* LocalMapView.swift */; };
 		18C48AC02C6E5F4900A005EF /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 18C48ABF2C6E5F4900A005EF /* RealmSwift */; };
 		18C48AC22C6E611A00A005EF /* DB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C48AC12C6E611A00A005EF /* DB.swift */; };
@@ -98,7 +99,8 @@
 				18CB6DAA2C6E58130074B8E0 /* FlyingFox in Frameworks */,
 				18CB6DAC2C6E58130074B8E0 /* FlyingSocks in Frameworks */,
 				1820A13E2C6F2E940016934A /* Factory in Frameworks */,
-				188AFF462C8090EC00E8342B /* CodeEditor in Frameworks */,
+				CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */,
+				CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +246,8 @@
 				18CB6DAB2C6E58130074B8E0 /* FlyingSocks */,
 				18C48ABF2C6E5F4900A005EF /* RealmSwift */,
 				1820A13D2C6F2E940016934A /* Factory */,
-				188AFF452C8090EC00E8342B /* CodeEditor */,
+				CE20000000000000000000B2 /* CodeEditSourceEditor */,
+				CE30000000000000000000C2 /* CodeEditLanguages */,
 			);
 			productName = "Local Response Mapper";
 			productReference = 1805D02A2C6CF8E200333A88 /* Local Response Mapper.app */;
@@ -278,7 +281,8 @@
 				18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */,
 				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */,
 				1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */,
-				188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */,
+				CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */,
+				CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */,
 			);
 			productRefGroup = 1805D02B2C6CF8E200333A88 /* Products */;
 			projectDirPath = "";
@@ -575,12 +579,20 @@
 				minimumVersion = 2.3.2;
 			};
 		};
-		188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
+		CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ZeeZide/CodeEditor?tab=readme-ov-file";
+			repositoryURL = "https://github.com/CodeEditApp/CodeEditSourceEditor";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.6;
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.15.2;
+			};
+		};
+		CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CodeEditApp/CodeEditLanguages";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.20;
 			};
 		};
 		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */ = {
@@ -607,10 +619,15 @@
 			package = 1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = Factory;
 		};
-		188AFF452C8090EC00E8342B /* CodeEditor */ = {
+		CE20000000000000000000B2 /* CodeEditSourceEditor */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */;
-			productName = CodeEditor;
+			package = CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */;
+			productName = CodeEditSourceEditor;
+		};
+		CE30000000000000000000C2 /* CodeEditLanguages */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */;
+			productName = CodeEditLanguages;
 		};
 		18C48ABF2C6E5F4900A005EF /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;

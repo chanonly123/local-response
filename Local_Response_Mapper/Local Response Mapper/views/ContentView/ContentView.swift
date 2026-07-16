@@ -7,7 +7,7 @@
 
 import SwiftUI
 import RealmSwift
-import CodeEditor
+import CodeEditSourceEditor
 
 struct ContentView: View {
 
@@ -338,10 +338,8 @@ struct ContentView: View {
         openWindow(id: "map-local-view")
     }
 
-    var theme: CodeEditor.ThemeName {
-        let theme = CodeEditor.ThemeName(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
-
-        return theme
+    var theme: EditorTheme {
+        Utils.editorTheme(myColorScheme.value)
     }
 
     func getContextMenuForSingleRow(val: URLTaskObject) -> some View {

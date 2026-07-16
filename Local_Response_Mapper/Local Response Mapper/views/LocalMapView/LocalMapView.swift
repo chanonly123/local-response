@@ -6,7 +6,8 @@
 //
 
 import SwiftUI
-import CodeEditor
+import CodeEditSourceEditor
+import CodeEditLanguages
 
 struct LocalMapView: View {
 
@@ -135,7 +136,7 @@ struct LocalMapView: View {
                         source: viewm.getSetValue(item.id, keyPath: \.resHeaders),
                         language: .yaml,
                         theme: theme,
-                        flags: [.editable, .selectable]
+                        isEditable: true
                     )
                     .frame(maxHeight: 100)
                     .id(item.id)
@@ -163,7 +164,7 @@ struct LocalMapView: View {
                         source: viewm.getSetValue(item.id, keyPath: \.resString),
                         language: .json,
                         theme: theme,
-                        flags: [.editable, .selectable]
+                        isEditable: true
                     )
                     .frame(maxHeight: .infinity)
                     .id(item.id)
@@ -175,8 +176,8 @@ struct LocalMapView: View {
         }
     }
 
-    var theme: CodeEditor.ThemeName {
-        .init(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
+    var theme: EditorTheme {
+        Utils.editorTheme(myColorScheme.value)
     }
 }
 

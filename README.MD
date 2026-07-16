@@ -110,6 +110,6 @@ A big thanks to the following open-source projects and contributors whose code h
 
 [realm-swift](https://github.com/realm/realm-swift) - Realm is a mobile database: a replacement for Core Data & SQLite.
 
-[Highlightr](https://github.com/raspu/Highlightr) - iOS & OSX Syntax Highlighter.
+[CodeEditSourceEditor](https://github.com/CodeEditApp/CodeEditSourceEditor) - A performant, tree-sitter powered source editor for macOS, from the CodeEdit project.
 
-[CodeEditor](https://github.com/ZeeZide/CodeEditor) - A SwiftUI TextEditor with syntax highlighting using Highlight.js
+[CodeEditLanguages](https://github.com/CodeEditApp/CodeEditLanguages) - Tree-sitter language grammars used for syntax highlighting.
