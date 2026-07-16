@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import CodeEditSourceEditor
 import CodeEditLanguages
 
@@ -36,7 +37,14 @@ struct MyTextEditor: View {
                     wrapLines: true,
                     tabWidth: 4
                 ),
-                behavior: .init(isEditable: isEditable)
+                behavior: .init(isEditable: isEditable),
+                // Set explicit content insets so the editor's scroll view uses
+                // `automaticallyAdjustsContentInsets = false`. Otherwise AppKit
+                // overwrites the top inset that the find panel adds to make room
+                // for itself, which leaves the find bar overlapping the first line
+                // and eating clicks on its own "Done" button (the text view's
+                // hitTest captures any point inside its visibleRect).
+                layout: .init(contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0))
             ),
             state: $editorState
         )
