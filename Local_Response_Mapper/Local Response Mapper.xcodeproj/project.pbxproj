@@ -21,12 +21,9 @@
 		185879D52CC140E20042449B /* xcode.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 185879D42CC140E20042449B /* xcode.min.css */; };
 		185879D72CC151600042449B /* MyColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 185879D62CC151580042449B /* MyColorScheme.swift */; };
 		188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */; };
-		CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */ = {isa = PBXBuildFile; productRef = CE20000000000000000000B2 /* CodeEditSourceEditor */; };
-		CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */ = {isa = PBXBuildFile; productRef = CE30000000000000000000C2 /* CodeEditLanguages */; };
 		18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BA66E62C7080C2005D86E7 /* LocalMapView.swift */; };
 		18C48AC02C6E5F4900A005EF /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 18C48ABF2C6E5F4900A005EF /* RealmSwift */; };
 		18C48AC22C6E611A00A005EF /* DB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C48AC12C6E611A00A005EF /* DB.swift */; };
-		7210F002EBD441A3AD9BD4E4 /* FilterExpression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E1E072A87814B17BADCA957 /* FilterExpression.swift */; };
 		18CB6DA22C6E51770074B8E0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */; };
 		18CB6DA42C6E52E80074B8E0 /* LocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */; };
 		18CB6DAA2C6E58130074B8E0 /* FlyingFox in Frameworks */ = {isa = PBXBuildFile; productRef = 18CB6DA92C6E58130074B8E0 /* FlyingFox */; };
@@ -37,11 +34,14 @@
 		18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558B2CBEB88A001CCD17 /* Constants.swift */; };
 		18F855902CBEB88B001CCD17 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558D2CBEB88A001CCD17 /* Models.swift */; };
 		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
+		7210F002EBD441A3AD9BD4E4 /* FilterExpression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E1E072A87814B17BADCA957 /* FilterExpression.swift */; };
 		84E15FD8300512D1007B8A05 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 84E15FD7300512D1007B8A05 /* Config.xcconfig */; };
 		8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559C2E2FA79B00C50B67 /* ResponseView.swift */; };
 		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
 		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
 		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
+		CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */ = {isa = PBXBuildFile; productRef = CE20000000000000000000B2 /* CodeEditSourceEditor */; };
+		CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */ = {isa = PBXBuildFile; productRef = CE30000000000000000000C2 /* CodeEditLanguages */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -76,7 +76,6 @@
 		188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMapViewModel.swift; sourceTree = "<group>"; };
 		18BA66E62C7080C2005D86E7 /* LocalMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMapView.swift; sourceTree = "<group>"; };
 		18C48AC12C6E611A00A005EF /* DB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DB.swift; sourceTree = "<group>"; };
-		6E1E072A87814B17BADCA957 /* FilterExpression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterExpression.swift; sourceTree = "<group>"; };
 		18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
 		18D50D382C7093DE004B0D44 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
@@ -85,6 +84,7 @@
 		18F8558B2CBEB88A001CCD17 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		18F8558C2CBEB88A001CCD17 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		18F8558D2CBEB88A001CCD17 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		6E1E072A87814B17BADCA957 /* FilterExpression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterExpression.swift; sourceTree = "<group>"; };
 		84E15FD7300512D1007B8A05 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		8D15559C2E2FA79B00C50B67 /* ResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseView.swift; sourceTree = "<group>"; };
 		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
@@ -583,22 +583,6 @@
 				minimumVersion = 2.3.2;
 			};
 		};
-		CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/CodeEditApp/CodeEditSourceEditor";
-			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.15.2;
-			};
-		};
-		CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/CodeEditApp/CodeEditLanguages";
-			requirement = {
-				kind = exactVersion;
-				version = 0.1.20;
-			};
-		};
 		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/realm/realm-swift";
@@ -615,6 +599,22 @@
 				minimumVersion = 0.15.0;
 			};
 		};
+		CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CodeEditApp/CodeEditSourceEditor";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.15.2;
+			};
+		};
+		CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CodeEditApp/CodeEditLanguages";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.20;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -622,16 +622,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = Factory;
-		};
-		CE20000000000000000000B2 /* CodeEditSourceEditor */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */;
-			productName = CodeEditSourceEditor;
-		};
-		CE30000000000000000000C2 /* CodeEditLanguages */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */;
-			productName = CodeEditLanguages;
 		};
 		18C48ABF2C6E5F4900A005EF /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -647,6 +637,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */;
 			productName = FlyingSocks;
+		};
+		CE20000000000000000000B2 /* CodeEditSourceEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */;
+			productName = CodeEditSourceEditor;
+		};
+		CE30000000000000000000C2 /* CodeEditLanguages */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */;
+			productName = CodeEditLanguages;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
