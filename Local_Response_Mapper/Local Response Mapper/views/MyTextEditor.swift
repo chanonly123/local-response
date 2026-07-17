@@ -44,7 +44,8 @@ struct MyTextEditor: View {
                 // for itself, which leaves the find bar overlapping the first line
                 // and eating clicks on its own "Done" button (the text view's
                 // hitTest captures any point inside its visibleRect).
-                layout: .init(contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0))
+                layout: .init(contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)),
+                peripherals: .init(showMinimap: false)
             ),
             state: $editorState
         )

@@ -112,3 +112,33 @@ struct MapCheckRequest: Codable {
     let url: String
     let method: String
 }
+
+/// How a matched rule should behave.
+enum MapMode: String, Codable {
+    /// Redirect the request to the local server and serve a stored response (original behavior).
+    case mockResponse
+    /// Let the request hit the real backend, but rewrite it first (url / method / headers).
+    case modifyRequest
+}
+
+/// Instructions for rewriting an outgoing request before it is sent.
+struct RequestOverride: Codable {
+    /// Full replacement URL. `nil`/empty keeps the original.
+    let url: String?
+    /// HTTP method override. `nil`/empty keeps the original.
+    let method: String?
+    /// When true, drop every original header before applying `setHeaders` (the `*` sentinel).
+    let clearAllHeaders: Bool
+    /// Headers to add or override.
+    let setHeaders: [String: String]
+    /// Header names to remove from the original request.
+    let removeHeaders: [String]
+}
+
+/// Reply from `/check-map-response`: which rule matched and what to do with it.
+struct MapMatchResponse: Codable {
+    let id: String
+    let mode: MapMode
+    /// Present only when `mode == .modifyRequest`.
+    let request: RequestOverride?
+}

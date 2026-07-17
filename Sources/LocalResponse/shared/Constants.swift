@@ -15,10 +15,11 @@ class Constants {
     static let higlightThemeDark = "tomorrow-night-bright"
     static let contentEncodingKey = "Content-Encoding"
 
-    static let schemaVersion: UInt64 = 22
+    static let schemaVersion: UInt64 = 23
 
     static let fontSize: CGFloat = 11
     static let fontSizeKey: String = "fontSize"
+    static let filterKey: String = "filter"
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
     static let checkMapResponse = "POST /check-map-response"

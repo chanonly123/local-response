@@ -88,23 +88,20 @@ class ApiUseCase {
         taskIdResponse[task.uniqueId] = nil
     }
 
-    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (String?) -> Void) {
+    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (MapMatchResponse?) -> Void) {
 
         var req = createURLRequest(endpoint: Constants.checkMapResponse)
         req.httpBody = toData(from: data)
 
         self.session.dataTask(with: req) { data, res, err in
-            var result: String?
-            var error: Error?
+            var result: MapMatchResponse?
 
-            if let data, let id = String(data: data, encoding: .utf8), !id.isEmpty {
-                result = id
-            } else {
-                error = err ?? NSError(domain: "data is nil", code: -1)
+            if let data, !data.isEmpty {
+                result = try? JSONDecoder().decode(MapMatchResponse.self, from: data)
             }
 
-            if let error {
-                Logger.debugPrint("\(error)")
+            if result == nil, let err {
+                Logger.debugPrint("\(err)")
             }
             completion(result)
         }

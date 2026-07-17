@@ -49,7 +49,13 @@ struct LocalMapView: View {
                     selection: $viewm.selected,
                     columns: {
                         TableColumn("Enable", content: { val in
-                            Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
+                            HStack(spacing: 4) {
+                                Toggle("", isOn: viewm.getSetValue(val.id, keyPath: \.enable))
+
+                                Image(systemName: val.mapMode == .modifyRequest ? "arrow.up.forward" : "arrow.down.backward")
+                                    .foregroundStyle(val.mapMode == .modifyRequest ? .blue : .green)
+                                    .help(val.mapMode == .modifyRequest ? "Modify Request" : "Mock Response")
+                            }
                         })
                         .width(min: 45, ideal: 45, max: 60)
 
@@ -102,78 +108,134 @@ struct LocalMapView: View {
             if let item = viewm.getSelectedItem() {
                 VStack(alignment: .leading, spacing: 4) {
 
-                    HStack {
-                        Text("Status")
-
-                        Spacer()
-
-                        if viewm.isValidStatus(item) {
-                            Text("Valid Status")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Invalid Status")
-                                .foregroundStyle(.red)
-                        }
+                    Picker("", selection: viewm.getSetValue(item.id, keyPath: \.mode)) {
+                        Text("Mock Response").tag(MapMode.mockResponse.rawValue)
+                        Text("Modify Request").tag(MapMode.modifyRequest.rawValue)
                     }
-                    TextField("", text: viewm.getSetValue(item.id, keyPath: \.statusCode))
-                        .overlay(alignment: .trailing) {
-                            Text(Utils.getCommonDescription(httpStatusCode: Int(item.status)) ?? "")
-                                .foregroundColor(.gray)
-                                .padding(.trailing, 8)
-                        }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
 
-                    HStack {
-                        Text("Response Headers")
-                        Spacer()
-                        if (item.resHeadersMap[Constants.contentEncodingKey] ?? "").isEmpty == false {
-                            Text("Warning")
-                                .foregroundStyle(.orange)
-                                .help("Response header contains '\(Constants.contentEncodingKey)', mapping may not work.")
-                        }
+                    if item.mapMode == .modifyRequest {
+                        requestEditor(item)
+                    } else {
+                        responseEditor(item)
                     }
-
-                    MyTextEditor(
-                        source: viewm.getSetValue(item.id, keyPath: \.resHeaders),
-                        language: .yaml,
-                        theme: theme,
-                        isEditable: true
-                    )
-                    .frame(maxHeight: 100)
-                    .id(item.id)
-
-                    HStack {
-                        Text("Response String")
-
-                        Spacer()
-
-                        Button {
-                            viewm.formatJsonBody()
-                        } label: {
-                            Image(systemName: "list.bullet.indent")
-                        }
-
-                        if viewm.isValidResponseJSON(item) {
-                            Text("Valid JSON")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Invalid JSON")
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    MyTextEditor(
-                        source: viewm.getSetValue(item.id, keyPath: \.resString),
-                        language: .json,
-                        theme: theme,
-                        isEditable: true
-                    )
-                    .frame(maxHeight: .infinity)
-                    .id(item.id)
                 }
                 .padding(4)
             } else {
                 Image(systemName: "tray")
             }
         }
+    }
+
+    @ViewBuilder
+    func responseEditor(_ item: MapLocalObject) -> some View {
+        HStack {
+            Text("Status")
+
+            Spacer()
+
+            if viewm.isValidStatus(item) {
+                Text("Valid Status")
+                    .foregroundStyle(.green)
+            } else {
+                Text("Invalid Status")
+                    .foregroundStyle(.red)
+            }
+        }
+        TextField("", text: viewm.getSetValue(item.id, keyPath: \.statusCode))
+            .overlay(alignment: .trailing) {
+                Text(Utils.getCommonDescription(httpStatusCode: Int(item.status)) ?? "")
+                    .foregroundColor(.gray)
+                    .padding(.trailing, 8)
+            }
+
+        HStack {
+            Text("Response Headers")
+            Spacer()
+            if (item.resHeadersMap[Constants.contentEncodingKey] ?? "").isEmpty == false {
+                Text("Warning")
+                    .foregroundStyle(.orange)
+                    .help("Response header contains '\(Constants.contentEncodingKey)', mapping may not work.")
+            }
+        }
+
+        MyTextEditor(
+            source: viewm.getSetValue(item.id, keyPath: \.resHeaders),
+            language: .yaml,
+            theme: theme,
+            isEditable: true
+        )
+        .frame(maxHeight: 100)
+        .id(item.id)
+
+        HStack {
+            Text("Response String")
+
+            Spacer()
+
+            Button {
+                viewm.formatJsonBody()
+            } label: {
+                Image(systemName: "list.bullet.indent")
+            }
+
+            if viewm.isValidResponseJSON(item) {
+                Text("Valid JSON")
+                    .foregroundStyle(.green)
+            } else {
+                Text("Invalid JSON")
+                    .foregroundStyle(.red)
+            }
+        }
+        MyTextEditor(
+            source: viewm.getSetValue(item.id, keyPath: \.resString),
+            language: .json,
+            theme: theme,
+            isEditable: true
+        )
+        .frame(maxHeight: .infinity)
+        .id(item.id)
+    }
+
+    @ViewBuilder
+    func requestEditor(_ item: MapLocalObject) -> some View {
+        HStack {
+            Text("Rewrite URL")
+            Spacer()
+            Text("optional — full URL")
+                .foregroundColor(.gray)
+        }
+        TextField("https://…", text: viewm.getSetValue(item.id, keyPath: \.urlRewrite))
+            .truncationMode(.head)
+
+        HStack {
+            Text("Override Method")
+            Spacer()
+            Picker("", selection: viewm.getSetValue(item.id, keyPath: \.methodOverride)) {
+                Text("(keep)").tag("")
+                ForEach(viewm.httpMethods.filter { !$0.contains("*") }, id: \.self) {
+                    Text($0).tag($0)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 140)
+        }
+
+        HStack {
+            Text("Request Headers")
+            Spacer()
+            Text("empty value removes • \"*\" clears all")
+                .foregroundColor(.gray)
+        }
+        MyTextEditor(
+            source: viewm.getSetValue(item.id, keyPath: \.reqHeaders),
+            language: .yaml,
+            theme: theme,
+            isEditable: true
+        )
+        .frame(maxHeight: .infinity)
+        .id(item.id)
     }
 
     var theme: EditorTheme {

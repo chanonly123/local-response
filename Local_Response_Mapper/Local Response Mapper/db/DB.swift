@@ -32,7 +32,7 @@ protocol DBProtocol {
 
     func recordBegin(task: URLTaskModelBegin) throws
     func recordEnd(task: URLTaskModelEnd) throws
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String?
+    func getMatchResponse(req: MapCheckRequest) throws -> MapMatchResponse?
     func getLocalMap(id: String) throws -> MapLocalObject?
 }
 
@@ -82,10 +82,8 @@ class DB: DBProtocol {
 
     func getRecordsList(filter: String = "") throws -> Results<URLTaskObject> {
         var items = try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
-        if !filter.isEmpty {
-            items = items.where {
-                $0.url.contains(filter, options: .caseInsensitive) || $0.bundleID.contains(filter, options: .caseInsensitive)
-            }
+        if let expr = FilterExpression.parse(filter) {
+            items = items.filter(expr.toPredicate())
         }
         return items
     }
@@ -146,15 +144,23 @@ class DB: DBProtocol {
         }
     }
 
-    /// checs if a map response found, returns id
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String? {
+    /// Finds the first enabled rule matching the request and returns what to do with it.
+    func getMatchResponse(req: MapCheckRequest) throws -> MapMatchResponse? {
         let r = try realm
         // Stop at the first match instead of materializing every match into an array.
-        let match = r.objects(MapLocalObject.self)
-            .where { $0.enable }
+        guard let match = r.objects(MapLocalObject.self)
+            .where({ $0.enable })
             .sorted(by: \.date, ascending: true)
             .first(where: { ($0.method.contains("*") || $0.method == req.method) && req.url.contains($0.subUrl) })
-        return match?.id
+        else { return nil }
+
+        let mode = match.mapMode
+        // Read every property here, while `match` is still bound to this thread's realm.
+        return MapMatchResponse(
+            id: match.id,
+            mode: mode,
+            request: mode == .modifyRequest ? match.requestOverride : nil
+        )
     }
 
     /// returns id

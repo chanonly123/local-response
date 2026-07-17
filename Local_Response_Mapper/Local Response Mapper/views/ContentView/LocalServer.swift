@@ -83,7 +83,8 @@ class LocalServer: ObservableObject {
 
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
-        if let id = try self.db.getLocalMapIfAvailable(req: obj), let data = id.data(using: .utf8) {
+        if let match = try self.db.getMatchResponse(req: obj) {
+            let data = try JSONEncoder().encode(match)
             return HTTPResponse(statusCode: .ok, body: data)
         } else {
             return HTTPResponse(statusCode: .noContent)

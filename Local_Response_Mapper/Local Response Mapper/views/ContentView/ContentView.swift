@@ -231,7 +231,7 @@ struct ContentView: View {
                     }
                 }
 
-                TextField("Filter", text: $viewm.filter)
+                TextField("Matches url/bundleID. Combine with && / ||, e.g. app && (profile || todo). Quote terms with spaces: \"my todo\"", text: $viewm.filter)
                     .textFieldStyle(.roundedBorder)
             } else {
                 Image(systemName: "tray")

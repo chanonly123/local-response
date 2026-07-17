@@ -85,16 +85,48 @@ extension LocalResponse: InjectorDelegate {
 
         let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
                                    method: task.currentRequest?.httpMethod ?? "")
-        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { id in
-            if let id {
-                var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
-                comps?.queryItems = [URLQueryItem(name: "id", value: id)]
-                req.url = comps?.url
-                task.setValue(req, forKey: "currentRequest")
+        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { match in
+            if let match {
+                switch match.mode {
+                case .modifyRequest:
+                    if let override = match.request {
+                        self.applyRequestOverride(task: task, override: override)
+                    }
+                case .mockResponse:
+                    var req = self.createURLRequest(endpoint: Constants.overridenRequest)
+                    var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
+                    comps?.queryItems = [URLQueryItem(name: "id", value: match.id)]
+                    req.url = comps?.url
+                    task.setValue(req, forKey: "currentRequest")
+                }
             }
             completion()
         }
+    }
+
+    /// Rewrites the outgoing request in place (url / method / headers) before it is resumed,
+    /// letting it still reach the real backend.
+    private func applyRequestOverride(task: URLSessionTask, override: RequestOverride) {
+        guard let original = task.currentRequest else { return }
+        var req = original
+
+        if let urlStr = override.url, !urlStr.isEmpty, let newUrl = URL(string: urlStr) {
+            req.url = newUrl
+        }
+        if let method = override.method, !method.isEmpty {
+            req.httpMethod = method
+        }
+
+        var headers = override.clearAllHeaders ? [String: String]() : (original.allHTTPHeaderFields ?? [:])
+        for key in override.removeHeaders {
+            headers.removeValue(forKey: key)
+        }
+        for (key, value) in override.setHeaders {
+            headers[key] = value
+        }
+        req.allHTTPHeaderFields = headers
+
+        task.setValue(req, forKey: "currentRequest")
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {

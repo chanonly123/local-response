@@ -25,7 +25,7 @@ if [ "$CLEAN" = true ]; then
     echo "Cleaning..."
     xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
         -destination 'platform=macOS' \
-        -configuration Debug \
+        -configuration Release \
         -derivedDataPath ./DerivedData \
         clean
 fi
@@ -33,9 +33,9 @@ fi
 echo "Building $SCHEME..."
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
     -destination 'platform=macOS' \
-    -configuration Debug \
+    -configuration Release \
     -derivedDataPath ./DerivedData \
     build
 
 echo "Launching app..."
-open "./DerivedData/Build/Products/Debug/$APP"
+open "./DerivedData/Build/Products/Release/$APP"
