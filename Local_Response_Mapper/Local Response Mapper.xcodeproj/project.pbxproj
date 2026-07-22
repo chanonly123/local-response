@@ -35,12 +35,12 @@
 		18F855902CBEB88B001CCD17 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558D2CBEB88A001CCD17 /* Models.swift */; };
 		18F855912CBEB88B001CCD17 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558C2CBEB88A001CCD17 /* Logger.swift */; };
 		7210F002EBD441A3AD9BD4E4 /* FilterExpression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E1E072A87814B17BADCA957 /* FilterExpression.swift */; };
+		84AF6C8730108F5900787FD7 /* CodeEditSourceEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 84AF6C8630108F5900787FD7 /* CodeEditSourceEditor */; };
 		84E15FD8300512D1007B8A05 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 84E15FD7300512D1007B8A05 /* Config.xcconfig */; };
 		8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559C2E2FA79B00C50B67 /* ResponseView.swift */; };
 		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
 		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
 		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
-		CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */ = {isa = PBXBuildFile; productRef = CE20000000000000000000B2 /* CodeEditSourceEditor */; };
 		CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */ = {isa = PBXBuildFile; productRef = CE30000000000000000000C2 /* CodeEditLanguages */; };
 /* End PBXBuildFile section */
 
@@ -101,8 +101,8 @@
 				18CB6DAA2C6E58130074B8E0 /* FlyingFox in Frameworks */,
 				18CB6DAC2C6E58130074B8E0 /* FlyingSocks in Frameworks */,
 				1820A13E2C6F2E940016934A /* Factory in Frameworks */,
-				CE20000000000000000000B3 /* CodeEditSourceEditor in Frameworks */,
 				CE30000000000000000000C3 /* CodeEditLanguages in Frameworks */,
+				84AF6C8730108F5900787FD7 /* CodeEditSourceEditor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,6 +115,7 @@
 				84E15FD7300512D1007B8A05 /* Config.xcconfig */,
 				1815D2112C7739C000908A34 /* README.MD */,
 				1805D02C2C6CF8E200333A88 /* Local Response Mapper */,
+				84AF6C8530108F5900787FD7 /* Frameworks */,
 				1805D02B2C6CF8E200333A88 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -219,6 +220,13 @@
 			path = ../Sources/LocalResponse/shared;
 			sourceTree = SOURCE_ROOT;
 		};
+		84AF6C8530108F5900787FD7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		8D15559E2E2FAA0F00C50B67 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -249,8 +257,8 @@
 				18CB6DAB2C6E58130074B8E0 /* FlyingSocks */,
 				18C48ABF2C6E5F4900A005EF /* RealmSwift */,
 				1820A13D2C6F2E940016934A /* Factory */,
-				CE20000000000000000000B2 /* CodeEditSourceEditor */,
 				CE30000000000000000000C2 /* CodeEditLanguages */,
+				84AF6C8630108F5900787FD7 /* CodeEditSourceEditor */,
 			);
 			productName = "Local Response Mapper";
 			productReference = 1805D02A2C6CF8E200333A88 /* Local Response Mapper.app */;
@@ -284,8 +292,8 @@
 				18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */,
 				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "realm-swift" */,
 				1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */,
-				CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */,
 				CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */,
+				84D7FC78300D1E0300CB8AE3 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */,
 			);
 			productRefGroup = 1805D02B2C6CF8E200333A88 /* Products */;
 			projectDirPath = "";
@@ -599,12 +607,12 @@
 				minimumVersion = 0.15.0;
 			};
 		};
-		CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */ = {
+		84D7FC78300D1E0300CB8AE3 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/CodeEditApp/CodeEditSourceEditor";
+			repositoryURL = "https://github.com/chanonly123/CodeEditSourceEditor";
 			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.15.2;
+				branch = main;
+				kind = branch;
 			};
 		};
 		CE30000000000000000000C1 /* XCRemoteSwiftPackageReference "CodeEditLanguages" */ = {
@@ -638,9 +646,9 @@
 			package = 18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */;
 			productName = FlyingSocks;
 		};
-		CE20000000000000000000B2 /* CodeEditSourceEditor */ = {
+		84AF6C8630108F5900787FD7 /* CodeEditSourceEditor */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CE20000000000000000000B1 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */;
+			package = 84D7FC78300D1E0300CB8AE3 /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */;
 			productName = CodeEditSourceEditor;
 		};
 		CE30000000000000000000C2 /* CodeEditLanguages */ = {
