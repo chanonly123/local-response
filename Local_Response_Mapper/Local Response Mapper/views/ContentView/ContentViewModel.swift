@@ -228,19 +228,23 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    /// Derives the repo's `update.sh` path from the app bundle location.
-    ///
-    /// `run.sh` builds land at `<repo>/Local_Response_Mapper/DerivedData/Build/…/App.app`,
-    /// so we can recover `<repo>` by string, without any filesystem access (the
-    /// sandbox blocks reading the repo, but Terminal will run the script for us).
-    /// Returns `nil` for other layouts (Xcode's shared DerivedData, a downloaded
-    /// release binary), so those fall back to the releases page.
+    /// Locates the repo's `update.sh` by walking up from the app bundle
+    /// location one directory at a time until a directory containing
+    /// `update.sh` is found, or the filesystem root is reached.
+    /// Returns `nil` for layouts with no `update.sh` in any ancestor (Xcode's
+    /// shared DerivedData, a downloaded release binary), so those fall back
+    /// to the releases page.
     private func locateUpdateScript() -> URL? {
-        let bundlePath = Bundle.main.bundleURL.path
-        let marker = "/Local_Response_Mapper/DerivedData/"
-        guard let range = bundlePath.range(of: marker) else { return nil }
-        let repoRoot = String(bundlePath[..<range.lowerBound])
-        return URL(fileURLWithPath: repoRoot).appendingPathComponent("update.sh")
+        let fileManager = FileManager.default
+        var dir = Bundle.main.bundleURL
+        while dir.pathComponents.count > 1 {
+            dir.deleteLastPathComponent()
+            let candidate = dir.appendingPathComponent("update.sh")
+            if fileManager.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return nil
     }
 
     func getCurrentVersion() -> String? {
