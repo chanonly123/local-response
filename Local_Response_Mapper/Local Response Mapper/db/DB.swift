@@ -51,7 +51,8 @@ class DB: DBProtocol {
     var realm: Realm {
         get throws {
             let config = Realm.Configuration(
-                schemaVersion: Constants.schemaVersion)
+                schemaVersion: Constants.schemaVersion,
+                deleteRealmIfMigrationNeeded: true)
             return try Realm(configuration: config)
         }
     }
