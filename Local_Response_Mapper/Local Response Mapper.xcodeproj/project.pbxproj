@@ -577,7 +577,7 @@
 		};
 		188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ZeeZide/CodeEditor?tab=readme-ov-file";
+			repositoryURL = "https://github.com/ZeeZide/CodeEditor";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.2.6;
