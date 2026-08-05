@@ -14,6 +14,8 @@ APP="Local Response Mapper.app"
 
 cd "$APP_DIR"
 
+CONFIGURATION=Release
+
 CLEAN=false
 for arg in "$@"; do
     case "$arg" in
@@ -22,20 +24,20 @@ for arg in "$@"; do
 done
 
 if [ "$CLEAN" = true ]; then
-    echo "Cleaning..."
-    xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
-        -destination 'platform=macOS' \
-        -configuration Debug \
-        -derivedDataPath ./DerivedData \
-        clean
+    echo "Removing DerivedData..."
+    rm -rf ./DerivedData
+
+    echo "Updating package dependencies..."
+    rm -f "$PROJECT/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+    xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME"
 fi
 
-echo "Building $SCHEME..."
+echo "Building $SCHEME ($CONFIGURATION)..."
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
     -destination 'platform=macOS' \
-    -configuration Debug \
+    -configuration "$CONFIGURATION" \
     -derivedDataPath ./DerivedData \
     build
 
 echo "Launching app..."
-open "./DerivedData/Build/Products/Debug/$APP"
+open "./DerivedData/Build/Products/$CONFIGURATION/$APP"
