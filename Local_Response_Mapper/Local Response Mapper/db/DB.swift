@@ -83,10 +83,8 @@ class DB: DBProtocol {
 
     func getRecordsList(filter: String = "") throws -> Results<URLTaskObject> {
         var items = try realm.objects(URLTaskObject.self).sorted(by: \.date, ascending: true)
-        if !filter.isEmpty {
-            items = items.where {
-                $0.url.contains(filter, options: .caseInsensitive) || $0.bundleID.contains(filter, options: .caseInsensitive)
-            }
+        if let expr = FilterExpression.parse(filter) {
+            items = items.filter(expr.toPredicate())
         }
         return items
     }

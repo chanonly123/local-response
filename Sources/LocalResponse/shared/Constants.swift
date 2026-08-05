@@ -14,6 +14,7 @@ class Constants {
     static let higlightThemeLight = "xcode"
     static let higlightThemeDark = "tomorrow-night-bright"
     static let contentEncodingKey = "Content-Encoding"
+    static let filterKey = "filterKey"
 
     static let schemaVersion: UInt64 = 24
 

@@ -100,7 +100,7 @@ Resolve it manually (e.g. 'git rebase origin/main' or 'git reset --hard origin/m
 fi
 
 echo "Building and relaunching..."
-if ! bash ./run.sh; then
+if ! bash ./run.sh -clean; then
     restore_state
     fail "Build failed. See the xcodebuild output above."
 fi

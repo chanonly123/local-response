@@ -20,8 +20,9 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var errors: [Error] = []
     @Published var list: Results<URLTaskObject>?
     var listCount: Int = 0
-    @Published var filter: String = "" {
+    @Published var filter: String = UserDefaults.standard.string(forKey: Constants.filterKey) ?? "" {
         didSet {
+            UserDefaults.standard.set(filter, forKey: Constants.filterKey)
             fetch()
         }
     }
@@ -117,7 +118,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         arr.append("\(obj.statusCode)")
 
         arr.append("== RESPONSE_HEADERS ==")
-        arr.append(NSAttributedString(string: obj.responseString).string)
+        arr.append(NSAttributedString(obj.getResHeaders).string)
 
         arr.append("== RESPONSE_BODY ==")
         arr.append(obj.responseString)
