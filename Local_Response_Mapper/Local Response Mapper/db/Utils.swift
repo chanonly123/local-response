@@ -8,7 +8,6 @@
 import Foundation
 import RealmSwift
 import SwiftUI
-import Highlightr
 import UniformTypeIdentifiers
 
 /// Token colors lifted from the Highlightr stylesheets the app uses — `xcode`
@@ -85,28 +84,7 @@ struct SyntaxStyle {
 
 struct Utils {
 
-    static var highlightrLight: Highlightr? = {
-        let h = Highlightr()
-        h?.setTheme(to: Constants.higlightThemeLight)
-        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
-        return h
-    }()
-
-    static var highlightrDark: Highlightr? = {
-        let h = Highlightr()
-        h?.setTheme(to: Constants.higlightThemeDark)
-        h?.theme.setCodeFont(RPFont.systemFont(ofSize: Constants.fontSize))
-        return h
-    }()
-
-    static var highlightr: Highlightr? {
-        return switch ColorSchemeViewModel.shared.value {
-        case .light: highlightrLight
-        case .dark: highlightrDark
-        @unknown default: highlightrLight
-        }
-    }
-
+    /// Theme names for `CodeEditor`, which still runs its own Highlightr.
     static func getThemeName(colorScheme: ColorScheme) -> String {
         return switch colorScheme {
         case .light: Constants.higlightThemeLight
@@ -160,11 +138,8 @@ struct Utils {
         return item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
     }
 
-    static func highlightJson(_ str: String) -> AttributedString {
-        guard let attr = highlightr?.highlight(str, as: "json") else {
-            return AttributedString(str)
-        }
-        return AttributedString(attr)
+    static func highlightJson(_ str: String, style: SyntaxStyle = .current) -> AttributedString {
+        return JSONHighlighter.highlight(str, style: style)
     }
 
     static func getStatusColor(_ status: Int) -> Color {

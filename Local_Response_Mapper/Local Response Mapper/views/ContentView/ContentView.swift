@@ -305,7 +305,7 @@ struct ContentView: View {
 
                             Text("Request Body")
                                 .underline()
-                            Text(item.getReqBody)
+                            JSONBodyText(raw: item.body)
 
                             Divider()
 
@@ -438,6 +438,40 @@ struct SelectionPopoverView: View {
             .padding(.bottom)
         }
         .frame(width: 200)
+    }
+}
+
+/// Renders a request body with JSON coloring. Small bodies are colored up
+/// front so they appear styled on the first frame; larger ones are handed to a
+/// background task so a big body can't stall the selection changing.
+struct JSONBodyText: View {
+
+    /// Coloring this much takes well under a frame — see JSONHighlighter for
+    /// the cost curve. Past it, the work moves off the main thread.
+    private static let inlineLimit = 4 * 1024
+
+    private let raw: String
+    @State private var attributed: AttributedString?
+
+    init(raw: String) {
+        self.raw = raw
+        if raw.utf8.count <= Self.inlineLimit {
+            _attributed = State(initialValue: Utils.highlightJson(raw))
+        }
+    }
+
+    var body: some View {
+        Text(attributed ?? AttributedString(raw))
+            .task(id: raw) {
+                guard attributed == nil else { return }
+                // Realm objects are thread-confined and the color scheme is
+                // main-actor state, so both are resolved before handing off.
+                let style = SyntaxStyle.current
+                let body = raw
+                attributed = await Task.detached {
+                    JSONHighlighter.highlight(body, style: style)
+                }.value
+            }
     }
 }
 

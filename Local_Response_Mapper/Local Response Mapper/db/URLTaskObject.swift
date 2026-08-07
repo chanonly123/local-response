@@ -118,10 +118,6 @@ class URLTaskObject: Object, Identifiable {
         Utils.dictToString(item: resHeaders)
     }()
 
-    lazy var getReqBody: AttributedString = {
-        Utils.highlightJson(body)
-    }()
-
     lazy var getHost: AttributedString = {
         Utils.getHost(url)
     }()
