@@ -14,7 +14,11 @@ import SwiftUI
 class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     @Published var errors: [any Error] = []
-    @Published var list: Results<MapLocalObject>?
+    /// Frozen snapshot, not the live `Results`. A live `Results` shrinks the moment a write
+    /// commits, while the `@Published` notification only arrives afterwards — during that gap
+    /// SwiftUI's table can still ask a deleted row for its values and Realm throws. Frozen
+    /// objects never invalidate, so the table always renders a consistent state.
+    @Published var list: [MapLocalObject]?
     @Published var selected: String?
     let httpMethods = [
         "GET",
@@ -45,15 +49,25 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     init() {
         do {
-            let list = try db.getMapList()
-            self.list = list
-            self.selected = list.first?.id
-            notificationToken = list.observe { [weak self] _ in
-                do {
-                    self?.list = try self?.db.getMapList()
-                } catch let e {
-                    self?.appendError(e)
-                }
+            let results = try db.getMapList()
+            self.list = Array(results.freeze())
+            self.selected = self.list?.first?.id
+            notificationToken = results.observe { [weak self] _ in
+                self?.refreshList()
+            }
+        } catch let e {
+            appendError(e)
+        }
+    }
+
+    private func refreshList() {
+        do {
+            let snapshot = Array(try db.getMapList().freeze())
+            list = snapshot
+            // A selection pointing at a deleted row makes the table query a row that no
+            // longer exists, so drop it.
+            if let selected, !snapshot.contains(where: { $0.id == selected }) {
+                self.selected = nil
             }
         } catch let e {
             appendError(e)
@@ -101,15 +115,19 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func deleteSelected() {
-        db.write { r in
-            if let item = getSelectedItem() {
-                let index = list?.firstIndex(of: item)
-                r.delete(item)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.selectNearby(index: index)
-                }
-            }
+        guard let id = selected else { return }
+        let index = list?.firstIndex(where: { $0.id == id })
+        // Drop the selection and the row before the write, so nothing is pointing at the
+        // deleted object while Realm commits.
+        selected = nil
+        list?.removeAll { $0.id == id }
+        do {
+            try db.deleteLocalMap(id: id)
+        } catch let e {
+            appendError(e)
+            return
         }
+        selectNearby(index: index)
     }
 
     func selectNearby(index: Int?) {
@@ -140,6 +158,10 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func clearAll() {
+        // Empty the table before the delete commits, otherwise SwiftUI can render rows
+        // backed by objects Realm has already invalidated.
+        selected = nil
+        list = []
         db.clearAllMapRecords()
     }
 }
