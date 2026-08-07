@@ -11,6 +11,78 @@ import SwiftUI
 import Highlightr
 import UniformTypeIdentifiers
 
+/// Token colors lifted from the Highlightr stylesheets the app uses — `xcode`
+/// for light, `tomorrow-night-bright` for dark — so text styled here matches
+/// text that still goes through the highlighting engine.
+struct SyntaxStyle {
+
+    let base: Color
+    let key: Color
+    let string: Color
+    let number: Color
+    let keyword: Color
+
+    static let light = SyntaxStyle(
+        base: Color(hex: 0x000000),
+        key: Color(hex: 0x836C28),
+        string: Color(hex: 0xC41A16),
+        number: Color(hex: 0x1C00CF),
+        keyword: Color(hex: 0xAA0D91)
+    )
+
+    /// tomorrow-night-bright defines no `.hljs-attr`, so keys fall back to base.
+    static let dark = SyntaxStyle(
+        base: Color(hex: 0xEAEAEA),
+        key: Color(hex: 0xEAEAEA),
+        string: Color(hex: 0xB9CA4A),
+        number: Color(hex: 0xE78C45),
+        keyword: Color(hex: 0xE78C45)
+    )
+
+    static var current: SyntaxStyle {
+        return switch ColorSchemeViewModel.shared.value {
+        case .light: light
+        case .dark: dark
+        @unknown default: light
+        }
+    }
+
+    func run(_ text: String, _ color: Color) -> AttributedString {
+        var out = AttributedString(text)
+        out.foregroundColor = color
+        out.font = .system(size: Constants.fontSize)
+        return out
+    }
+
+    /// A bare scalar — an HTTP method, a host, a status code. Nothing to parse,
+    /// so the whole value takes one color based on its type.
+    func scalar(_ text: String) -> AttributedString {
+        return run(text, color(for: text))
+    }
+
+    /// One `key: value` line.
+    func pair(key keyText: String, value: String) -> AttributedString {
+        return run("\(keyText):", key) + run(" ", base) + run(value, color(for: value))
+    }
+
+    private func color(for scalar: String) -> Color {
+        switch scalar {
+        case "true", "false", "null": return keyword
+        default: return isNumber(scalar) ? number : string
+        }
+    }
+
+    private func isNumber(_ text: String) -> Bool {
+        // The leading-character check keeps "inf"/"nan", which Double(_:)
+        // happily parses, from being colored as numbers.
+        guard let first = text.first,
+              first.isNumber || first == "-" || first == "+" || first == "." else {
+            return false
+        }
+        return Double(text) != nil
+    }
+}
+
 struct Utils {
 
     static var highlightrLight: Highlightr? = {
@@ -44,11 +116,11 @@ struct Utils {
     }
 
     static func getHost(_ from: String) -> AttributedString {
-        return highlightYaml(URL(string: from)?.host() ?? "")
+        return styledScalar(URL(string: from)?.host() ?? "")
     }
 
     static func getPath(_ from: String) -> AttributedString {
-        return highlightYaml(URL(string: from)?.path() ?? "")
+        return styledScalar(URL(string: from)?.path() ?? "")
     }
 
     static func getQueryParams(_ from: String) -> [String: String] {
@@ -58,26 +130,38 @@ struct Utils {
         return params
     }
 
+    /// Colors a single value the way the themes would, without running the
+    /// syntax engine — these have no structure for a grammar to find.
+    static func styledScalar(_ str: String) -> AttributedString {
+        return SyntaxStyle.current.scalar(str)
+    }
+
+    private static func pairsToString(_ pairs: [(key: String, value: String)]) -> AttributedString {
+        let style = SyntaxStyle.current
+        var out = AttributedString()
+        for (index, pair) in pairs.enumerated() {
+            if index > 0 { out += style.run("\n", style.base) }
+            out += style.pair(key: pair.key, value: pair.value)
+        }
+        return out
+    }
+
     static func dictToString(item: Map<String, String>) -> AttributedString {
-        let code = item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-        return highlightYaml(code)
+        return pairsToString(item.map { (key: $0.key, value: $0.value) })
     }
 
     static func dictToString(item: [String: String]) -> AttributedString {
         let keys: [String] = item.keys.sorted(by: { $0 < $1 })
-        let code = keys.map { "\($0): \(item[$0]!)" }.joined(separator: "\n")
-        return highlightYaml(code)
+        return pairsToString(keys.map { (key: $0, value: item[$0]!) })
+    }
+
+    /// Same text as `dictToString`, without building throwaway attributes.
+    static func dictToPlainString(item: Map<String, String>) -> String {
+        return item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
     }
 
     static func highlightJson(_ str: String) -> AttributedString {
         guard let attr = highlightr?.highlight(str, as: "json") else {
-            return AttributedString(str)
-        }
-        return AttributedString(attr)
-    }
-
-    static func highlightYaml(_ str: String) -> AttributedString {
-        guard let attr = highlightr?.highlight(str, as: "yaml") else {
             return AttributedString(str)
         }
         return AttributedString(attr)

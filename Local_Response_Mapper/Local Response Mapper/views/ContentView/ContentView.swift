@@ -269,7 +269,7 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("BundleID")
                                 .underline()
-                            Text(Utils.highlightYaml(item.bundleID))
+                            Text(Utils.styledScalar(item.bundleID))
 
                             Divider()
 
@@ -287,7 +287,7 @@ struct ContentView: View {
 
                             Text("Method")
                                 .underline()
-                            Text(Utils.highlightYaml(item.method))
+                            Text(Utils.styledScalar(item.method))
 
                             Divider()
 
@@ -311,7 +311,7 @@ struct ContentView: View {
 
                             Text("Status")
                                 .underline()
-                            Text(Utils.highlightYaml("\(item.statusCode)")) + Text("    ") +
+                            Text(Utils.styledScalar("\(item.statusCode)")) + Text("    ") +
                             Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
                                 .foregroundColor(.gray)
 

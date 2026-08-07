@@ -112,13 +112,13 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         arr.append(obj.method)
 
         arr.append("== REQUEST_HEADERS ==")
-        arr.append(NSAttributedString(obj.getReqHeaders).string)
+        arr.append(Utils.dictToPlainString(item: obj.reqHeaders))
 
         arr.append("== STATUS ==")
         arr.append("\(obj.statusCode)")
 
         arr.append("== RESPONSE_HEADERS ==")
-        arr.append(NSAttributedString(obj.getResHeaders).string)
+        arr.append(Utils.dictToPlainString(item: obj.resHeaders))
 
         arr.append("== RESPONSE_BODY ==")
         arr.append(obj.responseString)
@@ -151,7 +151,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add request headers
             if options.contains(.reqHeaders) {
-                arr.append("reqh: " + NSAttributedString(obj.getReqHeaders).string)
+                arr.append("reqh: " + Utils.dictToPlainString(item: obj.reqHeaders))
             }
 
             // Add status code
@@ -161,7 +161,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add response headers
             if options.contains(.resHeaders) {
-                arr.append("resh: " + NSAttributedString(obj.getResHeaders).string)
+                arr.append("resh: " + Utils.dictToPlainString(item: obj.resHeaders))
             }
 
             // Add response body
