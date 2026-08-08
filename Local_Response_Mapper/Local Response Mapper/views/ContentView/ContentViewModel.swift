@@ -29,6 +29,11 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var selected = Set<String>()
     @Published var selectedTab: TabType = .req
 
+    @Published var tree: [EndpointNode] = []
+    @Published var expandedNodes: Set<String> = []
+    /// hosts are expanded the first time they show up, later collapses are kept
+    private var seenNodes: Set<String> = []
+
     @Published var newVersion: String?
     @Published var newVersionDesc: String?
     @Published var newVersionAlert: Bool = false
@@ -42,11 +47,13 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             self.listCount = list.count
             self.list = list
             self.selected = Set([list.first?.taskId].compactMap { $0 })
+            self.rebuildTree(list)
             notificationToken = list.observe { [weak self] _ in
                 do {
                     let newList = try self?.db.getRecordsList(filter: self?.filter ?? "")
                     self?.listCount = newList?.count ?? 0
                     self?.list = newList
+                    self?.rebuildTree(newList)
                 } catch let e {
                     self?.appendError(e)
                 }
@@ -58,10 +65,21 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     func fetch() {
         do {
-            list = try db.getRecordsList(filter: filter)
+            let newList = try db.getRecordsList(filter: filter)
+            list = newList
+            rebuildTree(newList)
         } catch let e {
             appendError(e)
         }
+    }
+
+    private func rebuildTree(_ items: Results<URLTaskObject>?) {
+        let nodes = items.map { EndpointTree.build(from: $0) } ?? []
+        for node in nodes where !seenNodes.contains(node.id) {
+            seenNodes.insert(node.id)
+            expandedNodes.insert(node.id)
+        }
+        tree = nodes
     }
 
     func generateDummyData() {
@@ -70,6 +88,8 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
     func clearAll() {
         db.clearAllRecords()
+        seenNodes.removeAll()
+        expandedNodes.removeAll()
         fetch()
         if let first = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("cache") {
             try? FileManager.default.removeItem(atPath: first.path)

@@ -41,6 +41,7 @@
 		8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15559F2E2FAA1300C50B67 /* ContentType.swift */; };
 		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
 		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
+		8DA1F0022E96A1010012AB01 /* EndpointTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA1F0012E96A1010012AB01 /* EndpointTreeView.swift */; };
 		8DAA00022E5F288C0077DA50 /* JSONHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAA00012E5F288C0077DA50 /* JSONHighlighter.swift */; };
 /* End PBXBuildFile section */
 
@@ -90,6 +91,7 @@
 		8D15559F2E2FAA1300C50B67 /* ContentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentType.swift; sourceTree = "<group>"; };
 		8D64EBA62E5F288C0077DA50 /* IPFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFinder.swift; sourceTree = "<group>"; };
 		8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FittingImageView.swift; sourceTree = "<group>"; };
+		8DA1F0012E96A1010012AB01 /* EndpointTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointTreeView.swift; sourceTree = "<group>"; };
 		8DAA00012E5F288C0077DA50 /* JSONHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONHighlighter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -181,6 +183,7 @@
 				1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */,
 				18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */,
 				8D15559C2E2FA79B00C50B67 /* ResponseView.swift */,
+				8DA1F0012E96A1010012AB01 /* EndpointTreeView.swift */,
 			);
 			path = ContentView;
 			sourceTree = "<group>";
@@ -319,6 +322,7 @@
 				18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */,
 				184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */,
 				8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */,
+				8DA1F0022E96A1010012AB01 /* EndpointTreeView.swift in Sources */,
 				1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */,
 				18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */,
 				188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */,

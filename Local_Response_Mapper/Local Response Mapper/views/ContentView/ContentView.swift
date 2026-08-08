@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var scrollToId: String?
     @Environment(\.openWindow) private var openWindow
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
+    @AppStorage(Constants.leftViewModeKey) private var leftMode: LeftViewMode = .sequence
 
     @SceneStorage("ContentViewCustomization")
     private var customization: TableColumnCustomization<URLTaskObject>
@@ -147,6 +148,44 @@ struct ContentView: View {
 
     var leftView: some View {
         VStack(spacing: 0) {
+            Picker("", selection: $leftMode) {
+                ForEach(LeftViewMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.small)
+            .padding(2)
+
+            switch leftMode {
+            case .structure:
+                structureView
+            case .sequence:
+                sequenceView
+            }
+
+            TextField("Matches url/bundleID. Combine with && / ||, e.g. app && (profile || todo). Quote terms with spaces: \"my todo\"", text: $viewm.filter)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    var structureView: some View {
+        EndpointTreeView(
+            nodes: viewm.tree,
+            selection: $viewm.selected,
+            expanded: $viewm.expandedNodes,
+            contextMenu: { taskId in
+                if let val = viewm.fetch(taskId: taskId) {
+                    getContextMenuForSingleRow(val: val)
+                }
+            }
+        )
+        .frame(minWidth: 300, maxHeight: .infinity)
+    }
+
+    var sequenceView: some View {
+        VStack(spacing: 0) {
             if let items = viewm.list {
 
                 ScrollViewReader { proxy in
@@ -230,9 +269,6 @@ struct ContentView: View {
                         }
                     }
                 }
-
-                TextField("Matches url/bundleID. Combine with && / ||, e.g. app && (profile || todo). Quote terms with spaces: \"my todo\"", text: $viewm.filter)
-                    .textFieldStyle(.roundedBorder)
             } else {
                 Image(systemName: "tray")
             }
