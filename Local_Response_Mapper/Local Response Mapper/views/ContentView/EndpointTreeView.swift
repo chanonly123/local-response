@@ -21,16 +21,27 @@ struct EndpointRequest {
     let method: String
     let statusCode: Int
     let date: Double
+    /// last path component plus the query, e.g. `raw?json=true`
+    let pathLabel: String
 
     init(_ obj: URLTaskObject) {
         taskId = obj.taskId
         method = obj.method
         statusCode = obj.statusCode
         date = obj.date
+        pathLabel = EndpointRequest.pathLabel(obj.url)
     }
 
     var timeString: String {
         EndpointRequest.timeFormatter.string(from: Date(timeIntervalSince1970: date))
+    }
+
+    /// `URLComponents` hands back both parts already percent-decoded.
+    private static func pathLabel(_ url: String) -> String {
+        guard let comps = URLComponents(string: url) else { return url }
+        let name = comps.path.split(separator: "/").last.map(String.init) ?? "/"
+        guard let query = comps.query, !query.isEmpty else { return name }
+        return "\(name)?\(query)"
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -118,11 +129,11 @@ enum EndpointTree {
 
         // a single call with nothing below it is shown as one selectable row
         if folders.isEmpty, requests.count == 1 {
-            return EndpointNode(id: requests[0].taskId, name: name, kind: .endpoint, children: nil, request: requests[0], requestCount: 1)
+            return EndpointNode(id: requests[0].taskId, name: requests[0].pathLabel, kind: .endpoint, children: nil, request: requests[0], requestCount: 1)
         }
 
         let callRows = requests.map {
-            EndpointNode(id: $0.taskId, name: $0.timeString, kind: .request, children: nil, request: $0, requestCount: 1)
+            EndpointNode(id: $0.taskId, name: $0.pathLabel, kind: .request, children: nil, request: $0, requestCount: 1)
         }
         return EndpointNode(
             id: id,
@@ -229,7 +240,7 @@ private struct EndpointRowView: View {
             Text(node.name)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .help(node.name)
+                .help(helpText)
 
             if let request = node.request {
                 Text(request.method)
@@ -241,6 +252,12 @@ private struct EndpointRowView: View {
         }
         .frame(height: EndpointRowView.rowHeight)
         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+    }
+
+    /// repeat calls to one endpoint share a label, so the time tells them apart
+    private var helpText: String {
+        guard let request = node.request else { return node.name }
+        return "\(node.name)\n\(request.timeString)"
     }
 
     @ViewBuilder

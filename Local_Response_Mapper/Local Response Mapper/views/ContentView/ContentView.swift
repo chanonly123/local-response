@@ -315,15 +315,15 @@ struct ContentView: View {
 
                             Divider()
 
-                            Text("Path")
-                                .underline()
-                            Text(item.getPath)
-
-                            Divider()
-
                             Text("Method")
                                 .underline()
                             Text(Utils.styledScalar(item.method))
+
+                            Divider()
+
+                            Text("Path")
+                                .underline()
+                            Text(item.getPath)
 
                             Divider()
 
