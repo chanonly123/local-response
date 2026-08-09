@@ -14,9 +14,14 @@ class Constants {
     static let higlightThemeLight = "xcode"
     static let higlightThemeDark = "tomorrow-night-bright"
     static let contentEncodingKey = "Content-Encoding"
+    static let contentTypeKey = "Content-Type"
+    static let contentLengthKey = "Content-Length"
+    /// Headers the local server fills in itself when it serves a mapped
+    /// response — whatever a rule sets for these is overwritten.
+    static let serverManagedHeaders = [contentTypeKey, contentLengthKey]
     static let filterKey = "filterKey"
 
-    static let schemaVersion: UInt64 = 24
+    static let schemaVersion: UInt64 = 25
 
     static let fontSize: CGFloat = 11
     static let fontSizeKey: String = "fontSize"

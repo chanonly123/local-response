@@ -20,6 +20,11 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     /// objects never invalidate, so the table always renders a consistent state.
     @Published var list: [MapLocalObject]?
     @Published var selected: String?
+    @Published var search: String = ""
+    /// Rule id -> id of the earlier enabled rule that already catches everything
+    /// it would. Recomputed with the list so rows can render the warning without
+    /// each one rescanning its predecessors.
+    @Published private(set) var shadowedBy: [String: String] = [:]
     let httpMethods = [
         "GET",
         "POST",
@@ -50,8 +55,10 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     init() {
         do {
             let results = try db.getMapList()
-            self.list = Array(results.freeze())
-            self.selected = self.list?.first?.id
+            let snapshot = Array(results.freeze())
+            self.list = snapshot
+            self.shadowedBy = Self.computeShadowing(snapshot)
+            self.selected = snapshot.first?.id
             notificationToken = results.observe { [weak self] _ in
                 self?.refreshList()
             }
@@ -64,10 +71,79 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         do {
             let snapshot = Array(try db.getMapList().freeze())
             list = snapshot
+            shadowedBy = Self.computeShadowing(snapshot)
             // A selection pointing at a deleted row makes the table query a row that no
             // longer exists, so drop it.
             if let selected, !snapshot.contains(where: { $0.id == selected }) {
                 self.selected = nil
+            }
+        } catch let e {
+            appendError(e)
+        }
+    }
+
+    /// Only enabled rules take part: a disabled rule neither shadows nor is
+    /// shadowed, since matching skips it entirely.
+    private static func computeShadowing(_ items: [MapLocalObject]) -> [String: String] {
+        let enabled = items.filter(\.enable)
+        var out = [String: String]()
+        for (index, rule) in enabled.enumerated() {
+            if let covering = enabled[..<index].first(where: { $0.covers(rule) }) {
+                out[rule.id] = covering.id
+            }
+        }
+        return out
+    }
+
+    // MARK: - Rule list
+
+    var visibleRules: [MapLocalObject] {
+        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !query.isEmpty else { return list ?? [] }
+        return (list ?? []).filter {
+            $0.subUrl.lowercased().contains(query)
+            || $0.method.lowercased().contains(query)
+            || $0.statusCode.contains(query)
+        }
+    }
+
+    /// 1-based position in the full list — what the row shows and what
+    /// "shadowed by rule 2" refers to.
+    func priority(of id: String) -> Int {
+        (list?.firstIndex { $0.id == id } ?? 0) + 1
+    }
+
+    func shadowingPriority(of id: String) -> Int? {
+        shadowedBy[id].map { priority(of: $0) }
+    }
+
+    var ruleCountLabel: String {
+        let total = list?.count ?? 0
+        guard total > 0 else { return "" }
+        return "\(getEnabledCount) of \(total) active"
+    }
+
+    /// Reorders the visible rows while leaving rules hidden by the search filter
+    /// exactly where they are.
+    func move(from source: IndexSet, to destination: Int) {
+        guard let list else { return }
+        var visible = visibleRules
+        visible.move(fromOffsets: source, toOffset: destination)
+
+        let movedIds = Set(visible.map(\.id))
+        var reordered = visible.makeIterator()
+        let merged = list.map { rule in
+            movedIds.contains(rule.id) ? (reordered.next() ?? rule) : rule
+        }
+        self.list = merged
+        db.reorderMap(ids: merged.map(\.id))
+    }
+
+    func duplicateSelected() {
+        guard let id = selected else { return }
+        do {
+            if let new = try db.duplicateLocalMap(id: id) {
+                selectedAnimated = new
             }
         } catch let e {
             appendError(e)
@@ -99,6 +175,71 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         })
     }
 
+    // MARK: - Response header notes
+
+    /// Something the rule's headers will do that isn't visible from the header
+    /// text itself.
+    struct HeaderNote: Identifiable {
+
+        enum Kind { case warning, info }
+
+        let kind: Kind
+        /// the header this note is about — also its identity, one note per header
+        let name: String
+        let value: String
+        let detail: String
+
+        var id: String { name }
+        var line: String { "\(name): \(value)" }
+    }
+
+    /// Read straight off the rule so the editor can explain what the server will
+    /// actually send, rather than leaving it to a tooltip on a warning glyph.
+    func headerNotes(_ item: MapLocalObject) -> [HeaderNote] {
+        var notes = [HeaderNote]()
+
+        if let encoding = item.header(Constants.contentEncodingKey), !encoding.isEmpty {
+            notes.append(
+                HeaderNote(
+                    kind: .warning,
+                    name: Constants.contentEncodingKey,
+                    value: encoding,
+                    detail: "The body below is sent as plain text, so the app will try to \(encoding)-decode something that was never encoded, and the response will fail to parse."
+                )
+            )
+        }
+
+        for name in Constants.serverManagedHeaders {
+            guard let value = item.header(name) else { continue }
+            notes.append(
+                HeaderNote(
+                    kind: .info,
+                    name: name,
+                    value: value,
+                    detail: "Ignored — the server computes \(name) from the body when it serves the response."
+                )
+            )
+        }
+
+        return notes
+    }
+
+    /// Drops every line naming `name`, matching case-insensitively the same way
+    /// `MapLocalObject.header(_:)` finds it.
+    func removeHeader(named name: String, from id: String) {
+        guard let item = try? db.getItemMapLocal(id: id) else { return }
+        let kept = item.resHeaders
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { line in
+                guard let colon = line.firstIndex(of: ":") else { return true }
+                return line[..<colon].trimmingCharacters(in: .whitespaces)
+                    .caseInsensitiveCompare(name) != .orderedSame
+            }
+        db.write { _ in
+            item.resHeaders = kept.joined(separator: "\n")
+        }
+    }
+
     func formatJsonBody() {
         db.write { _ in
             let str = try? Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
@@ -108,8 +249,8 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     func addNew() {
         db.write { r in
-            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "0", resHeaders: Map<String, String>(), resString: "")
-            r.add(new)
+            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "200", resHeaders: Map<String, String>(), resString: "")
+            r.addMapRule(new)
             selectedAnimated = new.id
         }
     }
@@ -145,7 +286,7 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func isValidStatus(_ item: MapLocalObject) -> Bool {
-        return Int(item.statusCode) != nil
+        return item.isValidStatus
     }
 
     func isValidResponseJSON(_ item: MapLocalObject) -> Bool {

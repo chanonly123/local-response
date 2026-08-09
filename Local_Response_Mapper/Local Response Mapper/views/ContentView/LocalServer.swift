@@ -99,8 +99,10 @@ class LocalServer: ObservableObject {
                 var resHeaders = [HTTPHeader: String]()
                 obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
                 resHeaders[HTTPHeader(Self.isEditedKey)] = "1"
-                resHeaders[HTTPHeader("Content-Length")] = "\(body.count)"
-                resHeaders[HTTPHeader("Content-Type")] = "application/json; charset=utf-8"
+                // Set last, so these win over anything the rule declares — the
+                // rule editor tells the user as much.
+                resHeaders[HTTPHeader(Constants.contentLengthKey)] = "\(body.count)"
+                resHeaders[HTTPHeader(Constants.contentTypeKey)] = "application/json; charset=utf-8"
 
                 return HTTPResponse(
                     statusCode: HTTPStatusCode(

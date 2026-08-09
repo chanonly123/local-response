@@ -112,7 +112,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     func addNewMapLocal(obj: URLTaskObject) {
         db.write { r in
             let new = MapLocalObject(subUrl: obj.url, method: obj.method, statusCode: String(obj.statusCode), resHeaders: obj.resHeaders, resString: obj.responseString)
-            r.add(new)
+            r.addMapRule(new)
         }
     }
 
