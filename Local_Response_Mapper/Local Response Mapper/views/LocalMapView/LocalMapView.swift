@@ -44,18 +44,24 @@ struct LocalMapView: View {
     /// each rule does, without having to select it. Editing lives in `rightView`.
     var leftView: some View {
         VStack(spacing: 0) {
-            if viewm.list?.isEmpty == false {
-                TextField("Filter rules", text: $viewm.search)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(4)
-                Divider()
-            }
+            TextField("Filter rules", text: $viewm.search)
+                .textFieldStyle(.roundedBorder)
+                .padding(4)
+                .disabled(viewm.list?.isEmpty != false)
 
-            if viewm.visibleRules.isEmpty {
-                emptyState
-            } else {
-                ruleList
-            }
+            Divider()
+
+            // Both of these stay mounted whatever the list holds. Deleting the
+            // last rule used to swap the whole `List` out for the empty state,
+            // and tearing an NSTableView out of the hierarchy from inside the
+            // click that emptied it crashes AppKit — so the empty state is drawn
+            // over the list instead of replacing it.
+            ruleList
+                .overlay {
+                    if viewm.visibleRules.isEmpty {
+                        emptyState
+                    }
+                }
 
             Divider()
             bottomBar

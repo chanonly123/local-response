@@ -152,7 +152,11 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     func getSelectedItem() -> MapLocalObject? {
         do {
-            return try db.getItemMapLocal(id: selected)
+            // Live object, not a frozen one: reading any property of it after
+            // Realm deleted it throws from Objective-C and takes the app down,
+            // so an invalidated object is treated as no selection.
+            let item = try db.getItemMapLocal(id: selected)
+            return item?.isInvalidated == true ? nil : item
         } catch let e {
             appendError(e)
             return nil
@@ -257,6 +261,16 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     func deleteSelected() {
         guard let id = selected else { return }
+        // The delete is always asked for from inside an AppKit event — a row's
+        // context menu, or a button that this very delete is about to disable.
+        // Letting that event finish first means no view is torn down while
+        // AppKit is still working through it.
+        Task { @MainActor [weak self] in
+            self?.delete(id: id)
+        }
+    }
+
+    private func delete(id: String) {
         let index = list?.firstIndex(where: { $0.id == id })
         // Drop the selection and the row before the write, so nothing is pointing at the
         // deleted object while Realm commits.
