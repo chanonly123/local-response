@@ -487,26 +487,39 @@ struct JSONBodyText: View {
     private static let inlineLimit = 4 * 1024
 
     private let raw: String
-    @State private var attributed: AttributedString?
+
+    /// The cached coloring is kept together with the body it was made from.
+    /// This view keeps its identity when the selection changes, so the state
+    /// outlives the request it belongs to and has to be matched against the
+    /// current body before it can be shown.
+    @State private var highlighted: (source: String, text: AttributedString)?
 
     init(raw: String) {
         self.raw = raw
-        if raw.utf8.count <= Self.inlineLimit {
-            _attributed = State(initialValue: Utils.highlightJson(raw))
+    }
+
+    private var display: AttributedString {
+        if let highlighted, highlighted.source == raw {
+            return highlighted.text
         }
+        if raw.utf8.count <= Self.inlineLimit {
+            return Utils.highlightJson(raw)
+        }
+        return AttributedString(raw)
     }
 
     var body: some View {
-        Text(attributed ?? AttributedString(raw))
+        Text(display)
             .task(id: raw) {
-                guard attributed == nil else { return }
+                guard raw.utf8.count > Self.inlineLimit else { return }
                 // Realm objects are thread-confined and the color scheme is
                 // main-actor state, so both are resolved before handing off.
                 let style = SyntaxStyle.current
                 let body = raw
-                attributed = await Task.detached {
+                let text = await Task.detached {
                     JSONHighlighter.highlight(body, style: style)
                 }.value
+                highlighted = (source: body, text: text)
             }
     }
 }

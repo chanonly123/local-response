@@ -18,9 +18,13 @@ struct ResponseView: View {
 
     var body: some View {
         content
-            .onAppear {
+            // This view keeps its identity when the selection changes, so the
+            // player has to be rebuilt per item rather than once on appear.
+            .onChange(of: item.id, initial: true) { _, _ in
                 if item.contentType == .video, let url = item.fileURL {
                     player = AVPlayer(url: url)
+                } else {
+                    player = nil
                 }
             }
     }
