@@ -29,19 +29,11 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            GeometryReader { geo in
-
-                HSplitView {
-                    leftView
-                        .frame(minWidth: geo.size.width/3)
-                        .frame(height: geo.size.height)
-
-                    rightView
-                        .frame(minWidth: geo.size.width/3)
-                        .frame(height: geo.size.height)
-                        .navigationTitle("Local Response Mapper (\(viewm.getCurrentVersion() ?? ""))")
-                }
-                .frame(width: geo.size.width, height: geo.size.height)
+            PersistentHSplitView(widthKey: Constants.contentRightPaneWidthKey) {
+                leftView
+            } right: {
+                rightView
+                    .navigationTitle("Local Response Mapper (\(viewm.getCurrentVersion() ?? ""))")
             }
 
             HStack {
@@ -386,6 +378,10 @@ struct ContentView: View {
                 Button("Copy Requests") {
                     showMultiCopyPopover.toggle()
                 }
+                Divider()
+                Button("Delete \(viewm.selected.count) Requests") {
+                    viewm.delete(taskIds: viewm.selected)
+                }
             } else {
                 if val.contentType == .text {
                     Button("Map local") {
@@ -407,6 +403,10 @@ struct ContentView: View {
                 }
                 Button("Copy CURL") {
                     viewm.toCurlCommand(obj: val)
+                }
+                Divider()
+                Button("Delete Request") {
+                    viewm.delete(taskIds: [val.taskId])
                 }
             }
         }

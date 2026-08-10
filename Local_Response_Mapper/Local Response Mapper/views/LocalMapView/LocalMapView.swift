@@ -15,19 +15,11 @@ struct LocalMapView: View {
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
     var body: some View {
-        GeometryReader { geo in
-
-            HSplitView {
-                leftView
-                    .frame(minWidth: geo.size.width/3)
-                    .frame(height: geo.size.height)
-
-                rightView
-                    .frame(minWidth: geo.size.width/3)
-                    .frame(height: geo.size.height)
-                    .navigationTitle("Map Local")
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
+        PersistentHSplitView(widthKey: Constants.mapLocalRightPaneWidthKey) {
+            leftView
+        } right: {
+            rightView
+                .navigationTitle("Map Local")
         }
         .font(.system(size: fontSize - 2))
         .monospaced()

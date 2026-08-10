@@ -96,6 +96,33 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    /// Deletes the given requests and moves the selection to the nearest
+    /// surviving row, so deleting doesn't drop the right pane back to the empty
+    /// state on every use.
+    func delete(taskIds: Set<String>) {
+        guard !taskIds.isEmpty else { return }
+
+        let ids = list?.map(\.taskId) ?? []
+        let nextSelected = ids.drop(while: { !taskIds.contains($0) })
+            .first(where: { !taskIds.contains($0) })
+            ?? ids.last(where: { !taskIds.contains($0) })
+
+        // Non-text responses are kept as files next to the record; read the
+        // paths while the records still exist.
+        let files = taskIds.compactMap { fetch(taskId: $0)?.fileURL }
+
+        do {
+            try db.deleteRecords(taskIds: Array(taskIds))
+        } catch let e {
+            appendError(e)
+            return
+        }
+
+        files.forEach { try? FileManager.default.removeItem(at: $0) }
+        selected = Set([nextSelected].compactMap { $0 })
+        fetch()
+    }
+
     func fetch(taskId: String?) -> URLTaskObject? {
         do {
             return try db.getItemTask(taskId: taskId)
