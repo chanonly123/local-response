@@ -18,8 +18,9 @@ struct ResponseView: View {
 
     var body: some View {
         content
-            // This view keeps its identity when the selection changes, so the
-            // player has to be rebuilt per item rather than once on appear.
+            // The right pane is keyed on the request so this normally runs once
+            // per item, but the player is still rebuilt on any id change rather
+            // than only on appear, so it cannot outlive the item it belongs to.
             .onChange(of: item.id, initial: true) { _, _ in
                 if item.contentType == .video, let url = item.fileURL {
                     player = AVPlayer(url: url)

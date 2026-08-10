@@ -269,95 +269,105 @@ struct ContentView: View {
 
     var rightView: some View {
         VStack(alignment: .center, spacing: 0) {
-            if let item = viewm.fetch(taskId: viewm.selected.first) {
-
-                HStack {
-                    Spacer()
-                    HStack {
-                        ForEach(ContentViewModel.TabType.allCases, id: \.self) { item in
-                            Button {
-                                viewm.selectedTab = item
-                            } label: {
-                                Text(item.rawValue)
-                                    .padding(.vertical, 4)
-                                    .padding(.horizontal, 8)
-                                    .contentShape(Rectangle())
-                                    .foregroundColor(viewm.getTabButtonTextColor(tab: item))
-                            }
-                            .setSelectedButtonStyle(selected: viewm.selectedTab == item)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(2)
-
-                switch viewm.selectedTab {
-                case .req:
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("BundleID")
-                                .underline()
-                            Text(Utils.styledScalar(item.bundleID))
-
-                            Divider()
-
-                            Text("Host")
-                                .underline()
-                            Text(item.getHost)
-
-                            Divider()
-
-                            Text("Method")
-                                .underline()
-                            Text(Utils.styledScalar(item.method))
-
-                            Divider()
-
-                            Text("Path")
-                                .underline()
-                            Text(item.getPath)
-
-                            Divider()
-
-                            Text("Query Params")
-                                .underline()
-                            Text(item.getQuery)
-
-                            Divider()
-
-                            Text("Request headers")
-                                .underline()
-                            Text(item.getReqHeaders)
-
-                            Divider()
-
-                            Text("Request Body")
-                                .underline()
-                            JSONBodyText(raw: item.body)
-
-                            Divider()
-
-                            Text("Status")
-                                .underline()
-                            Text(Utils.styledScalar("\(item.statusCode)")) + Text("    ") +
-                            Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
-                                .foregroundColor(.gray)
-
-                            Divider()
-
-                            Text("Response headers")
-                                .underline()
-                            Text(item.getResHeaders)
-                        }
-                        .padding()
-                    }
-                    .textSelection(.enabled)
-                case .resString:
-                    ResponseView(item: item, theme: theme)
-                        .frame(maxHeight: .infinity)
-                }
+            if let item = viewm.fetch(taskId: viewm.focusedTaskId) {
+                // Keyed on the request, so the pane is rebuilt rather than
+                // reused when the selection moves and nothing inside it can
+                // carry state over from the row that was on screen before.
+                detailView(item: item)
+                    .id(item.id)
             } else {
                 Image(systemName: "tray")
+            }
+        }
+    }
+
+    @ViewBuilder
+    func detailView(item: URLTaskObject) -> some View {
+        VStack(alignment: .center, spacing: 0) {
+            HStack {
+                Spacer()
+                HStack {
+                    ForEach(ContentViewModel.TabType.allCases, id: \.self) { tab in
+                        Button {
+                            viewm.selectedTab = tab
+                        } label: {
+                            Text(tab.rawValue)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                                .foregroundColor(viewm.getTabButtonTextColor(tab: tab))
+                        }
+                        .setSelectedButtonStyle(selected: viewm.selectedTab == tab)
+                    }
+                }
+                Spacer()
+            }
+            .padding(2)
+
+            switch viewm.selectedTab {
+            case .req:
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("BundleID")
+                            .underline()
+                        Text(Utils.styledScalar(item.bundleID))
+
+                        Divider()
+
+                        Text("Host")
+                            .underline()
+                        Text(item.getHost)
+
+                        Divider()
+
+                        Text("Method")
+                            .underline()
+                        Text(Utils.styledScalar(item.method))
+
+                        Divider()
+
+                        Text("Path")
+                            .underline()
+                        Text(item.getPath)
+
+                        Divider()
+
+                        Text("Query Params")
+                            .underline()
+                        Text(item.getQuery)
+
+                        Divider()
+
+                        Text("Request headers")
+                            .underline()
+                        Text(item.getReqHeaders)
+
+                        Divider()
+
+                        Text("Request Body")
+                            .underline()
+                        JSONBodyText(raw: item.body)
+
+                        Divider()
+
+                        Text("Status")
+                            .underline()
+                        Text(Utils.styledScalar("\(item.statusCode)")) + Text("    ") +
+                        Text("\(Utils.getCommonDescription(httpStatusCode: item.statusCode) ?? "")")
+                            .foregroundColor(.gray)
+
+                        Divider()
+
+                        Text("Response headers")
+                            .underline()
+                        Text(item.getResHeaders)
+                    }
+                    .padding()
+                }
+                .textSelection(.enabled)
+            case .resString:
+                ResponseView(item: item, theme: theme)
+                    .frame(maxHeight: .infinity)
             }
         }
     }
@@ -488,10 +498,10 @@ struct JSONBodyText: View {
 
     private let raw: String
 
-    /// The cached coloring is kept together with the body it was made from.
-    /// This view keeps its identity when the selection changes, so the state
-    /// outlives the request it belongs to and has to be matched against the
-    /// current body before it can be shown.
+    /// The cached coloring is kept together with the body it was made from, so
+    /// a coloring can only ever be shown for the body it was made for — the
+    /// body can change under this view whenever it is reused rather than
+    /// rebuilt (an in-flight request completing, say).
     @State private var highlighted: (source: String, text: AttributedString)?
 
     init(raw: String) {

@@ -29,7 +29,6 @@ struct MyTextEditor: View {
         self.theme = theme
         self.flags = flags
         self._showingFind = State(wrappedValue: showingFind)
-        self.fontSize = fontSize
     }
 
     var body: some View {

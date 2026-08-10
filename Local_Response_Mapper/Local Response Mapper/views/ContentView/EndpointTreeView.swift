@@ -21,6 +21,7 @@ struct EndpointRequest {
     let method: String
     let statusCode: Int
     let date: Double
+    let isEdited: Bool
     /// last path component plus the query, e.g. `raw?json=true`
     let pathLabel: String
 
@@ -29,6 +30,7 @@ struct EndpointRequest {
         method = obj.method
         statusCode = obj.statusCode
         date = obj.date
+        isEdited = obj.isEdited
         pathLabel = EndpointRequest.pathLabel(obj.url)
     }
 
@@ -245,6 +247,19 @@ private struct EndpointRowView: View {
             if let request = node.request {
                 Text(request.method)
                     .foregroundColor(.gray)
+                if request.isEdited {
+                    // A plain tint has four backgrounds to stay legible on —
+                    // light, dark, and the selection highlight in each — so
+                    // this carries its own: black on yellow reads on all of
+                    // them, and reads as a warning badge rather than a label.
+                    Text("edited")
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color.yellow)
+                        )
+                }
             } else if node.requestCount > 1 {
                 Text("(\(node.requestCount))")
                     .foregroundColor(.gray)

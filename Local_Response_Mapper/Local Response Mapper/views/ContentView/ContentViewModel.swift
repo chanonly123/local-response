@@ -26,7 +26,24 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             fetch()
         }
     }
-    @Published var selected = Set<String>()
+    @Published var selected = Set<String>() {
+        didSet { updateFocused(oldValue: oldValue) }
+    }
+
+    /// The row the right pane follows.
+    ///
+    /// `Table` and `List` only report the selection as a `Set`, whose element
+    /// order is hash order rather than click order — reading `selected.first`
+    /// shows an arbitrary member as soon as more than one row is selected, and
+    /// that is usually the row that was already on screen. The focus stays on
+    /// one row and only moves once that row leaves the selection.
+    @Published private(set) var focusedTaskId: String?
+
+    private func updateFocused(oldValue: Set<String>) {
+        if let focusedTaskId, selected.contains(focusedTaskId) { return }
+        focusedTaskId = selected.subtracting(oldValue).first ?? selected.first
+    }
+
     @Published var selectedTab: TabType = .req
 
     @Published var tree: [EndpointNode] = []
@@ -46,7 +63,10 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             let list = try db.getRecordsList(filter: filter)
             self.listCount = list.count
             self.list = list
+            // `didSet` does not run during initialization, so the focus is
+            // seeded alongside the selection here.
             self.selected = Set([list.first?.taskId].compactMap { $0 })
+            self.focusedTaskId = list.first?.taskId
             self.rebuildTree(list)
             notificationToken = list.observe { [weak self] _ in
                 do {
