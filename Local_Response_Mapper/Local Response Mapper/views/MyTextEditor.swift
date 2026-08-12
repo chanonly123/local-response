@@ -9,8 +9,13 @@ struct MyTextEditor: View {
     let flags: CodeEditor.Flags
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
-    @State private var selection: Range<String.Index> = "".startIndex..<"".endIndex
-    @State private var matches: [Range<String.Index>] = []
+    /// Character offsets, not `String.Index`. An index belongs to the string it
+    /// was made from: keeping one across an edit — or across a switch to
+    /// another rule, which hands this same view a different source — and
+    /// converting it against the new string traps inside `NSRange(_:in:)`.
+    /// Offsets survive that, and clamp to whatever the source is now.
+    @State private var selection: Range<Int> = 0..<0
+    @State private var matches: [Range<Int>] = []
     @State private var findString: String = ""
     @State private var showingFind: Bool
     @State private var findCaseSensitive: Bool = false
@@ -75,7 +80,7 @@ struct MyTextEditor: View {
             }
             CodeEditor(
                 source: $source,
-                selection: $selection,
+                selection: selectionBinding,
                 language: language,
                 theme: theme,
                 fontSize: .constant(fontSize),
@@ -115,20 +120,57 @@ struct MyTextEditor: View {
         }
     }
 
+    /// Translates the stored offsets against whatever the source is right now,
+    /// so a selection left over from a longer text can't reach past the end of
+    /// a shorter one.
+    private var selectionBinding: Binding<Range<String.Index>> {
+        Binding {
+            Self.range(of: selection, in: source)
+        } set: { new in
+            selection = Self.offsets(of: new, in: source)
+        }
+    }
+
+    private static func range(of offsets: Range<Int>, in text: String) -> Range<String.Index> {
+        let count = text.count
+        let lower = min(max(0, offsets.lowerBound), count)
+        let upper = min(max(lower, offsets.upperBound), count)
+        let start = text.index(text.startIndex, offsetBy: lower)
+        return start..<text.index(text.startIndex, offsetBy: upper)
+    }
+
+    private static func offsets(of range: Range<String.Index>, in text: String) -> Range<Int> {
+        // Comparing indices only compares their offsets, so this is safe even
+        // when they came from another string — walking to them would not be.
+        guard range.lowerBound >= text.startIndex, range.upperBound <= text.endIndex else {
+            return 0..<0
+        }
+        let lower = text.distance(from: text.startIndex, to: range.lowerBound)
+        return lower..<text.distance(from: text.startIndex, to: range.upperBound)
+    }
+
     private func onChangeFindString() {
         let final = findString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !final.isEmpty else {
             matches = []
-            selection = "".startIndex..<"".endIndex
+            selection = 0..<0
             return
         }
-        if findCaseSensitive {
-            matches = source.ranges(of: final)
-        } else {
-            matches = source.lowercased().ranges(of: final.lowercased())
+        // Searched with `.caseInsensitive` rather than over `source.lowercased()`:
+        // that is a separate string, and its ranges do not address this one.
+        let options: String.CompareOptions = findCaseSensitive ? [] : [.caseInsensitive]
+        var found = [Range<Int>]()
+        var start = source.startIndex
+        while start < source.endIndex,
+              let match = source.range(of: final, options: options, range: start..<source.endIndex) {
+            found.append(Self.offsets(of: match, in: source))
+            start = match.upperBound > match.lowerBound
+                ? match.upperBound
+                : source.index(after: match.lowerBound)
         }
-        selection = matches.first ?? "".startIndex..<"".endIndex
-        if !matches.isEmpty { selectedFindIndex = 1 }
+        matches = found
+        selection = found.first ?? 0..<0
+        selectedFindIndex = found.isEmpty ? 0 : 1
     }
 
     private func jumpToTextPressEnter(next: Bool) {

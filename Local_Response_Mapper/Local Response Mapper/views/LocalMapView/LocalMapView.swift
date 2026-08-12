@@ -132,21 +132,15 @@ struct LocalMapView: View {
             .disabled(viewm.selected == nil)
             .help("Delete rule")
 
-            Button {
-                viewm.duplicateSelected()
-            } label: {
-                Image(systemName: "plus.square.on.square")
-            }
-            .disabled(viewm.selected == nil)
-            .help("Duplicate rule")
-
             Spacer()
 
             Text(viewm.ruleCountLabel)
                 .foregroundStyle(.secondary)
+                .font(.subheadline)
         }
+        .font(.headline)
         .buttonStyle(.borderless)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 20)
         .padding(.vertical, 4)
     }
 
@@ -270,7 +264,10 @@ struct LocalMapView: View {
                     flags: [.editable, .selectable]
                 )
                 .frame(maxHeight: 100)
-                .id(item.id)
+                // Per field, not per rule: the editors are siblings, and an id
+                // they share lets SwiftUI carry one's state — its selection —
+                // over to another's text.
+                .id("\(item.id)-resHeaders")
                 .editorFrame()
 
                 ForEach(notes) { note in
@@ -304,7 +301,7 @@ struct LocalMapView: View {
                     flags: [.editable, .selectable]
                 )
                 .frame(maxHeight: .infinity)
-                .id(item.id)
+                .id("\(item.id)-resString")
                 .editorFrame()
             }
         }
@@ -336,7 +333,7 @@ struct LocalMapView: View {
                     flags: [.editable, .selectable]
                 )
                 .frame(maxHeight: 80)
-                .id(item.id)
+                .id("\(item.id)-reqQuery")
                 .editorFrame()
 
                 Text(verbatim: "One \"name: value\" per line. A parameter already in the url is replaced, the rest are kept.")
@@ -354,7 +351,7 @@ struct LocalMapView: View {
                     flags: [.editable, .selectable]
                 )
                 .frame(maxHeight: 100)
-                .id(item.id)
+                .id("\(item.id)-reqHeaders")
                 .editorFrame()
 
                 Text(verbatim: "One \"name: value\" per line. A header the app already sends is replaced.")
@@ -394,7 +391,7 @@ struct LocalMapView: View {
                     flags: [.editable, .selectable]
                 )
                 .frame(maxHeight: .infinity)
-                .id(item.id)
+                .id("\(item.id)-reqString")
                 .editorFrame()
             }
         }

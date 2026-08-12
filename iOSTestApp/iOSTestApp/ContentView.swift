@@ -197,6 +197,9 @@ enum ApiCatalog {
     // MARK: HTTP methods
 
     static let httpMethods = ApiGroup(name: "HTTP methods", samples: [
+        ApiSample(title: "GET", subtitle: "https://echo.free.beeceptor.com") {
+            await Net.send(Net.request("GET", "https://echo.free.beeceptor.com"))
+        },
         ApiSample(title: "GET", subtitle: "\(Endpoints.jsonPlaceholder)/todos/1?hello=world") {
             await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/todos/1?hello=world"))
         },
