@@ -56,6 +56,17 @@ class ApiUseCase {
         session.dataTask(with: req).resume()
     }
 
+    /// Reports the request a `modifyRequest` rule just rewrote. `recordBegin`
+    /// has usually already reported the untouched one — its POST goes out while
+    /// the rule lookup is still in flight — so this is an update to that record,
+    /// not a second call.
+    func recordUpdate(task: URLSessionTask, request: URLRequest) {
+        let model = URLTaskModelUpdate(task: task, request: request)
+        var req = createURLRequest(endpoint: Constants.recordUpdateUrl)
+        req.httpBody = toData(from: model)
+        session.dataTask(with: req).resume()
+    }
+
     func recordReceivedResponse(task: URLSessionTask, response: URLResponse) {
         lock.lock()
         defer { lock.unlock() }
@@ -88,17 +99,23 @@ class ApiUseCase {
         taskIdResponse[task.uniqueId] = nil
     }
 
-    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (String?) -> Void) {
+    /// Asks the mapper what applies to this request: request edits, a canned
+    /// response, or both. `nil` means no rule matched.
+    func checkIfLocalMapResponseAvailable(data: MapCheckRequest, completion: @escaping (MapCheckResponse?) -> Void) {
 
         var req = createURLRequest(endpoint: Constants.checkMapResponse)
         req.httpBody = toData(from: data)
 
         self.session.dataTask(with: req) { data, res, err in
-            var result: String?
+            var result: MapCheckResponse?
             var error: Error?
 
-            if let data, let id = String(data: data, encoding: .utf8), !id.isEmpty {
-                result = id
+            if let data, !data.isEmpty {
+                do {
+                    result = try JSONDecoder().decode(MapCheckResponse.self, from: data)
+                } catch let e {
+                    error = e
+                }
             } else {
                 error = err ?? NSError(domain: "data is nil", code: -1)
             }

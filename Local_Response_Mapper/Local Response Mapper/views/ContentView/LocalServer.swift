@@ -41,6 +41,7 @@ class LocalServer: ObservableObject {
                     return HTTPResponse(statusCode: .ok, body: "Success".data(using: .utf8) ?? Data())
                 }
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordBeginUrl), handler: recordBegin)
+                await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordUpdateUrl), handler: recordUpdate)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.recordEndUrl), handler: recordEnd)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.checkMapResponse), handler: returnMappedIfAny)
                 await server.appendRoute(HTTPRoute(stringLiteral: Constants.overridenRequest), handler: overridenRequestHandler)
@@ -75,6 +76,12 @@ class LocalServer: ObservableObject {
         return HTTPResponse(statusCode: .ok)
     }
 
+    lazy var recordUpdate: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
+        let obj = try await JSONDecoder().decode(URLTaskModelUpdate.self, from: req.bodyData)
+        try self.db.recordUpdate(task: obj)
+        return HTTPResponse(statusCode: .ok)
+    }
+
     lazy var recordEnd: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(URLTaskModelEnd.self, from: req.bodyData)
         try self.db.recordEnd(task: obj)
@@ -83,7 +90,8 @@ class LocalServer: ObservableObject {
 
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
-        if let id = try self.db.getLocalMapIfAvailable(req: obj), let data = id.data(using: .utf8) {
+        if let result = try self.db.getLocalMapIfAvailable(req: obj), !result.isEmpty {
+            let data = try JSONEncoder().encode(result)
             return HTTPResponse(statusCode: .ok, body: data)
         } else {
             return HTTPResponse(statusCode: .noContent)

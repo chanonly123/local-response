@@ -83,9 +83,11 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     /// Only enabled rules take part: a disabled rule neither shadows nor is
-    /// shadowed, since matching skips it entirely.
+    /// shadowed, since matching skips it entirely. `modifyRequest` rules are
+    /// left out — every one of them that matches is applied, so none of them
+    /// can starve another.
     private static func computeShadowing(_ items: [MapLocalObject]) -> [String: String] {
-        let enabled = items.filter(\.enable)
+        let enabled = items.filter { $0.enable && $0.kind == .mapResponse }
         var out = [String: String]()
         for (index, rule) in enabled.enumerated() {
             if let covering = enabled[..<index].first(where: { $0.covers(rule) }) {
@@ -104,6 +106,7 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
             $0.subUrl.lowercased().contains(query)
             || $0.method.lowercased().contains(query)
             || $0.statusCode.contains(query)
+            || $0.kind.title.lowercased().contains(query)
         }
     }
 
@@ -197,6 +200,27 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         var line: String { "\(name): \(value)" }
     }
 
+    /// Notes on the headers a `modifyRequest` rule sets — the ones URLSession
+    /// takes over itself, so setting them here changes nothing.
+    func requestHeaderNotes(_ item: MapLocalObject) -> [HeaderNote] {
+        let map = item.reqHeadersMap
+        var notes = [HeaderNote]()
+        for name in Constants.sessionManagedRequestHeaders {
+            guard let entry = map.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame }) else {
+                continue
+            }
+            notes.append(
+                HeaderNote(
+                    kind: .info,
+                    name: entry.key,
+                    value: entry.value,
+                    detail: "Ignored — URLSession sets \(name) on the request itself."
+                )
+            )
+        }
+        return notes
+    }
+
     /// Read straight off the rule so the editor can explain what the server will
     /// actually send, rather than leaving it to a tooltip on a warning glyph.
     func headerNotes(_ item: MapLocalObject) -> [HeaderNote] {
@@ -230,9 +254,13 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     /// Drops every line naming `name`, matching case-insensitively the same way
     /// `MapLocalObject.header(_:)` finds it.
-    func removeHeader(named name: String, from id: String) {
+    func removeHeader(
+        named name: String,
+        from id: String,
+        keyPath: ReferenceWritableKeyPath<MapLocalObject, String> = \.resHeaders
+    ) {
         guard let item = try? db.getItemMapLocal(id: id) else { return }
-        let kept = item.resHeaders
+        let kept = item[keyPath: keyPath]
             .split(separator: "\n", omittingEmptySubsequences: false)
             .filter { line in
                 guard let colon = line.firstIndex(of: ":") else { return true }
@@ -240,14 +268,16 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
                     .caseInsensitiveCompare(name) != .orderedSame
             }
         db.write { _ in
-            item.resHeaders = kept.joined(separator: "\n")
+            item[keyPath: keyPath] = kept.joined(separator: "\n")
         }
     }
 
-    func formatJsonBody() {
+    func formatJsonBody(keyPath: ReferenceWritableKeyPath<MapLocalObject, String> = \.resString) {
         db.write { _ in
-            let str = try? Utils.prettyPrintJSON(from: getSelectedItem()?.resString ?? "")
-            getSelectedItem()?.resString = str ?? getSelectedItem()?.resString ?? ""
+            guard let item = getSelectedItem() else { return }
+            if let str = try? Utils.prettyPrintJSON(from: item[keyPath: keyPath]) {
+                item[keyPath: keyPath] = str
+            }
         }
     }
 
@@ -304,8 +334,15 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func isValidResponseJSON(_ item: MapLocalObject) -> Bool {
-        let result = try? JSONSerialization.jsonObject(with: item.resString.data(using: .utf8) ?? Data())
-        return result != nil
+        isValidJSON(item.resString)
+    }
+
+    func isValidRequestJSON(_ item: MapLocalObject) -> Bool {
+        isValidJSON(item.reqString)
+    }
+
+    private func isValidJSON(_ text: String) -> Bool {
+        (try? JSONSerialization.jsonObject(with: Data(text.utf8))) != nil
     }
 
     var getEnabledCount: Int {
@@ -327,3 +364,6 @@ protocol InitProvider {
 
 extension String: InitProvider {}
 extension Bool: InitProvider {}
+extension MapLocalObject.RuleKind: InitProvider {
+    init() { self = .mapResponse }
+}

@@ -52,8 +52,9 @@ protocol DBProtocol {
     @MainActor func duplicateLocalMap(id: String) throws -> String?
 
     func recordBegin(task: URLTaskModelBegin) throws
+    func recordUpdate(task: URLTaskModelUpdate) throws
     func recordEnd(task: URLTaskModelEnd) throws
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String?
+    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse?
     func getLocalMap(id: String) throws -> MapLocalObject?
 }
 
@@ -148,6 +149,9 @@ class DB: DBProtocol {
         copy.resString = source.resString
         copy.statusCode = source.statusCode
         copy.resHeaders = source.resHeaders
+        copy.kind = source.kind
+        copy.reqHeaders = source.reqHeaders
+        copy.reqString = source.reqString
         copy.order = source.order + 1
         // Materialized first: the query is live, and shifting `order` inside the
         // loop would re-evaluate it mid-iteration.
@@ -199,6 +203,22 @@ class DB: DBProtocol {
         }
     }
 
+    /// Rewrites the request side of a recorded call after a `modifyRequest`
+    /// rule changed it. The row is created when missing: this and `recordBegin`
+    /// race, and either can arrive first.
+    func recordUpdate(task: URLTaskModelUpdate) throws {
+        let r = try realm
+        try r.write {
+            if let item = r.object(ofType: URLTaskObject.self, forPrimaryKey: task.taskId) {
+                item.updateFrom(task: task)
+            } else {
+                let item = URLTaskObject(taskId: task.taskId)
+                item.updateFrom(task: task)
+                r.add(item)
+            }
+        }
+    }
+
     func recordEnd(task: URLTaskModelEnd) throws {
         let r = try realm
         try r.write {
@@ -211,21 +231,44 @@ class DB: DBProtocol {
         }
     }
 
-    /// checs if a map response found, returns id
-    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> String? {
+    /// Walks the rules in priority order and collects everything that applies to
+    /// one outgoing request: the edits of every matching `modifyRequest` rule,
+    /// and the first matching `mapResponse` rule — which ends the walk, since
+    /// that request never leaves the device.
+    func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse? {
         let r = try realm
-        // Stop at the first match instead of materializing every match into an array.
-        let match = r.objects(MapLocalObject.self)
+        let rules = r.objects(MapLocalObject.self)
             .where { $0.enable }
             .sorted(by: MapLocalObject.priorityOrder)
-            .first(where: { ($0.matchesAnyMethod || $0.method == req.method) && req.url.contains($0.subUrl) })
-        guard let match else { return nil }
+
+        var applied = [MapLocalObject]()
+        var headers = [String: String]()
+        var body: String?
+        var overrideId: String?
+
+        for rule in rules where rule.matches(url: req.url, method: req.method) {
+            switch rule.kind {
+            case .modifyRequest:
+                guard rule.changesRequest else { continue }
+                // Later rules win on a header both set, the same way the list
+                // reads: the rule nearer the bottom is the last word.
+                rule.reqHeadersMap.forEach { headers[$0.key] = $0.value }
+                if !rule.reqString.isEmpty { body = rule.reqString }
+                applied.append(rule)
+            case .mapResponse:
+                overrideId = rule.id
+                applied.append(rule)
+            }
+            if overrideId != nil { break }
+        }
+
+        guard !applied.isEmpty else { return nil }
         // Counted here rather than in `getLocalMap`, so a rule that matched is
         // credited even if serving the response later fails.
         try r.write {
-            match.hitCount += 1
+            applied.forEach { $0.hitCount += 1 }
         }
-        return match.id
+        return MapCheckResponse(overrideId: overrideId, reqHeaders: headers, reqBody: body)
     }
 
     /// returns id

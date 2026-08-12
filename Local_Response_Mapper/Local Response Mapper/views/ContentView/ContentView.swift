@@ -219,6 +219,13 @@ struct ContentView: View {
                             .width(min: 45, ideal: 45, max: 60)
                             .customizationID("Edited")
 
+                            TableColumn("Req Edited", content: { val in
+                                Text("\(val.isRequestEdited ? "Yes" : "-")")
+                                    .help(val.isRequestEdited ? "A Modify Request rule rewrote this request before it was sent" : "")
+                            })
+                            .width(min: 45, ideal: 45, max: 70)
+                            .customizationID("ReqEdited")
+
                             TableColumn("Time", content: { val in
                                 Text(val.timeDelay)
                             })

@@ -28,6 +28,28 @@ struct URLTaskModelBegin: Codable {
     }
 }
 
+/// The request as it actually goes out, sent after a `modifyRequest` rule has
+/// edited it. `recordBegin` has already reported the request the app built, so
+/// this replaces those fields on the recorded call.
+struct URLTaskModelUpdate: Codable {
+
+    let taskId: String
+    let url: String
+    let method: String
+    let reqHeaders: [String: String]
+    let body: String?
+    let bundleID: String?
+
+    init(task: URLSessionTask, request: URLRequest) {
+        bundleID = Bundle.main.bundleIdentifier
+        taskId = task.uniqueId
+        url = request.url?.absoluteString ?? ""
+        method = request.httpMethod ?? ""
+        reqHeaders = request.allHTTPHeaderFields ?? [:]
+        body = if let httpBody = request.httpBody { String(data: httpBody, encoding: .utf8) } else { nil }
+    }
+}
+
 struct URLTaskModelEnd: Codable {
     let taskId: String
     let resString: String?
@@ -111,4 +133,30 @@ struct LocalModel: Codable {
 struct MapCheckRequest: Codable {
     let url: String
     let method: String
+}
+
+/// What the mapper wants done with a request that is about to be sent: edits to
+/// apply to it, and — when a rule answers it locally — the rule that serves the
+/// response instead.
+struct MapCheckResponse: Codable {
+
+    /// Rule id whose canned response replaces this request, if one matched.
+    let overrideId: String?
+
+    /// Headers to set on the outgoing request, merged from every matching
+    /// `modifyRequest` rule in priority order.
+    let reqHeaders: [String: String]
+
+    /// Replacement request body, when a rule declares one.
+    let reqBody: String?
+
+    init(overrideId: String? = nil, reqHeaders: [String: String] = [:], reqBody: String? = nil) {
+        self.overrideId = overrideId
+        self.reqHeaders = reqHeaders
+        self.reqBody = reqBody
+    }
+
+    var isEmpty: Bool { overrideId == nil && reqHeaders.isEmpty && reqBody == nil }
+
+    var changesRequest: Bool { !reqHeaders.isEmpty || reqBody != nil }
 }

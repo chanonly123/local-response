@@ -85,16 +85,45 @@ extension LocalResponse: InjectorDelegate {
 
         let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
                                    method: task.currentRequest?.httpMethod ?? "")
-        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { id in
-            if let id {
-                var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
-                comps?.queryItems = [URLQueryItem(name: "id", value: id)]
-                req.url = comps?.url
-                task.setValue(req, forKey: "currentRequest")
+        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { result in
+            if let result {
+                // Edits go on first: they describe the request as the app would
+                // have sent it, and a mapped response then replaces that request
+                // wholesale.
+                self.applyRequestChanges(result, to: task)
+
+                if let id = result.overrideId {
+                    var req = self.createURLRequest(endpoint: Constants.overridenRequest)
+                    var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
+                    comps?.queryItems = [URLQueryItem(name: "id", value: id)]
+                    req.url = comps?.url
+                    task.setValue(req, forKey: "currentRequest")
+                }
             }
+
             completion()
         }
+    }
+
+    /// Applies a `modifyRequest` rule to the request the task is about to send.
+    /// It runs before `resume` reaches the original implementation, which is the
+    /// last point at which `currentRequest` still decides what goes on the wire.
+    private func applyRequestChanges(_ changes: MapCheckResponse, to task: URLSessionTask) {
+        guard changes.changesRequest, var req = task.currentRequest else { return }
+
+        changes.reqHeaders.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }
+
+        if let body = changes.reqBody {
+            let data = Data(body.utf8)
+            req.httpBody = data
+            req.setValue("\(data.count)", forHTTPHeaderField: Constants.contentLengthKey)
+        }
+
+        task.setValue(req, forKey: "currentRequest")
+
+        // Recorded from `req` rather than re-reading the task: this is exactly
+        // what was written, whether or not URLSession keeps every field.
+        useCase.recordUpdate(task: task, request: req)
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {

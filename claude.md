@@ -1,2 +1,2 @@
-# general
-dont run the projec, only compile if needed
+- dont run the project, only compile if needed
+- brief answers

@@ -28,6 +28,10 @@ class URLTaskObject: Object, Identifiable {
     @Persisted var statusCode: Int = 0
     @Persisted var isEdited: Bool = false
 
+    /// A `modifyRequest` rule rewrote this call on its way out, so the request
+    /// shown here is not the one the app built.
+    @Persisted var isRequestEdited: Bool = false
+
     convenience init(taskId: String) {
         self.init()
         self.taskId = taskId
@@ -46,16 +50,42 @@ class URLTaskObject: Object, Identifiable {
         new.resHeaders = resHeaders
         new.statusCode = statusCode
         new.mimeType = mimeType
+        new.isRequestEdited = isRequestEdited
         return new
     }
 
     func updateFrom(task: URLTaskModelBegin) {
         startTime = task.startTime ?? 0
         bundleID = task.bundleID ?? ""
+        // Both records are posted from the client at nearly the same moment and
+        // can land either way round. The edited request is the one that goes on
+        // the wire, so once it has arrived, begin no longer overwrites it.
+        guard !isRequestEdited else {
+            // Except the body: `URLRequest.httpBody` is nil for a task built
+            // from a stream or an upload, so begin may carry the only copy.
+            if body.isEmpty {
+                body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? task.body ?? ""
+            }
+            return
+        }
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
         body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? task.body ?? ""
+    }
+
+    /// The request after a rule rewrote it. Headers are replaced rather than
+    /// merged: the client sends the full set it is about to put on the wire.
+    func updateFrom(task: URLTaskModelUpdate) {
+        isRequestEdited = true
+        bundleID = task.bundleID ?? bundleID
+        url = task.url
+        method = task.method
+        reqHeaders.removeAll()
+        task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
+        if let taskBody = task.body {
+            body = (try? Utils.prettyPrintJSON(from: taskBody)) ?? taskBody
+        }
     }
 
     func updateFrom(task: URLTaskModelEnd) {

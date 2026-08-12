@@ -102,7 +102,7 @@ struct LocalMapView: View {
             } else {
                 Text("No rules yet")
                     .foregroundStyle(.secondary)
-                Text("A rule replaces the response of every request whose url contains its text.")
+                Text("A rule matches every request whose url contains its text — or * for all of them — and either answers it with a canned response or edits it before it is sent.")
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 260)
@@ -157,7 +157,10 @@ struct LocalMapView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let item = viewm.getSelectedItem() {
                 matchSection(item)
-                overrideSection(item)
+                switch item.kind {
+                case .mapResponse: overrideSection(item)
+                case .modifyRequest: modifyRequestSection(item)
+                }
             } else {
                 Spacer()
                 Image(systemName: "tray")
@@ -180,6 +183,24 @@ struct LocalMapView: View {
         } content: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
+                    fieldLabel("Does")
+
+                    Picker("", selection: viewm.getSetValue(item.id, keyPath: \.kind)) {
+                        ForEach(MapLocalObject.RuleKind.allCases, id: \.self) {
+                            Text($0.title)
+                                .font(.system(size: fontSize - 2))
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: 260)
+                    .padding(.leading, -30)
+                    .help("Map Response answers the request locally. Modify Request edits it and lets it go to the server.")
+
+                    Spacer()
+                }
+
+                HStack(spacing: 6) {
                     fieldLabel("Method")
 
                     Picker("", selection: viewm.getSetValue(item.id, keyPath: \.method)) {
@@ -200,15 +221,21 @@ struct LocalMapView: View {
                 HStack(spacing: 6) {
                     fieldLabel("URL contains")
 
-                    TextField("any url", text: viewm.getSetValue(item.id, keyPath: \.subUrl))
+                    TextField("* for every url", text: viewm.getSetValue(item.id, keyPath: \.subUrl))
                         .help(item.subUrl)
+                }
+
+                if item.matchesNoUrl {
+                    Label("no url — this rule never fires", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .help("An empty url matches nothing. Type part of a url, or * to match every request.")
                 }
             }
         }
     }
 
     func overrideSection(_ item: MapLocalObject) -> some View {
-        RuleSection("Override", caption: "what the app receives instead") {
+        RuleSection(item.kind.title, caption: item.kind.caption) {
             EmptyView()
         } content: {
             VStack(alignment: .leading, spacing: 6) {
@@ -272,6 +299,78 @@ struct LocalMapView: View {
 
                 MyTextEditor(
                     source: viewm.getSetValue(item.id, keyPath: \.resString),
+                    language: .json,
+                    theme: theme,
+                    flags: [.editable, .selectable]
+                )
+                .frame(maxHeight: .infinity)
+                .id(item.id)
+                .editorFrame()
+            }
+        }
+    }
+
+    /// The edits a `modifyRequest` rule makes on the way out. Unlike an
+    /// override, the request still goes to the server — so there is no status
+    /// code here, and every matching rule of this kind gets its turn.
+    func modifyRequestSection(_ item: MapLocalObject) -> some View {
+        RuleSection(item.kind.title, caption: item.kind.caption) {
+            if !item.changesRequest {
+                Label("changes nothing yet", systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
+                    .help("The rule matches, but sets no header and no body, so the request goes out unchanged.")
+            }
+        } content: {
+            VStack(alignment: .leading, spacing: 6) {
+                let notes = viewm.requestHeaderNotes(item)
+
+                subFieldLabel("Request Headers") {
+                    Text("\(item.reqHeaderCount) set")
+                        .foregroundStyle(.tertiary)
+                }
+
+                MyTextEditor(
+                    source: viewm.getSetValue(item.id, keyPath: \.reqHeaders),
+                    language: .yaml,
+                    theme: theme,
+                    flags: [.editable, .selectable]
+                )
+                .frame(maxHeight: 100)
+                .id(item.id)
+                .editorFrame()
+
+                Text(verbatim: "One \"name: value\" per line. A header the app already sends is replaced.")
+                    .foregroundStyle(.tertiary)
+
+                ForEach(notes) { note in
+                    HeaderNoteView(note: note) {
+                        viewm.removeHeader(named: note.name, from: item.id, keyPath: \.reqHeaders)
+                    }
+                }
+
+                subFieldLabel("Request Body") {
+                    Button {
+                        viewm.formatJsonBody(keyPath: \.reqString)
+                    } label: {
+                        Image(systemName: "list.bullet.indent")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Format JSON")
+
+                    if item.reqString.isEmpty {
+                        Text("Body unchanged")
+                            .foregroundStyle(.secondary)
+                    } else if viewm.isValidRequestJSON(item) {
+                        Text("Valid JSON")
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Invalid JSON")
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                MyTextEditor(
+                    source: viewm.getSetValue(item.id, keyPath: \.reqString),
                     language: .json,
                     theme: theme,
                     flags: [.editable, .selectable]
@@ -436,8 +535,10 @@ private struct MapRuleRow: View {
     /// Enough for a long url with a query string; past this the tail is elided
     /// and the tooltip carries the rest.
     private static let maxUrlLines = 3
-    /// method column + its spacing, so the summary line starts under the url
-    private static let urlIndent: CGFloat = 52
+    private static let badgeWidth: CGFloat = 34
+    /// badge and method columns plus their spacing, so the summary line starts
+    /// under the url
+    private static let urlIndent: CGFloat = badgeWidth + 6 + 46 + 6
 
     let rule: MapLocalObject
     let priority: Int
@@ -458,6 +559,8 @@ private struct MapRuleRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .top, spacing: 6) {
+                    kindBadge
+
                     Text(rule.matchesAnyMethod ? "ANY" : rule.method)
                         .foregroundStyle(.secondary)
                         .frame(width: 46, alignment: .leading)
@@ -465,7 +568,9 @@ private struct MapRuleRow: View {
                     urlLabel
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    statusPill
+                    if rule.kind == .mapResponse {
+                        statusPill
+                    }
                 }
 
                 subtitle
@@ -496,9 +601,35 @@ private struct MapRuleRow: View {
         .help("Rule \(priority) — drag to change which rule matches first")
     }
 
+    /// Which of the two things the rule does, on every row — the rest of the
+    /// row (status pill, summary) means something different per kind, so this
+    /// has to be readable first. It carries its own fill and white text, so it
+    /// keeps its contrast on a selected row in either appearance.
+    private var kindBadge: some View {
+        Text(rule.kind.badge)
+            .foregroundStyle(.white)
+            .frame(width: Self.badgeWidth)
+            .padding(.vertical, 1)
+            .background(badgeColor)
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .help(rule.kind.title)
+    }
+
+    private var badgeColor: Color {
+        switch rule.kind {
+        case .mapResponse: .blue
+        case .modifyRequest: .purple
+        }
+    }
+
     @ViewBuilder
     private var urlLabel: some View {
-        if rule.subUrl.isEmpty {
+        if rule.matchesNoUrl {
+            Text("no url")
+                .italic()
+                .foregroundStyle(.orange)
+                .help("An empty url matches nothing — use * for every url")
+        } else if rule.matchesAnyUrl {
             Text("every url")
                 .italic()
                 .foregroundStyle(.tertiary)
@@ -523,7 +654,11 @@ private struct MapRuleRow: View {
 
     @ViewBuilder
     private var subtitle: some View {
-        if let shadowedBy {
+        if rule.matchesNoUrl {
+            Label("never fires — no url to match on", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .lineLimit(1)
+        } else if let shadowedBy {
             Label("never fires — rule \(shadowedBy) matches first", systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
                 .lineLimit(1)
@@ -537,17 +672,33 @@ private struct MapRuleRow: View {
     private var summary: String {
         var parts = [String]()
 
-        switch rule.headerCount {
-        case 0: parts.append("no headers")
-        case 1: parts.append("1 header")
-        case let count: parts.append("\(count) headers")
-        }
+        switch rule.kind {
+        case .mapResponse:
+            switch rule.headerCount {
+            case 0: parts.append("no headers")
+            case 1: parts.append("1 header")
+            case let count: parts.append("\(count) headers")
+            }
 
-        parts.append(
-            rule.bodyByteCount == 0
-            ? "empty body"
-            : ByteCountFormatter.string(fromByteCount: Int64(rule.bodyByteCount), countStyle: .file)
-        )
+            parts.append(
+                rule.bodyByteCount == 0
+                ? "empty body"
+                : ByteCountFormatter.string(fromByteCount: Int64(rule.bodyByteCount), countStyle: .file)
+            )
+
+        case .modifyRequest:
+            switch rule.reqHeaderCount {
+            case 0: parts.append("no headers")
+            case 1: parts.append("sets 1 header")
+            case let count: parts.append("sets \(count) headers")
+            }
+
+            parts.append(
+                rule.reqBodyByteCount == 0
+                ? "body unchanged"
+                : "body \(ByteCountFormatter.string(fromByteCount: Int64(rule.reqBodyByteCount), countStyle: .file))"
+            )
+        }
 
         switch (rule.hitCount, enabled) {
         case (0, true): parts.append("never matched")

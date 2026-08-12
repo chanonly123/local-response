@@ -22,6 +22,7 @@ struct EndpointRequest {
     let statusCode: Int
     let date: Double
     let isEdited: Bool
+    let isRequestEdited: Bool
     /// last path component plus the query, e.g. `raw?json=true`
     let pathLabel: String
 
@@ -31,6 +32,7 @@ struct EndpointRequest {
         statusCode = obj.statusCode
         date = obj.date
         isEdited = obj.isEdited
+        isRequestEdited = obj.isRequestEdited
         pathLabel = EndpointRequest.pathLabel(obj.url)
     }
 
@@ -247,18 +249,19 @@ private struct EndpointRowView: View {
             if let request = node.request {
                 Text(request.method)
                     .foregroundColor(.gray)
+                if request.isRequestEdited {
+                    // Same badge treatment as `edited`, in the colour the rule
+                    // list gives request rules, so the two are told apart at a
+                    // glance: this one changed what went out, not what came
+                    // back.
+                    badge("req edited", background: .purple, foreground: .white)
+                }
                 if request.isEdited {
                     // A plain tint has four backgrounds to stay legible on —
                     // light, dark, and the selection highlight in each — so
                     // this carries its own: black on yellow reads on all of
                     // them, and reads as a warning badge rather than a label.
-                    Text("edited")
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(Color.yellow)
-                        )
+                    badge("edited", background: .yellow, foreground: .black)
                 }
             } else if node.requestCount > 1 {
                 Text("(\(node.requestCount))")
@@ -267,6 +270,16 @@ private struct EndpointRowView: View {
         }
         .frame(height: EndpointRowView.rowHeight)
         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+    }
+
+    private func badge(_ text: String, background: Color, foreground: Color) -> some View {
+        Text(text)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(background)
+            )
     }
 
     /// repeat calls to one endpoint share a label, so the time tells them apart
