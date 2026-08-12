@@ -31,7 +31,7 @@ class Constants {
     ]
     static let filterKey = "filterKey"
 
-    static let schemaVersion: UInt64 = 27
+    static let schemaVersion: UInt64 = 28
 
     static let fontSize: CGFloat = 11
     static let fontSizeKey: String = "fontSize"

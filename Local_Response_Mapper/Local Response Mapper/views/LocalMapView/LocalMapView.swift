@@ -324,6 +324,24 @@ struct LocalMapView: View {
             VStack(alignment: .leading, spacing: 6) {
                 let notes = viewm.requestHeaderNotes(item)
 
+                subFieldLabel("Query Parameters") {
+                    Text("\(item.reqQueryCount) set")
+                        .foregroundStyle(.tertiary)
+                }
+
+                MyTextEditor(
+                    source: viewm.getSetValue(item.id, keyPath: \.reqQuery),
+                    language: .yaml,
+                    theme: theme,
+                    flags: [.editable, .selectable]
+                )
+                .frame(maxHeight: 80)
+                .id(item.id)
+                .editorFrame()
+
+                Text(verbatim: "One \"name: value\" per line. A parameter already in the url is replaced, the rest are kept.")
+                    .foregroundStyle(.tertiary)
+
                 subFieldLabel("Request Headers") {
                     Text("\(item.reqHeaderCount) set")
                         .foregroundStyle(.tertiary)
@@ -687,10 +705,11 @@ private struct MapRuleRow: View {
             )
 
         case .modifyRequest:
-            switch rule.reqHeaderCount {
-            case 0: parts.append("no headers")
-            case 1: parts.append("sets 1 header")
-            case let count: parts.append("sets \(count) headers")
+            switch (rule.reqQueryCount, rule.reqHeaderCount) {
+            case (0, 0): parts.append("nothing set")
+            case let (params, 0): parts.append("sets \(params) param\(params == 1 ? "" : "s")")
+            case let (0, headers): parts.append("sets \(headers) header\(headers == 1 ? "" : "s")")
+            case let (params, headers): parts.append("sets \(params) param\(params == 1 ? "" : "s"), \(headers) header\(headers == 1 ? "" : "s")")
             }
 
             parts.append(

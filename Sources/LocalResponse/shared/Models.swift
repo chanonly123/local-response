@@ -147,16 +147,40 @@ struct MapCheckResponse: Codable {
     /// `modifyRequest` rule in priority order.
     let reqHeaders: [String: String]
 
+    /// Query parameters to set on the outgoing url, merged the same way. Every
+    /// parameter the url already carries and no rule names is kept.
+    let reqQuery: [String: String]
+
     /// Replacement request body, when a rule declares one.
     let reqBody: String?
 
-    init(overrideId: String? = nil, reqHeaders: [String: String] = [:], reqBody: String? = nil) {
+    init(
+        overrideId: String? = nil,
+        reqHeaders: [String: String] = [:],
+        reqQuery: [String: String] = [:],
+        reqBody: String? = nil
+    ) {
         self.overrideId = overrideId
         self.reqHeaders = reqHeaders
+        self.reqQuery = reqQuery
         self.reqBody = reqBody
     }
 
-    var isEmpty: Bool { overrideId == nil && reqHeaders.isEmpty && reqBody == nil }
+    /// Absent on payloads written before query editing existed, so it decodes
+    /// as empty rather than failing the whole lookup.
+    enum CodingKeys: String, CodingKey {
+        case overrideId, reqHeaders, reqQuery, reqBody
+    }
 
-    var changesRequest: Bool { !reqHeaders.isEmpty || reqBody != nil }
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        overrideId = try container.decodeIfPresent(String.self, forKey: .overrideId)
+        reqHeaders = try container.decodeIfPresent([String: String].self, forKey: .reqHeaders) ?? [:]
+        reqQuery = try container.decodeIfPresent([String: String].self, forKey: .reqQuery) ?? [:]
+        reqBody = try container.decodeIfPresent(String.self, forKey: .reqBody)
+    }
+
+    var isEmpty: Bool { overrideId == nil && !changesRequest }
+
+    var changesRequest: Bool { !reqHeaders.isEmpty || !reqQuery.isEmpty || reqBody != nil }
 }

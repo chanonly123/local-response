@@ -151,6 +151,7 @@ class DB: DBProtocol {
         copy.resHeaders = source.resHeaders
         copy.kind = source.kind
         copy.reqHeaders = source.reqHeaders
+        copy.reqQuery = source.reqQuery
         copy.reqString = source.reqString
         copy.order = source.order + 1
         // Materialized first: the query is live, and shifting `order` inside the
@@ -243,6 +244,7 @@ class DB: DBProtocol {
 
         var applied = [MapLocalObject]()
         var headers = [String: String]()
+        var query = [String: String]()
         var body: String?
         var overrideId: String?
 
@@ -250,9 +252,11 @@ class DB: DBProtocol {
             switch rule.kind {
             case .modifyRequest:
                 guard rule.changesRequest else { continue }
-                // Later rules win on a header both set, the same way the list
-                // reads: the rule nearer the bottom is the last word.
+                // Later rules win on a header or parameter both set, the same
+                // way the list reads: the rule nearer the bottom is the last
+                // word.
                 rule.reqHeadersMap.forEach { headers[$0.key] = $0.value }
+                rule.reqQueryMap.forEach { query[$0.key] = $0.value }
                 if !rule.reqString.isEmpty { body = rule.reqString }
                 applied.append(rule)
             case .mapResponse:
@@ -268,7 +272,7 @@ class DB: DBProtocol {
         try r.write {
             applied.forEach { $0.hitCount += 1 }
         }
-        return MapCheckResponse(overrideId: overrideId, reqHeaders: headers, reqBody: body)
+        return MapCheckResponse(overrideId: overrideId, reqHeaders: headers, reqQuery: query, reqBody: body)
     }
 
     /// returns id

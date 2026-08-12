@@ -111,6 +111,10 @@ extension LocalResponse: InjectorDelegate {
     private func applyRequestChanges(_ changes: MapCheckResponse, to task: URLSessionTask) {
         guard changes.changesRequest, var req = task.currentRequest else { return }
 
+        if !changes.reqQuery.isEmpty, let url = req.url {
+            req.url = Self.applying(query: changes.reqQuery, to: url) ?? url
+        }
+
         changes.reqHeaders.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }
 
         if let body = changes.reqBody {
@@ -124,6 +128,34 @@ extension LocalResponse: InjectorDelegate {
         // Recorded from `req` rather than re-reading the task: this is exactly
         // what was written, whether or not URLSession keeps every field.
         useCase.recordUpdate(task: task, request: req)
+    }
+
+    /// Replaces the named parameters and keeps every other one the url already
+    /// carries, in the order it carries them — a rule sets parameters, it does
+    /// not rewrite the query string.
+    private static func applying(query: [String: String], to url: URL) -> URL? {
+        guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return nil }
+
+        var replaced = Set<String>()
+        var items = [URLQueryItem]()
+        for item in comps.queryItems ?? [] {
+            guard let value = query[item.name] else {
+                items.append(item)
+                continue
+            }
+            // A rule gives a parameter one value, so a name it sets ends up
+            // once in the url even if it was repeated there.
+            if replaced.insert(item.name).inserted {
+                items.append(URLQueryItem(name: item.name, value: value))
+            }
+        }
+        // Whatever the url didn't already have goes on the end, sorted so the
+        // same rule always produces the same url.
+        items += query.keys.filter { !replaced.contains($0) }.sorted()
+            .map { URLQueryItem(name: $0, value: query[$0]) }
+
+        comps.queryItems = items
+        return comps.url
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {

@@ -58,6 +58,11 @@ class MapLocalObject: Object, Identifiable {
     /// `name: value` per line. An existing header of the same name is replaced.
     @Persisted var reqHeaders: String = ""
 
+    /// `modifyRequest` only: query parameters set on the outgoing url, one
+    /// `name: value` per line. A parameter the url already carries is replaced,
+    /// the rest are kept.
+    @Persisted var reqQuery: String = ""
+
     /// `modifyRequest` only: replacement request body. Empty leaves the body
     /// the app sent untouched.
     @Persisted var reqString: String = ""
@@ -103,14 +108,16 @@ class MapLocalObject: Object, Identifiable {
 
     var reqHeaderCount: Int { Self.headerCount(in: reqHeaders) }
 
+    var reqQueryCount: Int { Self.headerCount(in: reqQuery) }
+
     var bodyByteCount: Int { resString.utf8.count }
 
     var reqBodyByteCount: Int { reqString.utf8.count }
 
-    /// A `modifyRequest` rule that sets no header and no body is a no-op — worth
-    /// saying out loud in the editor rather than leaving it to silently do
-    /// nothing.
-    var changesRequest: Bool { reqHeaderCount > 0 || !reqString.isEmpty }
+    /// A `modifyRequest` rule that sets no query parameter, no header and no
+    /// body is a no-op — worth saying out loud in the editor rather than
+    /// leaving it to silently do nothing.
+    var changesRequest: Bool { reqQueryCount > 0 || reqHeaderCount > 0 || !reqString.isEmpty }
 
     private static func headerCount(in text: String) -> Int {
         text.split(separator: "\n", omittingEmptySubsequences: true)
@@ -158,20 +165,26 @@ class MapLocalObject: Object, Identifiable {
 
     var reqHeadersMap: Map<String, String> { Self.headersMap(from: reqHeaders) }
 
-    private static func headersMap(from text: String) -> Map<String, String> {
+    /// Query parameters are written the same way as headers, `name: value` per
+    /// line — but `name=value` is what a url itself looks like, so a line
+    /// without a colon is split on the first `=` instead of being read as a
+    /// name with no value.
+    var reqQueryMap: Map<String, String> { Self.headersMap(from: reqQuery, orSplitOn: "=") }
+
+    private static func headersMap(from text: String, orSplitOn fallback: Character? = nil) -> Map<String, String> {
         let map = Map<String, String>()
         text.split(separator: "\n", omittingEmptySubsequences: true)
             .forEach {
                 // Only the first colon separates the name from the value —
                 // values such as `Location: https://host/path` carry their own.
-                guard let colon = $0.firstIndex(of: ":") else {
+                guard let separator = $0.firstIndex(of: ":") ?? fallback.flatMap($0.firstIndex(of:)) else {
                     let key = $0.trimmingCharacters(in: .whitespaces)
                     if !key.isEmpty { map[key] = "" }
                     return
                 }
-                let key = $0[..<colon].trimmingCharacters(in: .whitespaces)
+                let key = $0[..<separator].trimmingCharacters(in: .whitespaces)
                 if !key.isEmpty {
-                    map[key] = $0[$0.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+                    map[key] = $0[$0.index(after: separator)...].trimmingCharacters(in: .whitespaces)
                 }
             }
         return map
