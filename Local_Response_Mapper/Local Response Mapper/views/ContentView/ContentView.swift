@@ -341,13 +341,13 @@ struct ContentView: View {
 
                         Text("Query Params")
                             .underline()
-                        Text(item.getQuery)
+                        KeyValueList(pairs: item.getQuery)
 
                         Divider()
 
                         Text("Request headers")
                             .underline()
-                        Text(item.getReqHeaders)
+                        KeyValueList(pairs: item.getReqHeaders)
 
                         Divider()
 
@@ -367,7 +367,7 @@ struct ContentView: View {
 
                         Text("Response headers")
                             .underline()
-                        Text(item.getResHeaders)
+                        KeyValueList(pairs: item.getResHeaders)
                     }
                     .padding()
                 }
@@ -491,6 +491,55 @@ struct SelectionPopoverView: View {
             .padding(.bottom)
         }
         .frame(width: 200)
+    }
+}
+
+/// Renders headers or query parameters, one `key: value` per line.
+///
+/// A single oversized value — an auth token, a base64 blob — otherwise pushes
+/// everything below it off screen, so values past `collapseLimit` are cut and
+/// expanded on demand. Only the display is shortened: copying, mapping and the
+/// stored record all keep the full value.
+struct KeyValueList: View {
+
+    private static let collapseLimit = 100
+
+    let pairs: [KeyValuePair]
+
+    @State private var expanded: Set<String> = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(pairs) { pair in
+                let isLong = pair.value.count > Self.collapseLimit
+                let isExpanded = expanded.contains(pair.key)
+                // `prefix` counts Characters, so a cut never lands inside a
+                // grapheme cluster.
+                let shown = isLong && !isExpanded
+                    ? String(pair.value.prefix(Self.collapseLimit)) + "…"
+                    : pair.value
+
+                HStack(alignment: .top, spacing: 6) {
+                    Text(SyntaxStyle.current.pair(key: pair.key, value: shown))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if isLong {
+                        Button(isExpanded ? "less" : "more") {
+                            if isExpanded {
+                                expanded.remove(pair.key)
+                            } else {
+                                expanded.insert(pair.key)
+                            }
+                        }
+                        .buttonStyle(.link)
+                        // The button is a control, not part of the value: let a
+                        // drag through this row select the text instead.
+                        .textSelection(.disabled)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

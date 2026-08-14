@@ -82,6 +82,14 @@ struct SyntaxStyle {
     }
 }
 
+/// One header or query parameter, kept as its own row so a long value can be
+/// collapsed without hiding the ones around it.
+struct KeyValuePair: Identifiable, Hashable {
+    let key: String
+    let value: String
+    var id: String { key }
+}
+
 struct Utils {
 
     /// Theme names for `CodeEditor`, which still runs its own Highlightr.
@@ -114,23 +122,12 @@ struct Utils {
         return SyntaxStyle.current.scalar(str)
     }
 
-    private static func pairsToString(_ pairs: [(key: String, value: String)]) -> AttributedString {
-        let style = SyntaxStyle.current
-        var out = AttributedString()
-        for (index, pair) in pairs.enumerated() {
-            if index > 0 { out += style.run("\n", style.base) }
-            out += style.pair(key: pair.key, value: pair.value)
-        }
-        return out
+    static func dictToPairs(item: Map<String, String>) -> [KeyValuePair] {
+        return item.map { KeyValuePair(key: $0.key, value: $0.value) }
     }
 
-    static func dictToString(item: Map<String, String>) -> AttributedString {
-        return pairsToString(item.map { (key: $0.key, value: $0.value) })
-    }
-
-    static func dictToString(item: [String: String]) -> AttributedString {
-        let keys: [String] = item.keys.sorted(by: { $0 < $1 })
-        return pairsToString(keys.map { (key: $0, value: item[$0]!) })
+    static func dictToPairs(item: [String: String]) -> [KeyValuePair] {
+        return item.keys.sorted().map { KeyValuePair(key: $0, value: item[$0]!) }
     }
 
     /// Same text as `dictToString`, without building throwaway attributes.

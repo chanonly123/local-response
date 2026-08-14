@@ -136,16 +136,19 @@ class URLTaskObject: Object, Identifiable {
     }()
 
     // cache storage
-    lazy var getQuery: AttributedString = {
-        Utils.dictToString(item: Utils.getQueryParams(url))
+    //
+    // Kept as pairs rather than one joined string: the detail pane collapses
+    // oversized values per line, so it needs them separately.
+    lazy var getQuery: [KeyValuePair] = {
+        Utils.dictToPairs(item: Utils.getQueryParams(url))
     }()
 
-    lazy var getReqHeaders: AttributedString = {
-        Utils.dictToString(item: reqHeaders)
+    lazy var getReqHeaders: [KeyValuePair] = {
+        Utils.dictToPairs(item: reqHeaders)
     }()
 
-    lazy var getResHeaders: AttributedString = {
-        Utils.dictToString(item: resHeaders)
+    lazy var getResHeaders: [KeyValuePair] = {
+        Utils.dictToPairs(item: resHeaders)
     }()
 
     lazy var getHost: AttributedString = {
