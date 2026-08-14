@@ -13,6 +13,7 @@ struct LocalMapView: View {
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = LocalMapViewModel()
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
+    @State private var showVariables = false
 
     var body: some View {
         PersistentHSplitView(widthKey: Constants.mapLocalRightPaneWidthKey) {
@@ -25,10 +26,20 @@ struct LocalMapView: View {
         .monospaced()
         .toolbar {
             Button {
+                showVariables = true
+            } label: {
+                Label("Variables", systemImage: "curlybraces")
+            }
+            .help("Placeholders a rule can send — {{uuid}}, {{timestamp}}, and your own")
+
+            Button {
                 viewm.clearAll()
             } label: {
                 Text("Clear All")
             }
+        }
+        .sheet(isPresented: $showVariables) {
+            TemplateHelpView()
         }
     }
 
@@ -230,7 +241,7 @@ struct LocalMapView: View {
 
     func overrideSection(_ item: MapLocalObject) -> some View {
         RuleSection(item.kind.title, caption: item.kind.caption) {
-            EmptyView()
+            variablesLink
         } content: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
@@ -317,6 +328,7 @@ struct LocalMapView: View {
                     .foregroundStyle(.secondary)
                     .help("The rule matches, but sets no header and no body, so the request goes out unchanged.")
             }
+            variablesLink
         } content: {
             VStack(alignment: .leading, spacing: 6) {
                 let notes = viewm.requestHeaderNotes(item)
@@ -395,6 +407,18 @@ struct LocalMapView: View {
                 .editorFrame()
             }
         }
+    }
+
+    /// Sits on the card whose fields accept placeholders, so the reference is
+    /// found from the editor rather than only from the toolbar.
+    var variablesLink: some View {
+        Button {
+            showVariables = true
+        } label: {
+            Text(verbatim: "{{variables}}")
+        }
+        .buttonStyle(.link)
+        .help("What can be written in these fields, and your own variables")
     }
 
     /// Fixed-width leading label, so every control in a section lines up on one

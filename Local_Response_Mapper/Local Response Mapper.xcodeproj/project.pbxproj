@@ -47,6 +47,10 @@
 		8DAF00022EA1000000000002 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00012EA1000000000001 /* AppVersion.swift */; };
 		8DAF00032EA1000000000003 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00012EA1000000000001 /* AppVersion.swift */; };
 		8DAF00052EA1000000000005 /* AppVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00042EA1000000000004 /* AppVersionTests.swift */; };
+		8DAF00112EA1000000000011 /* Template.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00102EA1000000000010 /* Template.swift */; };
+		8DAF00122EA1000000000012 /* Template.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00102EA1000000000010 /* Template.swift */; };
+		8DAF00142EA1000000000014 /* TemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00132EA1000000000013 /* TemplateTests.swift */; };
+		8DAF00162EA1000000000016 /* TemplateHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00152EA1000000000015 /* TemplateHelpView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -101,6 +105,9 @@
 		8DAF00012EA1000000000001 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
 		8DAF00042EA1000000000004 /* AppVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionTests.swift; sourceTree = "<group>"; };
 		8DAF00062EA1000000000006 /* Local Response MapperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Local Response MapperTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DAF00102EA1000000000010 /* Template.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Template.swift; sourceTree = "<group>"; };
+		8DAF00132EA1000000000013 /* TemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTests.swift; sourceTree = "<group>"; };
+		8DAF00152EA1000000000015 /* TemplateHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateHelpView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -210,6 +217,7 @@
 			children = (
 				18BA66E62C7080C2005D86E7 /* LocalMapView.swift */,
 				188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */,
+				8DAF00152EA1000000000015 /* TemplateHelpView.swift */,
 			);
 			path = LocalMapView;
 			sourceTree = "<group>";
@@ -246,6 +254,7 @@
 			children = (
 				8D15559F2E2FAA1300C50B67 /* ContentType.swift */,
 				8DAF00012EA1000000000001 /* AppVersion.swift */,
+				8DAF00102EA1000000000010 /* Template.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -254,6 +263,7 @@
 			isa = PBXGroup;
 			children = (
 				8DAF00042EA1000000000004 /* AppVersionTests.swift */,
+				8DAF00132EA1000000000013 /* TemplateTests.swift */,
 			);
 			path = "Local Response MapperTests";
 			sourceTree = "<group>";
@@ -392,6 +402,8 @@
 				18E5A1AB2C6FB48B0045C3C8 /* MapLocalObject.swift in Sources */,
 				1848CC212C77D48F00FEA95A /* ErrorsView.swift in Sources */,
 				8DAF00022EA1000000000002 /* AppVersion.swift in Sources */,
+				8DAF00112EA1000000000011 /* Template.swift in Sources */,
+				8DAF00162EA1000000000016 /* TemplateHelpView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,6 +413,8 @@
 			files = (
 				8DAF00032EA1000000000003 /* AppVersion.swift in Sources */,
 				8DAF00052EA1000000000005 /* AppVersionTests.swift in Sources */,
+				8DAF00122EA1000000000012 /* Template.swift in Sources */,
+				8DAF00142EA1000000000014 /* TemplateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

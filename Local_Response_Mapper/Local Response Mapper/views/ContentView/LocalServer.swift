@@ -102,10 +102,13 @@ class LocalServer: ObservableObject {
         do {
             if let id = req.query["id"], let obj = try self.db.getLocalMap(id: id) {
 
-                let body = obj.resString.data(using: .utf8) ?? Data()
+                // Resolved as the response is served, so `{{timestamp}}` in a
+                // canned body is the time the app receives it.
+                var resolver = TemplateResolver()
+                let body = resolver.resolve(obj.resString).data(using: .utf8) ?? Data()
                 let statusCode = Int(obj.statusCode) ?? 0
                 var resHeaders = [HTTPHeader: String]()
-                obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = $0.value }
+                obj.resHeadersMap.forEach { resHeaders[HTTPHeader($0.key)] = resolver.resolve($0.value) }
                 resHeaders[HTTPHeader(Self.isEditedKey)] = "1"
                 // Set last, so these win over anything the rule declares — the
                 // rule editor tells the user as much.

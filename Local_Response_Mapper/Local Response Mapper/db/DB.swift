@@ -248,6 +248,10 @@ class DB: DBProtocol {
         var body: String?
         var overrideId: String?
 
+        // One resolver for the whole request, so `{{uuid}}` written in a header
+        // and in the body is the same id on the wire.
+        var resolver = TemplateResolver()
+
         for rule in rules where rule.matches(url: req.url, method: req.method) {
             switch rule.kind {
             case .modifyRequest:
@@ -255,9 +259,9 @@ class DB: DBProtocol {
                 // Later rules win on a header or parameter both set, the same
                 // way the list reads: the rule nearer the bottom is the last
                 // word.
-                rule.reqHeadersMap.forEach { headers[$0.key] = $0.value }
-                rule.reqQueryMap.forEach { query[$0.key] = $0.value }
-                if !rule.reqString.isEmpty { body = rule.reqString }
+                rule.reqHeadersMap.forEach { headers[$0.key] = resolver.resolve($0.value) }
+                rule.reqQueryMap.forEach { query[$0.key] = resolver.resolve($0.value) }
+                if !rule.reqString.isEmpty { body = resolver.resolve(rule.reqString) }
                 applied.append(rule)
             case .mapResponse:
                 overrideId = rule.id

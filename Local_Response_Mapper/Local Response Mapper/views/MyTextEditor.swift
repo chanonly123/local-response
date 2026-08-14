@@ -9,12 +9,26 @@ struct MyTextEditor: View {
     let flags: CodeEditor.Flags
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
-    /// Character offsets, not `String.Index`. An index belongs to the string it
-    /// was made from: keeping one across an edit — or across a switch to
-    /// another rule, which hands this same view a different source — and
-    /// converting it against the new string traps inside `NSRange(_:in:)`.
-    /// Offsets survive that, and clamp to whatever the source is now.
-    @State private var selection: Range<Int> = 0..<0
+    /// The caret exactly as the text view last reported it, handed straight back
+    /// on the next update.
+    ///
+    /// The text view reports a moved caret *before* it reports the edit that
+    /// moved it, so during that gap the caret addresses one more character than
+    /// `source` has. Measuring it against `source` there put it out of range —
+    /// and the editor then pushed that measurement back, which is what sent the
+    /// cursor to the top of the field on every keypress. Held as the range it
+    /// came as, it is only ever compared, never converted, so the round trip
+    /// leaves it where the user put it.
+    @State private var caret: Range<String.Index>?
+
+    /// A caret this view is asking for — a find hit. Cleared as soon as the text
+    /// view reports back, so typing is never fighting a position from before.
+    ///
+    /// Character offsets, not `String.Index`: an index belongs to the string it
+    /// was made from, and converting a kept one against a later string traps
+    /// inside `NSRange(_:in:)`.
+    @State private var pending: Range<Int>?
+
     @State private var matches: [Range<Int>] = []
     @State private var findString: String = ""
     @State private var showingFind: Bool
@@ -120,15 +134,37 @@ struct MyTextEditor: View {
         }
     }
 
-    /// Translates the stored offsets against whatever the source is right now,
-    /// so a selection left over from a longer text can't reach past the end of
-    /// a shorter one.
+    /// Reports the caret the text view already has, so nothing is pushed into it
+    /// unless this view is the one moving it.
     private var selectionBinding: Binding<Range<String.Index>> {
         Binding {
-            Self.range(of: selection, in: source)
+            if let pending {
+                return Self.range(of: pending, in: source)
+            }
+            if let caret, Self.isValid(caret, in: source) {
+                return caret
+            }
+            // No caret yet, or the text was replaced under it — the end is the
+            // one position that exists in every string.
+            let start = caret == nil ? source.startIndex : source.endIndex
+            return start..<start
         } set: { new in
-            selection = Self.offsets(of: new, in: source)
+            caret = new
+            pending = nil
         }
+    }
+
+    /// Bounds check only: comparing indices compares their offsets, which is
+    /// safe even for indices made from another string — walking to them is not.
+    private static func isValid(_ range: Range<String.Index>, in text: String) -> Bool {
+        range.lowerBound >= text.startIndex && range.upperBound <= text.endIndex
+    }
+
+    /// Where the caret is in `source`, when that can be answered without
+    /// walking past its end.
+    private var caretOffsets: Range<Int>? {
+        guard let caret, Self.isValid(caret, in: source) else { return nil }
+        return Self.offsets(of: caret, in: source)
     }
 
     private static func range(of offsets: Range<Int>, in text: String) -> Range<String.Index> {
@@ -153,7 +189,7 @@ struct MyTextEditor: View {
         let final = findString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !final.isEmpty else {
             matches = []
-            selection = 0..<0
+            pending = nil
             return
         }
         // Searched with `.caseInsensitive` rather than over `source.lowercased()`:
@@ -169,21 +205,27 @@ struct MyTextEditor: View {
                 : source.index(after: match.lowerBound)
         }
         matches = found
-        selection = found.first ?? 0..<0
+        pending = found.first
         selectedFindIndex = found.isEmpty ? 0 : 1
     }
 
     private func jumpToTextPressEnter(next: Bool) {
-        if let first = matches.first {
-            if let index = matches.firstIndex(of: selection) {
-                var new = (index + (next ? 1 : -1))
-                if new < 0 { new = matches.count - 1 }
-                let i = new % matches.count
-                selection = matches[i]
-                selectedFindIndex = i + 1
-            } else {
-                selection = first
-            }
+        guard let first = matches.first else { return }
+
+        // The hit the caret is sitting on — the one this steps off from. After
+        // a jump the caret is reported back, so this is where it lands even
+        // once `pending` has cleared.
+        let current = pending ?? caretOffsets
+
+        if let current, let index = matches.firstIndex(of: current) {
+            var new = (index + (next ? 1 : -1))
+            if new < 0 { new = matches.count - 1 }
+            let i = new % matches.count
+            pending = matches[i]
+            selectedFindIndex = i + 1
+        } else {
+            pending = first
+            selectedFindIndex = 1
         }
     }
 }
