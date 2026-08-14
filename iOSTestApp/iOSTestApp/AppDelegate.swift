@@ -5,6 +5,8 @@
 //  Created by Chandan on 17/09/24.
 //
 
+import Foundation
+import UIKit
 import LocalResponse
 
 class AppDelegate: NSObject, UIApplicationDelegate {

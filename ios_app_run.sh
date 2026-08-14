@@ -2,17 +2,20 @@
 
 # Build and run iOSTestApp on an iOS simulator.
 #
+# Dependencies come from Swift Package Manager (the local LocalResponse package),
+# so there is nothing to install before building.
+#
 # Usage:
-#   ./run-ios.sh                 # first available (or already booted) simulator
-#   ./run-ios.sh -d "iPhone 17"  # pick a simulator by name or UDID
-#   ./run-ios.sh -clean          # wipe DerivedData + reinstall pods first
-#   ./run-ios.sh -l              # list available simulators and exit
+#   ./ios_app_run.sh                 # first available (or already booted) simulator
+#   ./ios_app_run.sh -d "iPhone 17"  # pick a simulator by name or UDID
+#   ./ios_app_run.sh -clean          # wipe DerivedData + resolved package state first
+#   ./ios_app_run.sh -l              # list available simulators and exit
 
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$ROOT/iOSTestApp"
-WORKSPACE="$APP_DIR/iOSTestApp.xcworkspace"
+PROJECT="$APP_DIR/iOSTestApp.xcodeproj"
 SCHEME="iOSTestApp"
 CONFIGURATION=Debug
 BUNDLE_ID="com.chanonly123.iOSTestApp"
@@ -52,7 +55,7 @@ pick_simulator() {
     # Explicit request: matches either the UDID or any part of the device name.
     if [ -n "$DEVICE" ]; then
         printf '%s\n' "$sims" | grep -iF -m1 -- "$DEVICE" && return 0
-        echo "No simulator matching '$DEVICE'. Try ./run-ios.sh -l" >&2
+        echo "No simulator matching '$DEVICE'. Try ./ios_app_run.sh -l" >&2
         exit 1
     fi
 
@@ -75,19 +78,19 @@ SIM_UDID="${SIM%% *}"
 SIM_NAME="${SIM#* }"
 echo "Simulator: $SIM_NAME ($SIM_UDID)"
 
-# --------------------------------------------------------------------- pods --
+# ----------------------------------------------------------------- packages --
 
 if [ "$CLEAN" = true ]; then
     echo "Removing DerivedData..."
     rm -rf "$DERIVED_DATA"
-    rm -rf "$APP_DIR/Pods" "$APP_DIR/Podfile.lock"
+    rm -rf "$PROJECT/project.xcworkspace/xcshareddata/swiftpm"
 fi
 
-if [ ! -d "$APP_DIR/Pods" ] || [ "$APP_DIR/Podfile" -nt "$APP_DIR/Podfile.lock" ]; then
-    command -v pod >/dev/null || { echo "CocoaPods is not installed. Run: sudo gem install cocoapods" >&2; exit 1; }
-    echo "Installing pods..."
-    (cd "$APP_DIR" && pod install)
-fi
+echo "Resolving Swift packages..."
+xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+    -derivedDataPath "$DERIVED_DATA" \
+    -quiet \
+    -resolvePackageDependencies
 
 # -------------------------------------------------------------------- build --
 
@@ -97,7 +100,7 @@ open -a Simulator --args -CurrentDeviceUDID "$SIM_UDID"
 xcrun simctl bootstatus "$SIM_UDID" -b >/dev/null
 
 echo "Building $SCHEME ($CONFIGURATION)..."
-xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
+xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
     -configuration "$CONFIGURATION" \
     -destination "id=$SIM_UDID" \
     -derivedDataPath "$DERIVED_DATA" \
