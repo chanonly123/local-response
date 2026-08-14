@@ -324,10 +324,6 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             let body: String?
         }
 
-        func versionToInt(_ ver: String) -> Int? {
-            Int(ver.replacingOccurrences(of: ".", with: ""))
-        }
-
         Task {
             guard let current = getCurrentVersion() else {
                 return
@@ -344,11 +340,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
                 return
             }
 
-            if
-                let newVer = versionToInt(new),
-                let currentVer = versionToInt(current),
-                newVer > currentVer
-            {
+            if AppVersion.isNewer(new, than: current) {
                 newVersion = new
                 newVersionDesc = root.body
                 newVersionAlert = true
