@@ -502,7 +502,7 @@ struct SelectionPopoverView: View {
 /// stored record all keep the full value.
 struct KeyValueList: View {
 
-    private static let collapseLimit = 100
+    private static let collapseLimit = 50
 
     let pairs: [KeyValuePair]
 
