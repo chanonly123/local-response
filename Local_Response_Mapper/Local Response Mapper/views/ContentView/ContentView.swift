@@ -213,18 +213,29 @@ struct ContentView: View {
                             .width(min: 50, ideal: 50, max: 60)
                             .customizationID("Method")
 
-                            TableColumn("Edited", content: { val in
-                                Text("\(val.isEdited ? "Yes" : "-")")
+                            // One column for both directions: up is what the
+                            // app sent, down is what it received. Arrows keep
+                            // the two apart without a colour that a selected
+                            // row would swallow.
+                            TableColumn("Modified", content: { val in
+                                HStack(spacing: 3) {
+                                    if val.isRequestEdited {
+                                        Image(systemName: "arrowshape.up.fill")
+                                        Text("REQ")
+                                    }
+                                    if val.isEdited {
+                                        Image(systemName: "arrowshape.down.fill")
+                                        Text("RES")
+                                    }
+                                    if !val.isRequestEdited && !val.isEdited {
+                                        Text("-")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .help(Self.modifiedHelp(val))
                             })
-                            .width(min: 45, ideal: 45, max: 60)
-                            .customizationID("Edited")
-
-                            TableColumn("Req Edited", content: { val in
-                                Text("\(val.isRequestEdited ? "Yes" : "-")")
-                                    .help(val.isRequestEdited ? "A Modify Request rule rewrote this request before it was sent" : "")
-                            })
-                            .width(min: 45, ideal: 45, max: 70)
-                            .customizationID("ReqEdited")
+                            .width(min: 55, ideal: 60, max: 85)
+                            .customizationID("Modified")
 
                             TableColumn("Time", content: { val in
                                 Text(val.timeDelay)
@@ -376,6 +387,21 @@ struct ContentView: View {
                 ResponseView(item: item, theme: theme)
                     .frame(maxHeight: .infinity)
             }
+        }
+    }
+
+    /// Says which arrow is which — the column is two glyphs wide, so the
+    /// direction they stand for has to be readable from the row itself.
+    static func modifiedHelp(_ val: URLTaskObject) -> String {
+        switch (val.isRequestEdited, val.isEdited) {
+        case (false, false):
+            return "Sent and received unchanged"
+        case (true, false):
+            return "↑ A Modify Request rule rewrote this request before it was sent"
+        case (false, true):
+            return "↓ A Map Response rule answered this request instead of the server"
+        case (true, true):
+            return "↑ The request was rewritten before it was sent, ↓ and a Map Response rule answered it instead of the server"
         }
     }
 
