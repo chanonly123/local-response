@@ -31,16 +31,40 @@ class Constants {
     ]
     static let filterKey = "filterKey"
 
-    static let schemaVersion: UInt64 = 28
+    static let schemaVersion: UInt64 = 30
+
+    /// Longest delay the mapper may hold a request for, in milliseconds.
+    /// Bounded because the app waits it out on the rule lookup, and a stall
+    /// past this stops looking like a slow server and starts looking like a
+    /// hung mapper.
+    static let maxMapDelayMs = 10_000
+
+    /// The delay is set in tenths of a second, so this is what one press of the
+    /// stepper is worth and what every stored value is a multiple of.
+    static let mapDelayStepMs = 100
+
+    /// Rule lookup gets its own budget: it has to outlast the longest delay the
+    /// mapper can hold a request for, unlike the fire-and-forget record calls.
+    static let mapCheckTimeout: TimeInterval = Double(maxMapDelayMs) / 1000 + 10
 
     static let fontSize: CGFloat = 11
     static let fontSizeKey: String = "fontSize"
     static let leftViewModeKey: String = "leftViewMode"
+    /// Master switch over every rule. Stored inverted — the key holds "rules are
+    /// off" — so the value `UserDefaults` invents for a fresh install, `false`,
+    /// is the one that leaves mapping working.
+    static let mapRulesOffKey: String = "mapRulesOff"
+    /// How long the mapper holds every request a rule matched, in milliseconds.
+    /// One setting for all rules rather than a field on each.
+    static let mapDelayMsKey: String = "mapDelayMs"
     static let contentRightPaneWidthKey: String = "contentRightPaneWidth"
     static let mapLocalRightPaneWidthKey: String = "mapLocalRightPaneWidth"
     static let recordBeginUrl = "POST /record-begin"
     static let recordEndUrl = "POST /record-end"
     static let recordUpdateUrl = "POST /record-update"
     static let checkMapResponse = "POST /check-map-response"
-    static let overridenRequest = "GET /overriden-request"
+    /// Path only, no method: the mapped response is fetched with whatever
+    /// method the app's own request used, so the route has to answer all of
+    /// them. See `LocalResponse.injectorSessionOverrideResume`.
+    static let overridenRequest = "/overriden-request"
 }

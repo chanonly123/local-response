@@ -91,6 +91,14 @@ class LocalServer: ObservableObject {
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
         let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
         if let result = try self.db.getLocalMapIfAvailable(req: obj), !result.isEmpty {
+            // Waited out here rather than on the client: the app blocks on this
+            // check before it sends or serves anything, so holding the answer
+            // is what makes the call itself look slow. Only requests a rule
+            // matched are held — everything else is answered straight away.
+            let delayMs = Utils.mapDelayMs
+            if delayMs > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+            }
             let data = try JSONEncoder().encode(result)
             return HTTPResponse(statusCode: .ok, body: data)
         } else {

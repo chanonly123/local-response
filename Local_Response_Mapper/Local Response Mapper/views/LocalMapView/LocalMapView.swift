@@ -13,6 +13,7 @@ struct LocalMapView: View {
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = LocalMapViewModel()
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
+    @AppStorage(Constants.mapRulesOffKey) private var rulesOff = false
     @State private var showVariables = false
 
     var body: some View {
@@ -20,10 +21,11 @@ struct LocalMapView: View {
             leftView
         } right: {
             rightView
-                .navigationTitle("Map Local")
+                .navigationTitle("Override Rules")
         }
         .font(.system(size: fontSize - 2))
         .monospaced()
+        .background(ToolbarLock())
         .toolbar {
             Button {
                 showVariables = true
@@ -47,6 +49,23 @@ struct LocalMapView: View {
     /// each rule does, without having to select it. Editing lives in `rightView`.
     var leftView: some View {
         VStack(spacing: 0) {
+            // Without this the per-rule toggles read as the whole truth: a row
+            // switched on while the master switch is off maps nothing.
+            if rulesOff {
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.slash.fill")
+                    Text("Rules are off — nothing is mapped")
+                    Spacer()
+                    Button("Turn On") { rulesOff = false }
+                        .buttonStyle(.link)
+                }
+                .foregroundStyle(.orange)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.12))
+            }
+
             TextField("Filter rules", text: $viewm.search)
                 .textFieldStyle(.roundedBorder)
                 .padding(4)
@@ -142,6 +161,8 @@ struct LocalMapView: View {
             }
             .disabled(viewm.selected == nil)
             .help("Delete rule")
+
+            MapRuleControls()
 
             Spacer()
 
@@ -443,6 +464,103 @@ struct LocalMapView: View {
 
     var theme: CodeEditor.ThemeName {
         .init(rawValue: Utils.getThemeName(colorScheme: myColorScheme.value))
+    }
+}
+
+/// The two settings that apply to every rule at once — whether mapping happens
+/// at all, and how long a matched request is held. They sit in the bottom bar of
+/// both windows rather than in a toolbar, because they are read far more often
+/// than they are changed: "is anything being mapped right now" belongs next to
+/// the other status readouts.
+struct MapRuleControls: View {
+
+    @AppStorage(Constants.mapRulesOffKey) private var rulesOff = false
+    @AppStorage(Constants.mapDelayMsKey) private var delayMs = 0
+    @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
+
+    /// The field is in seconds with one decimal, the store is in milliseconds.
+    private static let secondsFormat = FloatingPointFormatStyle<Double>.number
+        .precision(.fractionLength(1))
+
+    var body: some View {
+        HStack(spacing: 8) {
+            barDivider
+
+            Toggle(isOn: rulesEnabled) {
+                Text("Rules")
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .help("Master switch. Off leaves every rule as it is but maps nothing — requests go out untouched.")
+
+            barDivider
+
+            HStack(spacing: 4) {
+                Text("Delay (sec)")
+                    .foregroundStyle(rulesOff ? .tertiary : .secondary)
+
+                stepButton("minus", by: -Constants.mapDelayStepMs)
+
+                TextField("", value: seconds, format: Self.secondsFormat)
+                    .frame(width: 34)
+                    .multilineTextAlignment(.trailing)
+                    .labelsHidden()
+
+                stepButton("plus", by: Constants.mapDelayStepMs)
+            }
+            // Off, nothing is mapped, so nothing is held either — the field
+            // still shows what it will do once mapping is back on.
+            .disabled(rulesOff)
+            .help("How long every matched request is held before the mapper answers — 0 to \(Constants.maxMapDelayMs / 1000) sec, in 0.1 sec steps.")
+
+            barDivider
+        }
+        .buttonStyle(.borderless)
+        // Set rather than inherited: the two bars this sits in style their own
+        // contents differently — one runs on `.headline` — and the same control
+        // has to come out the same size in both.
+        .font(.system(size: fontSize - 2))
+        .monospaced()
+        .controlSize(.small)
+        .fixedSize()
+    }
+
+    /// Short rule between neighbours in a bar, so the controls read as separate
+    /// settings rather than one run-on row.
+    private var barDivider: some View {
+        Divider().frame(height: 14)
+    }
+
+    private func stepButton(_ symbol: String, by step: Int) -> some View {
+        Button {
+            delayMs = Self.clamped(delayMs + step)
+        } label: {
+            Image(systemName: symbol)
+                .frame(width: 14)
+                .contentShape(Rectangle())
+        }
+        .disabled(Self.clamped(delayMs + step) == delayMs)
+        .help(step > 0 ? "Longer by 0.1s" : "Shorter by 0.1s")
+    }
+
+    /// The stored flag says "off" so a fresh install starts mapping; the toggle
+    /// reads the other way round.
+    private var rulesEnabled: Binding<Bool> {
+        Binding(get: { !rulesOff }, set: { rulesOff = !$0 })
+    }
+
+    /// Typed seconds land on the same tenths the buttons step through, so a
+    /// value the field shows is always one the buttons can reach.
+    private var seconds: Binding<Double> {
+        Binding(
+            get: { Double(delayMs) / 1000 },
+            set: { delayMs = Self.clamped(Int(($0 * 1000).rounded())) }
+        )
+    }
+
+    private static func clamped(_ ms: Int) -> Int {
+        let stepped = Int((Double(ms) / Double(Constants.mapDelayStepMs)).rounded()) * Constants.mapDelayStepMs
+        return min(max(stepped, 0), Constants.maxMapDelayMs)
     }
 }
 

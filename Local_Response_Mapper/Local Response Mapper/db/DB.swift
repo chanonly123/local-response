@@ -70,12 +70,40 @@ class DB: DBProtocol {
         }
     }
 
+    /// Opened without `deleteRealmIfMigrationNeeded`, so a schema bump Realm can
+    /// carry out on its own — a property added, an object type added — keeps the
+    /// recorded calls and the rules the user wrote. The file is only thrown away
+    /// on a change no automatic migration covers, which is what the second
+    /// attempt is for.
     var realm: Realm {
         get throws {
-            let config = Realm.Configuration(
-                schemaVersion: Constants.schemaVersion,
-                deleteRealmIfMigrationNeeded: true)
-            return try Realm(configuration: config)
+            let config = Realm.Configuration(schemaVersion: Constants.schemaVersion)
+            do {
+                return try Realm(configuration: config)
+            } catch {
+                guard Self.isMigrationConflict(error) else { throw error }
+                Logger.debugPrint("Realm cannot migrate, recreating file: \(error)")
+                var reset = config
+                reset.deleteRealmIfMigrationNeeded = true
+                return try Realm(configuration: reset)
+            }
+        }
+    }
+
+    /// Whether the file on disk simply can't become the schema this build asks
+    /// for. Anything else — no permission, no disk space, the file open
+    /// elsewhere — is a failure to report, not a reason to delete data.
+    private static func isMigrationConflict(_ error: Error) -> Bool {
+        switch (error as? Realm.Error)?.code {
+        case .schemaMismatch:
+            return true
+        case .fail:
+            // A downgrade — an older build opening a file a newer one wrote —
+            // arrives as a generic failure, so its message is the only thing
+            // separating it from an unrelated open failure.
+            return error.localizedDescription.localizedCaseInsensitiveContains("schema version")
+        default:
+            return false
         }
     }
 
@@ -237,6 +265,10 @@ class DB: DBProtocol {
     /// and the first matching `mapResponse` rule — which ends the walk, since
     /// that request never leaves the device.
     func getLocalMapIfAvailable(req: MapCheckRequest) throws -> MapCheckResponse? {
+        // The master switch is checked here rather than per rule: with it off
+        // nothing matches, nothing is counted as a hit, and every request goes
+        // out untouched — without having to turn each rule off and back on.
+        guard Utils.mapRulesEnabled else { return nil }
         let r = try realm
         let rules = r.objects(MapLocalObject.self)
             .where { $0.enable }

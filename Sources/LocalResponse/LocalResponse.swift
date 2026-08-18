@@ -41,12 +41,15 @@ public class LocalResponse {
         }
     }
 
+    /// `"POST /record-begin"`, or just `"/path"` for an endpoint that answers
+    /// any method — the caller sets the method it wants in that case.
     private func createURLRequest(endpoint: String) -> URLRequest {
-        let method = String(endpoint.split(separator: " ").first!)
-        let endPoint = String(endpoint.split(separator: " ").last!)
-        let url = URL(string: connectionUrl + endPoint)!
+        let comps = endpoint.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        let method = comps.count > 1 ? String(comps[0]) : "GET"
+        let path = String(comps.last ?? "")
+        let url = URL(string: connectionUrl + path)!
         var req = URLRequest(url: url)
-        req.httpMethod = String(method)
+        req.httpMethod = method
         return req
     }
 
@@ -97,6 +100,15 @@ extension LocalResponse: InjectorDelegate {
                     var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
                     comps?.queryItems = [URLQueryItem(name: "id", value: id)]
                     req.url = comps?.url
+                    // The task keeps the body it was built with and sends it
+                    // whatever `currentRequest` says, so the method has to stay
+                    // as it was: pointing a POST or PUT task at a bodyless GET
+                    // fails inside URLSession with -1103 before anything is
+                    // sent. The mapper answers every method on this path and
+                    // ignores the body.
+                    req.httpMethod = task.currentRequest?.httpMethod
+                        ?? task.originalRequest?.httpMethod
+                        ?? "GET"
                     task.setValue(req, forKey: "currentRequest")
                 }
             }

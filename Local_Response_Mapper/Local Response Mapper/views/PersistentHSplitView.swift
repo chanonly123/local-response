@@ -110,3 +110,39 @@ struct PersistentHSplitView<Left: View, Right: View>: View {
         return min(max(width, minimum), maximum)
     }
 }
+
+/// Locks the window's toolbar down to how it is written in code.
+///
+/// A stock `NSToolbar` lets the user right-click it and switch to icon-only or
+/// text-only, and drag items in and out through Customize. The toolbar here is
+/// a handful of named actions with no icons behind them, so those modes turn it
+/// into blank space or into buttons nobody named — states this app has no
+/// business rendering. Applied to the window rather than through SwiftUI
+/// because display-mode control is `NSToolbar`'s alone.
+struct ToolbarLock: NSViewRepresentable {
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        // The window is attached after this view is made, so the toolbar can
+        // only be reached on the next pass of the run loop.
+        DispatchQueue.main.async { lock(view.window?.toolbar) }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        // SwiftUI rebuilds the toolbar whenever the items change — a rebuilt
+        // one comes back with the defaults, so it is locked again here.
+        DispatchQueue.main.async { lock(view.window?.toolbar) }
+    }
+
+    private func lock(_ toolbar: NSToolbar?) {
+        guard let toolbar else { return }
+        toolbar.allowsUserCustomization = false
+        toolbar.displayMode = .iconAndLabel
+        if #available(macOS 15.0, *) {
+            // What removes "Icon and Text / Icon Only / Text Only" from the
+            // toolbar's context menu.
+            toolbar.allowsDisplayModeCustomization = false
+        }
+    }
+}

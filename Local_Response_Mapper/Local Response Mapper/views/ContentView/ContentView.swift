@@ -20,6 +20,8 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
     @AppStorage(Constants.leftViewModeKey) private var leftMode: LeftViewMode = .sequence
+    @AppStorage(Constants.mapRulesOffKey) private var rulesOff = false
+    @AppStorage(Constants.mapDelayMsKey) private var delayMs = 0
 
     @SceneStorage("ContentViewCustomization")
     private var customization: TableColumnCustomization<URLTaskObject>
@@ -46,6 +48,8 @@ struct ContentView: View {
                         Text("Auto scroll")
                     }
                 }
+
+                MapRuleControls()
 
                 Spacer()
 
@@ -75,6 +79,7 @@ struct ContentView: View {
         }
         .font(.system(size: fontSize - 2))
         .monospaced()
+        .background(ToolbarLock())
         .showErrors(errors: viewm.errors)
         .onAppear {
             server.startServer()
@@ -102,7 +107,11 @@ struct ContentView: View {
             Button {
                 openLocalMapWindow()
             } label: {
-                Text("Map Local\(enabledCount == 0 ? "" : " (\(enabledCount))")")
+                // With the master switch off the count would read as "3 rules
+                // are working", which is the opposite of what is happening. The
+                // delay rides along because a held request looks like a slow
+                // server, and this window is where that is noticed.
+                Text("Override Rules\(overrideRulesSuffix(enabledCount: enabledCount))")
             }
 
             Button {
@@ -134,6 +143,14 @@ struct ContentView: View {
                 isPresented: $showMultiCopyPopover
             )
         }
+    }
+
+    private func overrideRulesSuffix(enabledCount: Int) -> String {
+        if rulesOff { return " (off)" }
+        var parts = [String]()
+        if enabledCount > 0 { parts.append("\(enabledCount)") }
+        if delayMs > 0 { parts.append(Utils.delayLabel(delayMs)) }
+        return parts.isEmpty ? "" : " (\(parts.joined(separator: " · ")))"
     }
 
     @State var selectedOptions: String = "0"

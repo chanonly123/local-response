@@ -240,6 +240,29 @@ struct Utils {
         }
     }
 
+    /// The master switch, read straight from `UserDefaults` so the server can
+    /// ask it on a background thread — the toggle that writes it lives in the
+    /// toolbar as `@AppStorage`.
+    static var mapRulesEnabled: Bool {
+        get { !UserDefaults.standard.bool(forKey: Constants.mapRulesOffKey) }
+        set { UserDefaults.standard.set(!newValue, forKey: Constants.mapRulesOffKey) }
+    }
+
+    /// Milliseconds the mapper waits before answering a request a rule matched.
+    /// Read the same way as the master switch, so the server can ask for it off
+    /// the main thread. Clamped on the way in — a negative wait means nothing,
+    /// and one past the cap would outlast the lookup that is waiting on it.
+    static var mapDelayMs: Int {
+        get { min(max(UserDefaults.standard.integer(forKey: Constants.mapDelayMsKey), 0), Constants.maxMapDelayMs) }
+        set { UserDefaults.standard.set(min(max(newValue, 0), Constants.maxMapDelayMs), forKey: Constants.mapDelayMsKey) }
+    }
+
+    /// The delay as the controls say it — one decimal, always seconds, so the
+    /// label and the field never disagree about what `1500` is.
+    static func delayLabel(_ ms: Int) -> String {
+        String(format: "%.1fs", Double(ms) / 1000)
+    }
+
     static var isPreview: Bool {
         return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     }

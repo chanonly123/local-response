@@ -24,6 +24,17 @@ class ApiUseCase {
         return URLSession(configuration: config)
     }()
 
+    /// The rule lookup blocks on the mapper for as long as a matching rule's
+    /// delay says, so it can't share the short-timeout session the record calls
+    /// use — that one would cancel the lookup mid-delay and the request would
+    /// go out unmapped.
+    private lazy var mapCheckSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = Constants.mapCheckTimeout
+        config.timeoutIntervalForResource = Constants.mapCheckTimeout
+        return URLSession(configuration: config)
+    }()
+
     private func toData(from: Encodable) -> Data? {
         do {
             return try JSONEncoder().encode(from)
@@ -106,7 +117,7 @@ class ApiUseCase {
         var req = createURLRequest(endpoint: Constants.checkMapResponse)
         req.httpBody = toData(from: data)
 
-        self.session.dataTask(with: req) { data, res, err in
+        self.mapCheckSession.dataTask(with: req) { data, res, err in
             var result: MapCheckResponse?
             var error: Error?
 
