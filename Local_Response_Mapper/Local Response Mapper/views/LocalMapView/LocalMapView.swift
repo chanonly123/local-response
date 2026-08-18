@@ -536,7 +536,9 @@ struct MapRuleControls: View {
             delayMs = Self.clamped(delayMs + step)
         } label: {
             Image(systemName: symbol)
-                .frame(width: 14)
+                // Square and a touch oversized: the glyph itself is a few
+                // points wide, which is a hard target to hit at this size.
+                .frame(width: 18, height: 18)
                 .contentShape(Rectangle())
         }
         .disabled(Self.clamped(delayMs + step) == delayMs)

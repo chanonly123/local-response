@@ -100,6 +100,19 @@ struct MyTextEditor: View {
                 fontSize: .constant(fontSize),
                 flags: flags
             )
+            // Only while the bar is up: the decorations paint into the text
+            // view itself, so they have to come back off when find is done.
+            .overlay(alignment: .trailing) {
+                if showingFind {
+                    FindMatchDecorations(
+                        source: source,
+                        matches: matches,
+                        selected: selectedFindIndex - 1
+                    )
+                    .frame(width: 10)
+                    .allowsHitTesting(false)
+                }
+            }
 
         }
         .onKeyPress(action: { e in
@@ -131,6 +144,12 @@ struct MyTextEditor: View {
         }
         .onChange(of: findCaseSensitive) { _, newValue in
             onChangeFindString()
+        }
+        .onChange(of: source) { _, _ in
+            refreshMatches()
+        }
+        .onChange(of: showingFind) { _, newValue in
+            if !newValue { matches = [] }
         }
     }
 
@@ -186,12 +205,26 @@ struct MyTextEditor: View {
     }
 
     private func onChangeFindString() {
-        let final = findString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !final.isEmpty else {
-            matches = []
-            pending = nil
-            return
+        let found = currentMatches()
+        matches = found
+        pending = found.first
+        selectedFindIndex = found.isEmpty ? 0 : 1
+    }
+
+    /// The text moved under an open find bar, so the hits moved with it. The
+    /// caret is the user's here — unlike a new search, this never jumps it.
+    private func refreshMatches() {
+        guard showingFind else { return }
+        matches = currentMatches()
+        if selectedFindIndex > matches.count {
+            selectedFindIndex = matches.isEmpty ? 0 : 1
         }
+    }
+
+    /// Every hit for the current query, in document order.
+    private func currentMatches() -> [Range<Int>] {
+        let final = findString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !final.isEmpty else { return [] }
         // Searched with `.caseInsensitive` rather than over `source.lowercased()`:
         // that is a separate string, and its ranges do not address this one.
         let options: String.CompareOptions = findCaseSensitive ? [] : [.caseInsensitive]
@@ -204,9 +237,7 @@ struct MyTextEditor: View {
                 ? match.upperBound
                 : source.index(after: match.lowerBound)
         }
-        matches = found
-        pending = found.first
-        selectedFindIndex = found.isEmpty ? 0 : 1
+        return found
     }
 
     private func jumpToTextPressEnter(next: Bool) {
@@ -226,6 +257,216 @@ struct MyTextEditor: View {
         } else {
             pending = first
             selectedFindIndex = 1
+        }
+    }
+}
+
+/// Marks every find hit twice: shaded in the text itself, and as a tick on a
+/// slim ruler down the right edge, so hits off screen are still visible — the
+/// same job Xcode's and VS Code's overview rulers do.
+///
+/// `CodeEditor` exposes nothing for this, so the decorations are applied to the
+/// `NSTextView` it wraps. They are *temporary* attributes on the layout
+/// manager, never text-storage ones: the syntax highlighter owns the storage
+/// and rewrites it on every edit, which would wipe anything left there.
+private struct FindMatchDecorations: NSViewRepresentable {
+
+    let source: String
+    /// Character offsets, in document order — the same ranges the find bar counts.
+    let matches: [Range<Int>]
+    /// Index into `matches` of the hit the caret is on, or -1 for none.
+    let selected: Int
+
+    func makeNSView(context: Context) -> FindRulerView {
+        FindRulerView()
+    }
+
+    func updateNSView(_ view: FindRulerView, context: Context) {
+        view.apply(source: source, matches: matches, selected: selected)
+    }
+
+    static func dismantleNSView(_ view: FindRulerView, coordinator: ()) {
+        view.clearHighlights()
+    }
+}
+
+/// The ruler itself, and the owner of the in-text shading — one view so the two
+/// always describe the same set of hits.
+private final class FindRulerView: NSView {
+
+    private static let matchColor = NSColor.systemYellow.withAlphaComponent(0.35)
+    private static let selectedColor = NSColor.systemOrange.withAlphaComponent(0.65)
+    private static let matchTick = NSColor.systemYellow.withAlphaComponent(0.75)
+    private static let selectedTick = NSColor.systemOrange
+
+    /// UTF-16 ranges, which is what the layout manager counts in.
+    private var ranges: [NSRange] = []
+    private var selected = -1
+    /// Held weakly, and re-found whenever it has gone: the text view belongs to
+    /// `CodeEditor`, and SwiftUI may rebuild it under us.
+    private weak var textView: NSTextView?
+    private var frameObserver: NSObjectProtocol?
+
+    override var isFlipped: Bool { true }
+
+    /// Never in the way of the text — this is a readout, not a control.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    deinit {
+        if let frameObserver {
+            NotificationCenter.default.removeObserver(frameObserver)
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil else { return }
+        repaint()
+    }
+
+    func apply(source: String, matches: [Range<Int>], selected: Int) {
+        ranges = Self.utf16Ranges(of: matches, in: source)
+        self.selected = selected
+        repaint()
+    }
+
+    func clearHighlights() {
+        guard let layoutManager = textView?.layoutManager, let textView else { return }
+        layoutManager.removeTemporaryAttribute(
+            .backgroundColor,
+            forCharacterRange: NSRange(location: 0, length: (textView.string as NSString).length)
+        )
+    }
+
+    private func repaint() {
+        needsDisplay = true
+        guard let textView = locateTextView(), let layoutManager = textView.layoutManager else { return }
+
+        let length = (textView.string as NSString).length
+        layoutManager.removeTemporaryAttribute(
+            .backgroundColor,
+            forCharacterRange: NSRange(location: 0, length: length)
+        )
+        for (index, range) in ranges.enumerated() where NSMaxRange(range) <= length {
+            layoutManager.addTemporaryAttributes(
+                [.backgroundColor: index == selected ? Self.selectedColor : Self.matchColor],
+                forCharacterRange: range
+            )
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard !ranges.isEmpty,
+              let textView = locateTextView(),
+              let layoutManager = textView.layoutManager,
+              let container = textView.textContainer
+        else { return }
+
+        // The text view is sized to the whole document inside its scroll view,
+        // so its height is the scale the ticks are placed on — and reading it
+        // costs nothing, where measuring the laid-out text would force layout
+        // of the entire document.
+        let documentHeight = textView.frame.height
+        guard documentHeight > 0 else { return }
+
+        let length = (textView.string as NSString).length
+        for (index, range) in ranges.enumerated() where NSMaxRange(range) <= length {
+            let glyphs = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let box = layoutManager.boundingRect(forGlyphRange: glyphs, in: container)
+            let y = (box.midY / documentHeight) * bounds.height
+            let tick = NSRect(x: 2, y: max(0, y - 1.5), width: max(1, bounds.width - 4), height: 3)
+            (index == selected ? Self.selectedTick : Self.matchTick).setFill()
+            NSBezierPath(roundedRect: tick, xRadius: 1.5, yRadius: 1.5).fill()
+        }
+    }
+
+    /// The text view this ruler is laid over. SwiftUI gives no handle on it, so
+    /// it is found by walking out to the nearest ancestor that contains one —
+    /// and where a window holds several editors, by taking the one this ruler
+    /// actually sits on top of.
+    private func locateTextView() -> NSTextView? {
+        if let textView, textView.window != nil { return textView }
+
+        var ancestor = superview
+        var hops = 0
+        while let current = ancestor, hops < 8 {
+            var found = [NSTextView]()
+            Self.collectTextViews(in: current, into: &found)
+            if let best = nearest(of: found) {
+                observe(best)
+                return best
+            }
+            ancestor = current.superview
+            hops += 1
+        }
+        return nil
+    }
+
+    /// The candidate whose frame overlaps this ruler's — the ruler is drawn on
+    /// top of its own editor, so that is the one it describes.
+    private func nearest(of candidates: [NSTextView]) -> NSTextView? {
+        guard candidates.count > 1 else { return candidates.first }
+        let mine = convert(bounds, to: nil)
+        return candidates.max { first, second in
+            overlap(mine, first) < overlap(mine, second)
+        }
+    }
+
+    private func overlap(_ rect: NSRect, _ view: NSView) -> CGFloat {
+        rect.intersection(view.convert(view.bounds, to: nil)).height
+    }
+
+    private static func collectTextViews(in view: NSView, into found: inout [NSTextView]) {
+        if let textView = view as? NSTextView {
+            found.append(textView)
+            return
+        }
+        for subview in view.subviews {
+            collectTextViews(in: subview, into: &found)
+        }
+    }
+
+    /// Reflow moves every hit, and the text view is the only thing that knows
+    /// it happened — the ranges themselves have not changed.
+    private func observe(_ textView: NSTextView) {
+        self.textView = textView
+        if let frameObserver {
+            NotificationCenter.default.removeObserver(frameObserver)
+        }
+        textView.postsFrameChangedNotifications = true
+        frameObserver = NotificationCenter.default.addObserver(
+            forName: NSView.frameDidChangeNotification,
+            object: textView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.needsDisplay = true
+        }
+    }
+
+    /// Character offsets to UTF-16 ranges in one pass: `String` counts
+    /// Characters and the layout manager counts UTF-16 units, and converting
+    /// each hit on its own would walk the document once per hit.
+    ///
+    /// Relies on `offsets` being in ascending, non-overlapping document order,
+    /// which is how the search produces them.
+    private static func utf16Ranges(of offsets: [Range<Int>], in text: String) -> [NSRange] {
+        var index = text.startIndex
+        var characters = 0
+        var units = 0
+
+        func advance(to target: Int) {
+            while characters < target, index < text.endIndex {
+                units += text[index].utf16.count
+                index = text.index(after: index)
+                characters += 1
+            }
+        }
+
+        return offsets.map { offset in
+            advance(to: offset.lowerBound)
+            let start = units
+            advance(to: offset.upperBound)
+            return NSRange(location: start, length: units - start)
         }
     }
 }
