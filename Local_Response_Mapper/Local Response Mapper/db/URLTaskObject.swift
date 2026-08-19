@@ -6,34 +6,49 @@
 //
 
 import Foundation
-import RealmSwift
+import GRDB
 import SwiftUI
 
-class URLTaskObject: Object, Identifiable {
+/// One recorded call. A reference type rather than a struct so the derived
+/// values below — the parsed header pairs, the cached image — are computed once
+/// per row and not once per redraw; rows are re-fetched from the database
+/// rather than mutated in place, so nothing is shared between threads.
+final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRecord {
+
+    static let databaseTableName = "urlTask"
+
     var id: String { taskId }
-    @Persisted var date: Double = Date().timeIntervalSince1970
-    @Persisted(primaryKey: true) var taskId: String
-    @Persisted var startTime: Double = 0
-    @Persisted var url: String = ""
-    @Persisted var body: String = ""
-    @Persisted var method: String = ""
-    @Persisted var bundleID: String = ""
-    @Persisted var reqHeaders: Map<String, String> = .init()
-    @Persisted var mimeType: String = ""
+    var date: Double = Date().timeIntervalSince1970
+    var taskId: String = ""
+    var startTime: Double = 0
+    var url: String = ""
+    var body: String = ""
+    var method: String = ""
+    var bundleID: String = ""
+    var reqHeaders: [String: String] = [:]
+    var mimeType: String = ""
 
     // after response
-    @Persisted var endTime: Double = 0
-    @Persisted var responseString: String = ""
-    @Persisted var resHeaders: Map<String, String> = .init()
-    @Persisted var statusCode: Int = 0
-    @Persisted var isEdited: Bool = false
+    var endTime: Double = 0
+    var responseString: String = ""
+    var resHeaders: [String: String] = [:]
+    var statusCode: Int = 0
+    var isEdited: Bool = false
 
     /// A `modifyRequest` rule rewrote this call on its way out, so the request
     /// shown here is not the one the app built.
-    @Persisted var isRequestEdited: Bool = false
+    var isRequestEdited: Bool = false
 
-    convenience init(taskId: String) {
-        self.init()
+    /// Only the stored columns. The `lazy` caches further down are stored
+    /// properties too, and without this list they would be written to the
+    /// database along with the real ones.
+    enum CodingKeys: String, CodingKey {
+        case date, taskId, startTime, url, body, method, bundleID, reqHeaders
+        case mimeType, endTime, responseString, resHeaders, statusCode
+        case isEdited, isRequestEdited
+    }
+
+    init(taskId: String) {
         self.taskId = taskId
     }
 

@@ -7,7 +7,6 @@
 
 import SwiftUI
 import AppKit
-import RealmSwift
 import Factory
 
 @MainActor
@@ -18,7 +17,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     @Published var errors: [Error] = []
-    @Published var list: Results<URLTaskObject>?
+    @Published var list: [URLTaskObject]?
     var listCount: Int = 0
     @Published var filter: String = UserDefaults.standard.string(forKey: Constants.filterKey) ?? "" {
         didSet {
@@ -55,7 +54,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var newVersionDesc: String?
     @Published var newVersionAlert: Bool = false
 
-    var notificationToken: NotificationToken?
+    var notificationToken: (any DBObservationToken)?
     @Injected(\.db) var db
 
     init() {
@@ -68,14 +67,19 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             self.selected = Set([list.first?.taskId].compactMap { $0 })
             self.focusedTaskId = list.first?.taskId
             self.rebuildTree(list)
-            notificationToken = list.observe { [weak self] _ in
-                do {
-                    let newList = try self?.db.getRecordsList(filter: self?.filter ?? "")
-                    self?.listCount = newList?.count ?? 0
-                    self?.list = newList
-                    self?.rebuildTree(newList)
-                } catch let e {
-                    self?.appendError(e)
+            // Any committed write to the table re-runs the read, filter and
+            // all — the same refetch the live query used to trigger.
+            notificationToken = db.observe(table: URLTaskObject.databaseTableName) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    do {
+                        let newList = try self.db.getRecordsList(filter: self.filter)
+                        self.listCount = newList.count
+                        self.list = newList
+                        self.rebuildTree(newList)
+                    } catch let e {
+                        self.appendError(e)
+                    }
                 }
             }
         } catch let e {
@@ -93,7 +97,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    private func rebuildTree(_ items: Results<URLTaskObject>?) {
+    private func rebuildTree(_ items: [URLTaskObject]?) {
         let nodes = items.map { EndpointTree.build(from: $0) } ?? []
         for node in nodes where !seenNodes.contains(node.id) {
             seenNodes.insert(node.id)
@@ -157,10 +161,15 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func addNewMapLocal(obj: URLTaskObject) {
-        db.write { r in
-            let new = MapLocalObject(subUrl: obj.url, method: obj.method, statusCode: String(obj.statusCode), resHeaders: obj.resHeaders, resString: obj.responseString)
-            r.addMapRule(new)
-        }
+        db.addMapRule(
+            MapLocalObject(
+                subUrl: obj.url,
+                method: obj.method,
+                statusCode: String(obj.statusCode),
+                resHeaders: obj.resHeaders,
+                resString: obj.responseString
+            )
+        )
     }
 
     func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {

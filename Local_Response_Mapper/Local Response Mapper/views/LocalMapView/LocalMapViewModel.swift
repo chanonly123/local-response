@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RealmSwift
 import Factory
 import SwiftUI
 
@@ -14,10 +13,8 @@ import SwiftUI
 class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     @Published var errors: [any Error] = []
-    /// Frozen snapshot, not the live `Results`. A live `Results` shrinks the moment a write
-    /// commits, while the `@Published` notification only arrives afterwards — during that gap
-    /// SwiftUI's table can still ask a deleted row for its values and Realm throws. Frozen
-    /// objects never invalidate, so the table always renders a consistent state.
+    /// A snapshot read at the last change, not a live query — the table renders
+    /// rows that cannot change or disappear underneath it mid-draw.
     @Published var list: [MapLocalObject]?
     @Published var selected: String?
     @Published var search: String = ""
@@ -38,7 +35,7 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         "* (any)"
     ]
 
-    var notificationToken: NotificationToken?
+    var notificationToken: (any DBObservationToken)?
     @Injected(\.db) var db
 
     var selectedAnimated: String? {
@@ -54,13 +51,14 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     init() {
         do {
-            let results = try db.getMapList()
-            let snapshot = Array(results.freeze())
+            let snapshot = try db.getMapList()
             self.list = snapshot
             self.shadowedBy = Self.computeShadowing(snapshot)
             self.selected = snapshot.first?.id
-            notificationToken = results.observe { [weak self] _ in
-                self?.refreshList()
+            notificationToken = db.observe(table: MapLocalObject.databaseTableName) { [weak self] in
+                MainActor.assumeIsolated {
+                    self?.refreshList()
+                }
             }
         } catch let e {
             appendError(e)
@@ -69,7 +67,7 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     private func refreshList() {
         do {
-            let snapshot = Array(try db.getMapList().freeze())
+            let snapshot = try db.getMapList()
             list = snapshot
             shadowedBy = Self.computeShadowing(snapshot)
             // A selection pointing at a deleted row makes the table query a row that no
@@ -153,32 +151,26 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    /// The row the editor is on, read fresh so a field always shows what is
+    /// stored rather than what the last snapshot held. A rule deleted while
+    /// selected simply reads back as no selection.
     func getSelectedItem() -> MapLocalObject? {
         do {
-            // Live object, not a frozen one: reading any property of it after
-            // Realm deleted it throws from Objective-C and takes the app down,
-            // so an invalidated object is treated as no selection.
-            let item = try db.getItemMapLocal(id: selected)
-            return item?.isInvalidated == true ? nil : item
+            return try db.getItemMapLocal(id: selected)
         } catch let e {
             appendError(e)
             return nil
         }
     }
 
-    func getSetValue<T: InitProvider>(_ id: String, keyPath: WritableKeyPath<MapLocalObject, T>) -> Binding<T> {
+    /// One field of one rule as a `Binding`. The setter writes the whole row
+    /// back, so every field in the editor persists through the same path.
+    func getSetValue<T: InitProvider>(_ id: String, keyPath: ReferenceWritableKeyPath<MapLocalObject, T>) -> Binding<T> {
         return Binding(get: { [weak self] in
-            if let itemVar = try? self?.db.getItemMapLocal(id: id) {
-                return itemVar.isInvalidated ? T() : itemVar[keyPath: keyPath]
-            } else {
-                return T()
-            }
+            guard let item = try? self?.db.getItemMapLocal(id: id) ?? nil else { return T() }
+            return item[keyPath: keyPath]
         }, set: { [weak self] new in
-            if var itemVar = try? self?.db.getItemMapLocal(id: id) {
-                self?.db.write { r in
-                    itemVar[keyPath: keyPath] = new
-                }
-            }
+            self?.db.updateMapRule(id: id) { $0[keyPath: keyPath] = new }
         })
     }
 
@@ -259,34 +251,31 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
         from id: String,
         keyPath: ReferenceWritableKeyPath<MapLocalObject, String> = \.resHeaders
     ) {
-        guard let item = try? db.getItemMapLocal(id: id) else { return }
-        let kept = item[keyPath: keyPath]
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .filter { line in
-                guard let colon = line.firstIndex(of: ":") else { return true }
-                return line[..<colon].trimmingCharacters(in: .whitespaces)
-                    .caseInsensitiveCompare(name) != .orderedSame
-            }
-        db.write { _ in
-            item[keyPath: keyPath] = kept.joined(separator: "\n")
+        db.updateMapRule(id: id) { rule in
+            rule[keyPath: keyPath] = rule[keyPath: keyPath]
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .filter { line in
+                    guard let colon = line.firstIndex(of: ":") else { return true }
+                    return line[..<colon].trimmingCharacters(in: .whitespaces)
+                        .caseInsensitiveCompare(name) != .orderedSame
+                }
+                .joined(separator: "\n")
         }
     }
 
     func formatJsonBody(keyPath: ReferenceWritableKeyPath<MapLocalObject, String> = \.resString) {
-        db.write { _ in
-            guard let item = getSelectedItem() else { return }
-            if let str = try? Utils.prettyPrintJSON(from: item[keyPath: keyPath]) {
-                item[keyPath: keyPath] = str
+        guard let id = selected else { return }
+        db.updateMapRule(id: id) { rule in
+            if let str = try? Utils.prettyPrintJSON(from: rule[keyPath: keyPath]) {
+                rule[keyPath: keyPath] = str
             }
         }
     }
 
     func addNew() {
-        db.write { r in
-            let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "200", resHeaders: Map<String, String>(), resString: "")
-            r.addMapRule(new)
-            selectedAnimated = new.id
-        }
+        let new = MapLocalObject(subUrl: "", method: httpMethods.first ?? "", statusCode: "200", resHeaders: [:], resString: "")
+        db.addMapRule(new)
+        selectedAnimated = new.id
     }
 
     func deleteSelected() {
@@ -302,8 +291,8 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
 
     private func delete(id: String) {
         let index = list?.firstIndex(where: { $0.id == id })
-        // Drop the selection and the row before the write, so nothing is pointing at the
-        // deleted object while Realm commits.
+        // Drop the selection and the row before the write, so nothing is
+        // pointing at the deleted rule while the delete commits.
         selected = nil
         list?.removeAll { $0.id == id }
         do {
@@ -350,8 +339,8 @@ class LocalMapViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func clearAll() {
-        // Empty the table before the delete commits, otherwise SwiftUI can render rows
-        // backed by objects Realm has already invalidated.
+        // Empty the table before the delete commits, so no row is left asking
+        // for a rule that is on its way out.
         selected = nil
         list = []
         db.clearAllMapRecords()

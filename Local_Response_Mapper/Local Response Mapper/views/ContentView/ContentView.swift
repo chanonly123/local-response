@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import RealmSwift
 import CodeEditor
 
 struct ContentView: View {
@@ -621,8 +620,8 @@ struct JSONBodyText: View {
         Text(display)
             .task(id: raw) {
                 guard raw.utf8.count > Self.inlineLimit else { return }
-                // Realm objects are thread-confined and the color scheme is
-                // main-actor state, so both are resolved before handing off.
+                // The color scheme is main-actor state, so it is resolved
+                // before handing the work off.
                 let style = SyntaxStyle.current
                 let body = raw
                 let text = await Task.detached {

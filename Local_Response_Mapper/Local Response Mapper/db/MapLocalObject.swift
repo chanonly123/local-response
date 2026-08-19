@@ -6,15 +6,21 @@
 //
 
 import Foundation
-import RealmSwift
+import GRDB
 
-class MapLocalObject: Object, Identifiable {
+/// One mapping rule. A reference type so a rule handed to the editor can be
+/// mutated field by field and written back as a whole row — see
+/// `DB.updateMapRule(id:_:)`.
+final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableRecord {
+
+    static let databaseTableName = "mapRule"
+
 
     /// What a rule does once its matcher fires. A `mapResponse` rule answers the
     /// request itself and it never reaches the network; a `modifyRequest` rule
     /// edits the request and lets it go out, so several of them can apply to the
     /// same request.
-    enum RuleKind: String, PersistableEnum {
+    enum RuleKind: String, Codable, CaseIterable {
         case mapResponse
         case modifyRequest
 
@@ -42,41 +48,50 @@ class MapLocalObject: Object, Identifiable {
         }
     }
 
-    @Persisted(primaryKey: true) var id: String = UUID().uuidString
-    @Persisted var date: Double = Date().timeIntervalSince1970
+    var id: String = UUID().uuidString
+    var date: Double = Date().timeIntervalSince1970
 
-    @Persisted var enable: Bool = false
-    @Persisted var subUrl: String = ""
-    @Persisted var method: String = ""
-    @Persisted var resString: String = ""
-    @Persisted var statusCode: String = ""
-    @Persisted var resHeaders: String = ""
+    var enable: Bool = false
+    var subUrl: String = ""
+    var method: String = ""
+    var resString: String = ""
+    var statusCode: String = ""
+    var resHeaders: String = ""
 
-    @Persisted var kind: RuleKind = .mapResponse
+    var kind: RuleKind = .mapResponse
 
     /// `modifyRequest` only: headers set on the outgoing request, one
     /// `name: value` per line. An existing header of the same name is replaced.
-    @Persisted var reqHeaders: String = ""
+    var reqHeaders: String = ""
 
     /// `modifyRequest` only: query parameters set on the outgoing url, one
     /// `name: value` per line. A parameter the url already carries is replaced,
     /// the rest are kept.
-    @Persisted var reqQuery: String = ""
+    var reqQuery: String = ""
 
     /// `modifyRequest` only: replacement request body. Empty leaves the body
     /// the app sent untouched.
-    @Persisted var reqString: String = ""
+    var reqString: String = ""
 
     /// Position in the rule list. Only the first matching rule serves a
     /// response, so this is the rule's priority — see `DB.getLocalMapIfAvailable`.
-    @Persisted var order: Int = 0
+    var order: Int = 0
 
     /// Times this rule has served a response. `0` on an enabled rule is the
     /// usual sign that its url substring doesn't match what the app requests.
-    @Persisted var hitCount: Int = 0
+    var hitCount: Int = 0
 
-    convenience init(subUrl: String, method: String, statusCode: String, resHeaders: Map<String, String>, resString: String) {
-        self.init()
+    /// `order` is a reserved word in SQL, so the column carries a different
+    /// name than the property it fills.
+    enum CodingKeys: String, CodingKey {
+        case id, date, enable, subUrl, method, resString, statusCode, resHeaders
+        case kind, reqHeaders, reqQuery, reqString, hitCount
+        case order = "sortOrder"
+    }
+
+    init() {}
+
+    init(subUrl: String, method: String, statusCode: String, resHeaders: [String: String], resString: String) {
         self.method = method
         self.statusCode = statusCode
         self.subUrl = subUrl
@@ -161,18 +176,18 @@ class MapLocalObject: Object, Identifiable {
         resHeadersMap.first { $0.key.caseInsensitiveCompare(name) == .orderedSame }?.value
     }
 
-    var resHeadersMap: Map<String, String> { Self.headersMap(from: resHeaders) }
+    var resHeadersMap: [String: String] { Self.headersMap(from: resHeaders) }
 
-    var reqHeadersMap: Map<String, String> { Self.headersMap(from: reqHeaders) }
+    var reqHeadersMap: [String: String] { Self.headersMap(from: reqHeaders) }
 
     /// Query parameters are written the same way as headers, `name: value` per
     /// line — but `name=value` is what a url itself looks like, so a line
     /// without a colon is split on the first `=` instead of being read as a
     /// name with no value.
-    var reqQueryMap: Map<String, String> { Self.headersMap(from: reqQuery, orSplitOn: "=") }
+    var reqQueryMap: [String: String] { Self.headersMap(from: reqQuery, orSplitOn: "=") }
 
-    private static func headersMap(from text: String, orSplitOn fallback: Character? = nil) -> Map<String, String> {
-        let map = Map<String, String>()
+    private static func headersMap(from text: String, orSplitOn fallback: Character? = nil) -> [String: String] {
+        var map = [String: String]()
         text.split(separator: "\n", omittingEmptySubsequences: true)
             .forEach {
                 // Only the first colon separates the name from the value —

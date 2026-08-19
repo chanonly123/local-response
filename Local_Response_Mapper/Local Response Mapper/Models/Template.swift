@@ -163,9 +163,9 @@ struct TemplateResolver {
 /// Variables the user defines once and reuses across rules — a token, a build
 /// number, a base url.
 ///
-/// Kept in `UserDefaults` rather than Realm: the Realm config opens with
-/// `deleteRealmIfMigrationNeeded`, so adding a stored type there would wipe the
-/// recorded requests and every existing rule on first launch.
+/// Kept in `UserDefaults` rather than the database: a schema change there
+/// recreates the file rather than migrating it, and these are meant to outlive
+/// the recorded traffic they are used against.
 enum TemplateGlobals {
 
     struct Variable: Codable, Identifiable, Hashable {

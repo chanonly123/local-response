@@ -25,30 +25,44 @@ indirect enum FilterExpression {
         return parseOr(tokens, &pos)
     }
 
-    /// Builds an `NSPredicate` matching records whose `url` or `bundleID`
-    /// contains each term (case-insensitive), combined per the parsed tree.
-    func toPredicate() -> NSPredicate {
-        NSPredicate(format: format, argumentArray: args)
+    /// Builds a `WHERE` fragment matching records whose `url` or `bundleID`
+    /// contains each term, combined per the parsed tree. `LIKE` is
+    /// case-insensitive for ASCII in SQLite, which is what the search box
+    /// promises.
+    func toSQL() -> (sql: String, arguments: [String]) {
+        (sql, args)
     }
 
-    private var format: String {
+    private var sql: String {
         switch self {
         case .term:
-            return "(url CONTAINS[cd] %@ OR bundleID CONTAINS[cd] %@)"
+            return "(url LIKE ? ESCAPE '\\' OR bundleID LIKE ? ESCAPE '\\')"
         case let .and(lhs, rhs):
-            return "(\(lhs.format) AND \(rhs.format))"
+            return "(\(lhs.sql) AND \(rhs.sql))"
         case let .or(lhs, rhs):
-            return "(\(lhs.format) OR \(rhs.format))"
+            return "(\(lhs.sql) OR \(rhs.sql))"
         }
     }
 
-    private var args: [Any] {
+    private var args: [String] {
         switch self {
         case let .term(value):
-            return [value, value]
+            let pattern = Self.containsPattern(value)
+            return [pattern, pattern]
         case let .and(lhs, rhs), let .or(lhs, rhs):
             return lhs.args + rhs.args
         }
+    }
+
+    /// A `LIKE` pattern matching anything containing `value`. The wildcards
+    /// `%` and `_` are ordinary characters in a url, so a term carrying one
+    /// has to be escaped rather than left to match everything.
+    private static func containsPattern(_ value: String) -> String {
+        let escaped = value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
+        return "%\(escaped)%"
     }
 
     private static func tokenize(_ input: String) -> [Token] {

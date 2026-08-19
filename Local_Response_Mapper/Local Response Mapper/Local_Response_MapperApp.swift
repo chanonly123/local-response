@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import RealmSwift
 
 @main
 struct Local_Response_MapperApp: SwiftUI.App {

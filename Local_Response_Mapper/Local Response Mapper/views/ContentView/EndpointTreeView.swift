@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import RealmSwift
 
 enum LeftViewMode: String, CaseIterable, Identifiable {
     case structure = "Structure", sequence = "Sequence"

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RealmSwift
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -122,17 +121,13 @@ struct Utils {
         return SyntaxStyle.current.scalar(str)
     }
 
-    static func dictToPairs(item: Map<String, String>) -> [KeyValuePair] {
-        return item.map { KeyValuePair(key: $0.key, value: $0.value) }
-    }
-
     static func dictToPairs(item: [String: String]) -> [KeyValuePair] {
         return item.keys.sorted().map { KeyValuePair(key: $0, value: item[$0]!) }
     }
 
     /// Same text as `dictToString`, without building throwaway attributes.
-    static func dictToPlainString(item: Map<String, String>) -> String {
-        return item.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+    static func dictToPlainString(item: [String: String]) -> String {
+        return item.keys.sorted().map { "\($0): \(item[$0] ?? "")" }.joined(separator: "\n")
     }
 
     static func highlightJson(_ str: String, style: SyntaxStyle = .current) -> AttributedString {

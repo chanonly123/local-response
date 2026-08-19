@@ -33,6 +33,10 @@ class Constants {
 
     static let schemaVersion: UInt64 = 30
 
+    /// Set once the database files Realm left behind have been removed, so the
+    /// sweep does not run on every launch forever.
+    static let legacyRealmRemovedKey = "legacyRealmRemoved"
+
     /// Longest delay the mapper may hold a request for, in milliseconds.
     /// Bounded because the app waits it out on the rule lookup, and a stall
     /// past this stops looking like a slow server and starts looking like a
