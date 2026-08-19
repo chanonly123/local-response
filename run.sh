@@ -24,13 +24,27 @@ for arg in "$@"; do
 done
 
 if [ "$CLEAN" = true ]; then
+    # Before DerivedData goes, so xcodebuild can still find the build to clean.
+    echo "Cleaning build..."
+    xcodebuild clean -project "$PROJECT" -scheme "$SCHEME" \
+        -configuration "$CONFIGURATION" \
+        -derivedDataPath ./DerivedData
+
     echo "Removing DerivedData..."
     rm -rf ./DerivedData
 
-    echo "Updating package dependencies..."
+    # Dropping the lockfile turns the resolve below into an update — every
+    # package moves to the newest version its requirement allows.
+    echo "Discarding resolved package versions..."
     rm -f "$PROJECT/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
-    xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME"
 fi
+
+# Every run, not just -clean: a package added or bumped since the last build
+# has to be fetched before the build can see it. Without -clean the existing
+# Package.resolved stands, so this only fetches what is missing.
+echo "Resolving package dependencies..."
+xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME" \
+    -derivedDataPath ./DerivedData
 
 echo "Building $SCHEME ($CONFIGURATION)..."
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" \

@@ -41,8 +41,8 @@
 		8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D64EBA62E5F288C0077DA50 /* IPFinder.swift */; };
 		8D93C90B2E2FC91C00C1437A /* FittingImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */; };
 		8DA1F0022E96A1010012AB01 /* EndpointTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA1F0012E96A1010012AB01 /* EndpointTreeView.swift */; };
-		8DAB10012E96B0010012AB01 /* PersistentHSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAB10022E96B0010012AB01 /* PersistentHSplitView.swift */; };
 		8DAA00022E5F288C0077DA50 /* JSONHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAA00012E5F288C0077DA50 /* JSONHighlighter.swift */; };
+		8DAB10012E96B0010012AB01 /* PersistentHSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAB10022E96B0010012AB01 /* PersistentHSplitView.swift */; };
 		8DAF00022EA1000000000002 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00012EA1000000000001 /* AppVersion.swift */; };
 		8DAF00032EA1000000000003 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00012EA1000000000001 /* AppVersion.swift */; };
 		8DAF00052EA1000000000005 /* AppVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00042EA1000000000004 /* AppVersionTests.swift */; };
@@ -98,8 +98,8 @@
 		8D64EBA62E5F288C0077DA50 /* IPFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFinder.swift; sourceTree = "<group>"; };
 		8D93C90A2E2FC91B00C1437A /* FittingImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FittingImageView.swift; sourceTree = "<group>"; };
 		8DA1F0012E96A1010012AB01 /* EndpointTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointTreeView.swift; sourceTree = "<group>"; };
-		8DAB10022E96B0010012AB01 /* PersistentHSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentHSplitView.swift; sourceTree = "<group>"; };
 		8DAA00012E5F288C0077DA50 /* JSONHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONHighlighter.swift; sourceTree = "<group>"; };
+		8DAB10022E96B0010012AB01 /* PersistentHSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentHSplitView.swift; sourceTree = "<group>"; };
 		8DAF00012EA1000000000001 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
 		8DAF00042EA1000000000004 /* AppVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionTests.swift; sourceTree = "<group>"; };
 		8DAF00062EA1000000000006 /* Local Response MapperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Local Response MapperTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -339,7 +339,7 @@
 			mainGroup = 1805D0212C6CF8E200333A88;
 			packageReferences = (
 				18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */,
-				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB" */,
 				1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */,
 				188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */,
 			);
@@ -706,7 +706,7 @@
 				minimumVersion = 1.2.6;
 			};
 		};
-		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -737,7 +737,7 @@
 		};
 		18C48ABF2C6E5F4900A005EF /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = 18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 		18CB6DA92C6E58130074B8E0 /* FlyingFox */ = {
