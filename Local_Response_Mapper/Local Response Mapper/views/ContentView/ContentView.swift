@@ -23,7 +23,7 @@ struct ContentView: View {
     @AppStorage(Constants.mapDelayMsKey) private var delayMs = 0
 
     @SceneStorage("ContentViewCustomization")
-    private var customization: TableColumnCustomization<URLTaskObject>
+    private var customization: TableColumnCustomization<URLTaskRow>
 
     @State private var showMultiCopyPopover = false
     @State private var multiCopySelectedItems: Set<CopyOptions> = [.method, .url, .body, .statusCode]
@@ -198,7 +198,7 @@ struct ContentView: View {
 
                 ScrollViewReader { proxy in
                     Table(
-                        of: URLTaskObject.self,
+                        of: URLTaskRow.self,
                         selection: $viewm.selected,
                         columnCustomization: $customization,
                         columns: {
@@ -283,7 +283,12 @@ struct ContentView: View {
                             ForEach(items) { val in
                                 TableRow(val)
                                     .contextMenu {
-                                        getContextMenuForSingleRow(val: val)
+                                        // The row itself carries no bodies —
+                                        // the menu copies them, so it reads the
+                                        // whole record, and only when opened.
+                                        if let full = viewm.fetch(taskId: val.taskId) {
+                                            getContextMenuForSingleRow(val: full)
+                                        }
                                     }
                             }
                         }
@@ -380,7 +385,7 @@ struct ContentView: View {
 
                         Text("Request Body")
                             .underline()
-                        JSONBodyText(raw: item.body)
+                        JSONBodyText(raw: item.prettyBody)
 
                         Divider()
 
@@ -408,7 +413,7 @@ struct ContentView: View {
 
     /// Says which arrow is which — the column is two glyphs wide, so the
     /// direction they stand for has to be readable from the row itself.
-    static func modifiedHelp(_ val: URLTaskObject) -> String {
+    static func modifiedHelp(_ val: URLTaskRow) -> String {
         switch (val.isRequestEdited, val.isEdited) {
         case (false, false):
             return "Sent and received unchanged"
@@ -448,17 +453,17 @@ struct ContentView: View {
                         openLocalMapWindow()
                     }
                     Button("Copy Request Body") {
-                        viewm.copyValue(obj: val, keyPath: \.body)
+                        viewm.copyValue(val.prettyBody)
                     }
                     Button("Copy Response String") {
-                        viewm.copyValue(obj: val, keyPath: \.responseString)
+                        viewm.copyValue(val.prettyResponseString)
                     }
                     Button("Copy All") {
                         viewm.copyAll(obj: val)
                     }
                 }
                 Button("Copy URL") {
-                    viewm.copyValue(obj: val, keyPath: \.url)
+                    viewm.copyValue(val.url)
                 }
                 Button("Copy CURL") {
                     viewm.toCurlCommand(obj: val)

@@ -59,7 +59,7 @@ struct ResponseView: View {
                 switch item.contentType {
                 case .text:
                     MyTextEditor(
-                        source: .constant(item.responseString),
+                        source: .constant(item.prettyResponseString),
                         language: .json,
                         theme: theme,
                         flags: [.selectable]
@@ -82,7 +82,7 @@ struct ResponseView: View {
                     }
                 default:
                     Text("Unsupported content type")
-                    Text(item.responseString)
+                    Text(item.prettyResponseString)
                 }
                 Spacer()
             }

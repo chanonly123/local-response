@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import QuartzCore
 import Factory
 
 @MainActor
@@ -17,7 +18,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     @Published var errors: [Error] = []
-    @Published var list: [URLTaskObject]?
+    @Published var list: [URLTaskRow]?
     var listCount: Int = 0
     @Published var filter: String = UserDefaults.standard.string(forKey: Constants.filterKey) ?? "" {
         didSet {
@@ -68,18 +69,11 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             self.focusedTaskId = list.first?.taskId
             self.rebuildTree(list)
             // Any committed write to the table re-runs the read, filter and
-            // all — the same refetch the live query used to trigger.
+            // all — the same refetch the live query used to trigger, coalesced
+            // so a flood of writes cannot outrun what the screen can show.
             notificationToken = db.observe(table: URLTaskObject.databaseTableName) { [weak self] in
                 MainActor.assumeIsolated {
-                    guard let self else { return }
-                    do {
-                        let newList = try self.db.getRecordsList(filter: self.filter)
-                        self.listCount = newList.count
-                        self.list = newList
-                        self.rebuildTree(newList)
-                    } catch let e {
-                        self.appendError(e)
-                    }
+                    self?.scheduleRefresh()
                 }
             }
         } catch let e {
@@ -87,17 +81,60 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    // MARK: - Refreshing
+
+    /// The shortest gap between two refetches of the list.
+    ///
+    /// One recorded call commits up to three times, and a flood commits far
+    /// faster than the list can usefully redraw — every one of those commits
+    /// used to re-read and re-draw the whole table. A row can therefore appear
+    /// up to this late; nothing is dropped, since the refetch that does run
+    /// reads whatever the database holds at that moment.
+    private static let refreshInterval: CFTimeInterval = 0.15
+
+    private var refreshDirty = false
+    private var refreshScheduled = false
+    private var lastRefresh: CFTimeInterval = 0
+
+    /// Refreshes now if the last refresh is far enough behind, and otherwise
+    /// once at the end of the current window. The first change after a quiet
+    /// spell is never held back, so a single request still shows up at once.
+    private func scheduleRefresh() {
+        let now = CACurrentMediaTime()
+        let since = now - lastRefresh
+        if since >= Self.refreshInterval && !refreshScheduled {
+            lastRefresh = now
+            fetch()
+            return
+        }
+        refreshDirty = true
+        guard !refreshScheduled else { return }
+        refreshScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + (Self.refreshInterval - since)) { [weak self] in
+            guard let self else { return }
+            self.refreshScheduled = false
+            guard self.refreshDirty else { return }
+            self.refreshDirty = false
+            self.lastRefresh = CACurrentMediaTime()
+            self.fetch()
+        }
+    }
+
     func fetch() {
         do {
             let newList = try db.getRecordsList(filter: filter)
+            listCount = newList.count
             list = newList
             rebuildTree(newList)
+            // The rows behind the panes have just been written to; whatever was
+            // read before this point may no longer be what the table holds.
+            detailCache.removeAll()
         } catch let e {
             appendError(e)
         }
     }
 
-    private func rebuildTree(_ items: [URLTaskObject]?) {
+    private func rebuildTree(_ items: [URLTaskRow]?) {
         let nodes = items.map { EndpointTree.build(from: $0) } ?? []
         for node in nodes where !seenNodes.contains(node.id) {
             seenNodes.insert(node.id)
@@ -147,9 +184,29 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         fetch()
     }
 
+    /// The full record for one row — bodies included — kept until the next
+    /// refresh.
+    ///
+    /// The right pane asks for its record every time it is laid out, and the
+    /// record it gets carries the laid-out copy of the body, so re-reading it
+    /// per redraw means re-reading and re-formatting the same body. Cleared in
+    /// `fetch()`, so a record can never outlive a write that touched it.
+    private var detailCache: [String: URLTaskObject] = [:]
+
+    /// Far more than the panes need at once — the cache exists to survive
+    /// redraws, not to hold the table.
+    private static let detailCacheLimit = 64
+
     func fetch(taskId: String?) -> URLTaskObject? {
+        guard let taskId else { return nil }
+        if let cached = detailCache[taskId] { return cached }
         do {
-            return try db.getItemTask(taskId: taskId)
+            guard let item = try db.getItemTask(taskId: taskId) else { return nil }
+            if detailCache.count >= Self.detailCacheLimit {
+                detailCache.removeAll()
+            }
+            detailCache[taskId] = item
+            return item
         } catch let e {
             appendError(e)
             return nil
@@ -167,13 +224,13 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
                 method: obj.method,
                 statusCode: String(obj.statusCode),
                 resHeaders: obj.resHeaders,
-                resString: obj.responseString
+                resString: obj.prettyResponseString
             )
         )
     }
 
-    func copyValue(obj: URLTaskObject, keyPath: KeyPath<URLTaskObject, String>) {
-        Utils.copyToClipboard(obj[keyPath: keyPath])
+    func copyValue(_ value: String) {
+        Utils.copyToClipboard(value)
     }
 
     func copyAll(obj: URLTaskObject) {
@@ -182,7 +239,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         arr.append(obj.url)
         if !obj.body.isEmpty {
             arr.append("== REQUEST_BODY ==")
-            arr.append(obj.body)
+            arr.append(obj.prettyBody)
         }
         arr.append("== METHOD ==")
         arr.append(obj.method)
@@ -197,7 +254,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         arr.append(Utils.dictToPlainString(item: obj.resHeaders))
 
         arr.append("== RESPONSE_BODY ==")
-        arr.append(obj.responseString)
+        arr.append(obj.prettyResponseString)
 
         Utils.copyToClipboard(arr.joined(separator: "\n"))
     }
@@ -222,7 +279,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add request body
             if options.contains(.body) && !obj.body.isEmpty {
-                arr.append("body: \(obj.body)")
+                arr.append("body: \(obj.prettyBody)")
             }
 
             // Add request headers
@@ -242,7 +299,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add response body
             if options.contains(.response) && !obj.responseString.isEmpty {
-                arr.append("res: " + obj.responseString)
+                arr.append("res: " + obj.prettyResponseString)
             }
 
             arr.append("-------------")

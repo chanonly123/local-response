@@ -37,7 +37,7 @@ private final class GRDBObservationToken: DBObservationToken {
 }
 
 protocol DBProtocol {
-    @MainActor func getRecordsList(filter: String) throws -> [URLTaskObject]
+    @MainActor func getRecordsList(filter: String) throws -> [URLTaskRow]
     @MainActor func getMapList() throws -> [MapLocalObject]
     @MainActor func getItemTask(taskId: String?) throws -> URLTaskObject?
     @MainActor func getItemMapLocal(id: String?) throws -> MapLocalObject?
@@ -375,13 +375,18 @@ class DB: DBProtocol {
 
     // MARK: - Recorded calls
 
-    func getRecordsList(filter: String = "") throws -> [URLTaskObject] {
-        var request = URLTaskObject.order(Column("date").asc)
+    /// Only the columns the list and the tree draw — see `URLTaskRow`. The
+    /// filter still matches on `url` and `bundleID`, which a `WHERE` can do
+    /// whether or not the column is in the select list.
+    func getRecordsList(filter: String = "") throws -> [URLTaskRow] {
+        var request = URLTaskObject
+            .select(URLTaskRow.selectedColumns)
+            .order(Column("date").asc)
         if let expr = FilterExpression.parse(filter) {
             let (sql, arguments) = expr.toSQL()
             request = request.filter(sql: sql, arguments: StatementArguments(arguments))
         }
-        return try database.read { try request.fetchAll($0) }
+        return try database.read { try request.asRequest(of: URLTaskRow.self).fetchAll($0) }
     }
 
     func getItemTask(taskId: String?) throws -> URLTaskObject? {

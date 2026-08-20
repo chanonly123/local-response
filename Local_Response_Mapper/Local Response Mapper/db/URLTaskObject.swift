@@ -79,14 +79,14 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
             // Except the body: `URLRequest.httpBody` is nil for a task built
             // from a stream or an upload, so begin may carry the only copy.
             if body.isEmpty {
-                body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? task.body ?? ""
+                body = task.body ?? ""
             }
             return
         }
         url = task.url
         method = task.method
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
-        body = (try? Utils.prettyPrintJSON(from: task.body ?? "")) ?? task.body ?? ""
+        body = task.body ?? ""
     }
 
     /// The request after a rule rewrote it. Headers are replaced rather than
@@ -99,7 +99,7 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
         reqHeaders.removeAll()
         task.reqHeaders.forEach { reqHeaders[$0.key] = $0.value }
         if let taskBody = task.body {
-            body = (try? Utils.prettyPrintJSON(from: taskBody)) ?? taskBody
+            body = taskBody
         }
     }
 
@@ -107,7 +107,7 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
         endTime = task.endTime ?? 0
         bundleID = task.bundleID ?? ""
         task.resHeaders?.forEach { resHeaders[$0.key] = $0.value }
-        responseString = (try? Utils.prettyPrintJSON(from: task.resString ?? "")) ?? task.resString ?? ""
+        responseString = task.resString ?? ""
         statusCode = task.statusCode ?? 0
         isEdited = resHeaders[LocalServer.isEditedKey] == "1"
         resHeaders[LocalServer.isEditedKey] = nil
@@ -125,6 +125,21 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
             }
         }
     }
+
+    /// Bodies are stored exactly as they went over the wire and laid out only
+    /// when something shows one.
+    ///
+    /// Pretty-printing parses and re-serializes the whole body, and it used to
+    /// happen inside the write that records the call — so a flood paid for it
+    /// on every request, on the connection's own queue, for bodies nothing ever
+    /// opened. One row is on screen at a time; this is that row's copy.
+    lazy var prettyBody: String = {
+        (try? Utils.prettyPrintJSON(from: body)).flatMap { $0 } ?? body
+    }()
+
+    lazy var prettyResponseString: String = {
+        (try? Utils.prettyPrintJSON(from: responseString)).flatMap { $0 } ?? responseString
+    }()
 
     lazy var contentType: ContentType? = {
         Utils.determineFileExtensionAndType(from: self).type

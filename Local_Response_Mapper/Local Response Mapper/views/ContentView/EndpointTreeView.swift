@@ -13,8 +13,8 @@ enum LeftViewMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// Plain snapshot of a recorded call, so tree nodes never hold on to a realm
-/// object that may get invalidated while the tree is on screen.
+/// Plain snapshot of a recorded call, so tree nodes never hold on to a row
+/// object that a later refresh has already replaced.
 struct EndpointRequest {
     let taskId: String
     let method: String
@@ -25,7 +25,7 @@ struct EndpointRequest {
     /// last path component plus the query, e.g. `raw?json=true`
     let pathLabel: String
 
-    init(_ obj: URLTaskObject) {
+    init(_ obj: URLTaskRow) {
         taskId = obj.taskId
         method = obj.method
         statusCode = obj.statusCode
@@ -81,7 +81,7 @@ enum EndpointTree {
 
     /// Groups the recorded calls into `host -> path component -> ... -> endpoint`.
     /// An endpoint hit more than once becomes a folder holding one row per call.
-    static func build<C: Sequence>(from items: C) -> [EndpointNode] where C.Element == URLTaskObject {
+    static func build<C: Sequence>(from items: C) -> [EndpointNode] where C.Element == URLTaskRow {
         var hosts = [String: Builder]()
         for item in items {
             let host = hostLabel(item.url)

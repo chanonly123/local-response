@@ -774,6 +774,190 @@ final class WebSocketTester: ObservableObject {
     }
 }
 
+// MARK: - Flood
+
+/// Fires requests continuously, so the mapper can be watched while it is being
+/// buried.
+///
+/// What is under test is the mapper's own cost — three records land per call,
+/// all of them while the list is on screen — not the network. So the default
+/// target is a port nothing listens on: the connection is refused in
+/// microseconds, no third-party service is hammered, and the whole recording
+/// path still runs. The remote target carries real response bodies and is
+/// capped far lower for the same reason.
+@MainActor
+final class FloodTester: ObservableObject {
+
+    enum Target: String, CaseIterable, Identifiable {
+        case refused = "Local (refused)"
+        case remote = "Remote (real bodies)"
+
+        var id: String { rawValue }
+
+        /// Discard port on loopback for the local target: nothing listens, so
+        /// the rate is bounded by this device rather than by a server.
+        func url(index: Int) -> URL {
+            switch self {
+            case .refused:
+                return URL(string: "http://127.0.0.1:9/flood/\(index)")!
+            case .remote:
+                return URL(string: "\(Endpoints.jsonPlaceholder)/comments?postId=\(index % 100 + 1)")!
+            }
+        }
+
+        var maxRate: Int {
+            switch self {
+            case .refused: return 500
+            case .remote: return 50
+            }
+        }
+
+        var note: String {
+            switch self {
+            case .refused:
+                return "Connection refused instantly — recorded, but nothing leaves the device."
+            case .remote:
+                return "Real JSON bodies from a public API. Keep the rate low and the burst short."
+            }
+        }
+    }
+
+    @Published var target: Target = .refused {
+        didSet {
+            stop()
+            rate = min(rate, target.maxRate)
+        }
+    }
+
+    /// Requests started per second, spread over the ticks below rather than
+    /// fired in one lump, so the mapper sees a stream and not a sawtooth.
+    @Published var rate: Int = 100
+
+    @Published private(set) var isRunning = false
+    @Published private(set) var sent = 0
+    @Published private(set) var completed = 0
+    @Published private(set) var failed = 0
+    @Published private(set) var elapsed: TimeInterval = 0
+
+    private static let ticksPerSecond = 10
+
+    /// Requests allowed in flight at once. A target slower than the rate queues
+    /// up here instead of inside URLSession, where it would keep growing long
+    /// after the flood is stopped.
+    private static let inFlightLimit = 64
+
+    private var driver: Task<Void, Never>?
+    private var started: Date?
+    private var index = 0
+    private var inFlight = 0
+
+    /// Counted off the main actor and published once per tick — at the top rate
+    /// a published counter per completion would redraw this view hundreds of
+    /// times a second and measure SwiftUI instead of the mapper.
+    private let counts = Counts()
+
+    private final class Counts {
+        private let lock = NSLock()
+        private(set) var completed = 0
+        private(set) var failed = 0
+
+        func record(ok: Bool) {
+            lock.lock()
+            defer { lock.unlock() }
+            if ok { completed += 1 } else { failed += 1 }
+        }
+
+        func reset() {
+            lock.lock()
+            defer { lock.unlock() }
+            completed = 0
+            failed = 0
+        }
+    }
+
+    /// Its own session, so the flood shares no connection pool with the sample
+    /// calls above and can be torn down with the run.
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 15
+        config.httpMaximumConnectionsPerHost = 16
+        return URLSession(configuration: config)
+    }()
+
+    var rateLabel: String {
+        guard elapsed > 0.5 else { return "—" }
+        return String(format: "%.0f/s", Double(completed + failed) / elapsed)
+    }
+
+    func toggle() {
+        isRunning ? stop() : start()
+    }
+
+    func start() {
+        guard !isRunning else { return }
+        isRunning = true
+        sent = 0
+        completed = 0
+        failed = 0
+        elapsed = 0
+        inFlight = 0
+        counts.reset()
+        started = Date()
+
+        driver = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.isRunning else { return }
+                self.fireTick()
+                self.publishCounts()
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000 / UInt64(Self.ticksPerSecond)))
+            }
+        }
+    }
+
+    func stop() {
+        guard isRunning else { return }
+        driver?.cancel()
+        driver = nil
+        isRunning = false
+        publishCounts()
+    }
+
+    private func fireTick() {
+        let perTick = max(1, rate / Self.ticksPerSecond)
+        for _ in 0..<perTick {
+            guard inFlight < Self.inFlightLimit else { return }
+            fire()
+        }
+    }
+
+    private func fire() {
+        index += 1
+        inFlight += 1
+        sent += 1
+
+        var request = URLRequest(url: target.url(index: index))
+        request.httpMethod = "GET"
+        // Stamped so one call can be picked out of the pile in the mapper.
+        request.setValue("\(index)", forHTTPHeaderField: "X-Flood-Index")
+
+        Task { [weak self, session, counts] in
+            do {
+                _ = try await session.data(for: request)
+                counts.record(ok: true)
+            } catch {
+                counts.record(ok: false)
+            }
+            await MainActor.run { self?.inFlight -= 1 }
+        }
+    }
+
+    private func publishCounts() {
+        completed = counts.completed
+        failed = counts.failed
+        elapsed = started.map { Date().timeIntervalSince($0) } ?? 0
+    }
+}
+
 // MARK: - Views
 
 struct ContentView: View {
@@ -781,6 +965,7 @@ struct ContentView: View {
     @State private var results: [UUID: CallOutcome] = [:]
     @State private var running: Set<UUID> = []
     @StateObject private var webSocket = WebSocketTester()
+    @StateObject private var flood = FloodTester()
 
     var body: some View {
         NavigationView {
@@ -814,6 +999,10 @@ struct ContentView: View {
                                 .textCase(nil)
                         }
                     }
+                }
+
+                Section("Flood") {
+                    FloodSection(tester: flood)
                 }
 
                 Section("WebSocket") {
@@ -888,6 +1077,65 @@ struct SampleRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+}
+
+struct FloodSection: View {
+
+    @ObservedObject var tester: FloodTester
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hammers the mapper with back-to-back requests — one recorded call is three writes, so this is what its list costs under load.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            Picker("Target", selection: $tester.target) {
+                ForEach(FloodTester.Target.allCases) { target in
+                    Text(target.rawValue).tag(target)
+                }
+            }
+            .pickerStyle(.segmented)
+            .disabled(tester.isRunning)
+
+            Text(tester.target.note)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            Stepper(
+                "Rate: \(tester.rate)/s",
+                value: $tester.rate,
+                in: 10...tester.target.maxRate,
+                step: 10
+            )
+            .font(.footnote)
+
+            HStack {
+                Button(tester.isRunning ? "Stop" : "Start flood") { tester.toggle() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(tester.isRunning ? .red : .accentColor)
+                Spacer()
+                if tester.isRunning {
+                    ProgressView()
+                }
+            }
+
+            HStack(spacing: 12) {
+                stat("sent", "\(tester.sent)")
+                stat("done", "\(tester.completed)")
+                stat("failed", "\(tester.failed)")
+                stat("actual", tester.rateLabel)
+                stat("elapsed", String(format: "%.0fs", tester.elapsed))
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func stat(_ name: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(value).font(.caption).monospacedDigit()
+            Text(name).font(.caption2).foregroundColor(.secondary)
+        }
     }
 }
 
