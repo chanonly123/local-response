@@ -19,7 +19,20 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
 
     var id: String { taskId }
     var date: Double = Date().timeIntervalSince1970
+
+    /// This row's own identity, given once and never changed — the table is
+    /// keyed on it, so a row that re-keys is a row the list has to throw away
+    /// and build again.
     var taskId: String = ""
+
+    /// What the client calls this call while it is in flight, used to find the
+    /// row again when its update and its response arrive.
+    ///
+    /// It is the address of the client's `URLSessionTask` plus that task's
+    /// identifier, and an address is handed out again once the task that held
+    /// it is gone. Cleared when the response lands, so a later call landing on
+    /// the same address cannot find this finished row.
+    var liveKey: String = ""
     var startTime: Double = 0
     var url: String = ""
     var body: String = ""
@@ -43,30 +56,13 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
     /// properties too, and without this list they would be written to the
     /// database along with the real ones.
     enum CodingKeys: String, CodingKey {
-        case date, taskId, startTime, url, body, method, bundleID, reqHeaders
+        case date, taskId, liveKey, startTime, url, body, method, bundleID, reqHeaders
         case mimeType, endTime, responseString, resHeaders, statusCode
         case isEdited, isRequestEdited
     }
 
     init(taskId: String) {
         self.taskId = taskId
-    }
-
-    func createCopy() -> URLTaskObject {
-        let new = URLTaskObject(taskId: UUID().uuidString)
-        new.date = date
-        new.startTime = startTime
-        new.endTime = endTime
-        new.url = url
-        new.body = body
-        new.method = method
-        new.reqHeaders = reqHeaders
-        new.responseString = responseString
-        new.resHeaders = resHeaders
-        new.statusCode = statusCode
-        new.mimeType = mimeType
-        new.isRequestEdited = isRequestEdited
-        return new
     }
 
     func updateFrom(task: URLTaskModelBegin) {

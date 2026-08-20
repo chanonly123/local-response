@@ -24,6 +24,11 @@ struct EndpointRequest {
     let isRequestEdited: Bool
     /// last path component plus the query, e.g. `raw?json=true`
     let pathLabel: String
+    /// Kept only to tell a reused snapshot from a stale one without parsing.
+    let url: String
+    /// Formatted here rather than per redraw — a `DateFormatter` run is not
+    /// free and the whole tree redraws whenever any row of it changes.
+    let timeString: String
 
     init(_ obj: URLTaskRow) {
         taskId = obj.taskId
@@ -32,11 +37,24 @@ struct EndpointRequest {
         date = obj.date
         isEdited = obj.isEdited
         isRequestEdited = obj.isRequestEdited
+        url = obj.url
         pathLabel = EndpointRequest.pathLabel(obj.url)
+        timeString = EndpointRequest.timeFormatter.string(from: Date(timeIntervalSince1970: date))
     }
 
-    var timeString: String {
-        EndpointRequest.timeFormatter.string(from: Date(timeIntervalSince1970: date))
+    /// Whether this snapshot still says what the row says.
+    ///
+    /// Everything below is a stored value already read from the row; the two
+    /// derived ones — the url label and the time — are what building a snapshot
+    /// costs, and neither can change while these agree.
+    func isCurrent(for obj: URLTaskRow) -> Bool {
+        taskId == obj.taskId
+            && statusCode == obj.statusCode
+            && date == obj.date
+            && method == obj.method
+            && isEdited == obj.isEdited
+            && isRequestEdited == obj.isRequestEdited
+            && url == obj.url
     }
 
     /// `URLComponents` hands back both parts already percent-decoded.
@@ -81,8 +99,16 @@ enum EndpointTree {
 
     /// Groups the recorded calls into `host -> path component -> ... -> endpoint`.
     /// An endpoint hit more than once becomes a folder holding one row per call.
-    static func build<C: Sequence>(from items: C) -> [EndpointNode] where C.Element == URLTaskRow {
+    /// `cache` carries the snapshots made last time, keyed by row, and comes
+    /// back holding exactly the ones this tree uses — so a row that has not
+    /// changed is never parsed or formatted twice, and rows that are gone do
+    /// not accumulate.
+    static func build<C: Sequence>(
+        from items: C,
+        cache: inout [String: EndpointRequest]
+    ) -> [EndpointNode] where C.Element == URLTaskRow {
         var hosts = [String: Builder]()
+        var reused = [String: EndpointRequest](minimumCapacity: cache.count)
         for item in items {
             let host = hostLabel(item.url)
             let builder = hosts[host] ?? {
@@ -97,8 +123,12 @@ enum EndpointTree {
             if node === builder {
                 node = builder.child("/")
             }
-            node.requests.append(EndpointRequest(item))
+            let previous = cache[item.taskId]
+            let request = previous?.isCurrent(for: item) == true ? previous! : EndpointRequest(item)
+            reused[item.taskId] = request
+            node.requests.append(request)
         }
+        cache = reused
         return hosts.keys.sorted().map { makeNode(hosts[$0]!, parentId: "", kind: .host) }
     }
 

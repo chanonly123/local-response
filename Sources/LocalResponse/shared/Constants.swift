@@ -31,7 +31,7 @@ class Constants {
     ]
     static let filterKey = "filterKey"
 
-    static let schemaVersion: UInt64 = 30
+    static let schemaVersion: UInt64 = 31
 
     /// Set once the database files Realm left behind have been removed, so the
     /// sweep does not run on every launch forever.

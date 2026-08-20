@@ -176,6 +176,12 @@ struct ContentView: View {
             TextField("Matches url/bundleID. Combine with && / ||, e.g. app && (profile || todo). Quote terms with spaces: \"my todo\"", text: $viewm.filter)
                 .textFieldStyle(.roundedBorder)
         }
+        // The tree costs a walk over every recorded call to build, so it is
+        // only kept up to date while it is the tab on screen.
+        .onAppear { viewm.setTreeVisible(leftMode == .structure) }
+        .onChange(of: leftMode) { _, mode in
+            viewm.setTreeVisible(mode == .structure)
+        }
     }
 
     var structureView: some View {

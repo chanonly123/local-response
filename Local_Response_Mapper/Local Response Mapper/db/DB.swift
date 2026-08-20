@@ -158,6 +158,7 @@ class DB: DBProtocol {
     private static func createSchema(_ db: Database) throws {
         try db.create(table: URLTaskObject.databaseTableName) { t in
             t.primaryKey("taskId", .text)
+            t.column("liveKey", .text).notNull().defaults(to: "")
             t.column("date", .double).notNull()
             t.column("startTime", .double).notNull().defaults(to: 0)
             t.column("endTime", .double).notNull().defaults(to: 0)
@@ -175,6 +176,8 @@ class DB: DBProtocol {
             t.column("resHeaders", .text).notNull().defaults(to: "{}")
         }
         try db.create(index: "urlTask_date", on: URLTaskObject.databaseTableName, columns: ["date"])
+        // Every record posted for a call in flight is found through this.
+        try db.create(index: "urlTask_liveKey", on: URLTaskObject.databaseTableName, columns: ["liveKey"])
 
         try db.create(table: MapLocalObject.databaseTableName) { t in
             t.primaryKey("id", .text)
@@ -214,6 +217,93 @@ class DB: DBProtocol {
         }
     }
 
+    // MARK: - Compiled rules
+
+    /// A rule in the shape the request path uses it.
+    ///
+    /// Matching runs on every outgoing request, and it used to re-read every
+    /// enabled rule from the database and re-split its header and query text
+    /// each time — work that only changes when a rule is edited. This is that
+    /// work, done once per edit and held until the next one.
+    private struct CompiledRule {
+        let id: String
+        let kind: MapLocalObject.RuleKind
+        let method: String
+        let matchesAnyMethod: Bool
+        let matchesAnyUrl: Bool
+        let matchesNoUrl: Bool
+        let subUrl: String
+        let changesRequest: Bool
+        let reqHeaders: [String: String]
+        let reqQuery: [String: String]
+        let reqString: String
+
+        init(_ rule: MapLocalObject) {
+            id = rule.id
+            kind = rule.kind
+            method = rule.method
+            matchesAnyMethod = rule.matchesAnyMethod
+            matchesAnyUrl = rule.matchesAnyUrl
+            matchesNoUrl = rule.matchesNoUrl
+            subUrl = rule.trimmedSubUrl
+            changesRequest = rule.changesRequest
+            reqHeaders = rule.reqHeadersMap
+            reqQuery = rule.reqQueryMap
+            reqString = rule.reqString
+        }
+
+        /// Same test as `MapLocalObject.matches(url:method:)`, over the values
+        /// already worked out above.
+        func matches(url: String, method: String) -> Bool {
+            guard matchesAnyMethod || self.method == method else { return false }
+            guard !matchesNoUrl else { return false }
+            return matchesAnyUrl || url.contains(subUrl)
+        }
+    }
+
+    /// Guards the cache only. Requests read it from the server's connection
+    /// queues, and an edit arrives on whichever queue the editor is on.
+    private let rulesCacheLock = NSLock()
+    private var compiledRules: [CompiledRule]?
+
+    /// Called after every write that changes what a rule matches or does —
+    /// after, so a request compiling the rules while the write is still open
+    /// cannot leave its pre-write copy in place behind it.
+    ///
+    /// Counting a hit deliberately does not invalidate: it writes to the same
+    /// table on every matched request, and nothing about matching depends on
+    /// the count. The rule list reads its own copy from the database, so what
+    /// it shows is unaffected.
+    private func invalidateRulesCache() {
+        rulesCacheLock.lock()
+        compiledRules = nil
+        rulesCacheLock.unlock()
+    }
+
+    private func enabledRules() throws -> [CompiledRule] {
+        rulesCacheLock.lock()
+        if let compiledRules {
+            rulesCacheLock.unlock()
+            return compiledRules
+        }
+        rulesCacheLock.unlock()
+
+        // Read outside the lock: a slow read must not hold every other request
+        // waiting behind it, and two requests compiling the same rules at once
+        // produce the same answer.
+        let rules = try database.read { db in
+            try Self.rulesInPriorityOrder
+                .filter(Column("enable") == true)
+                .fetchAll(db)
+        }
+        let compiled = rules.map(CompiledRule.init)
+
+        rulesCacheLock.lock()
+        compiledRules = compiled
+        rulesCacheLock.unlock()
+        return compiled
+    }
+
     // MARK: - Rules
 
     /// New rules go last: the first match wins, so appending can never take
@@ -227,6 +317,7 @@ class DB: DBProtocol {
             rule.order = highest + 1
             try rule.insert(db)
         }
+        invalidateRulesCache()
     }
 
     /// Reads the rule, hands it to `change`, and writes the whole row back.
@@ -238,6 +329,7 @@ class DB: DBProtocol {
             change(rule)
             try rule.update(db)
         }
+        invalidateRulesCache()
     }
 
     func getItemMapLocal(id: String?) throws -> MapLocalObject? {
@@ -259,6 +351,7 @@ class DB: DBProtocol {
 
     /// Renumbers `order` to the given sequence, after a drag in the rule list.
     func reorderMap(ids: [String]) {
+        defer { invalidateRulesCache() }
         write { db in
             for (index, id) in ids.enumerated() {
                 try db.execute(
@@ -273,7 +366,8 @@ class DB: DBProtocol {
     /// stay next to each other and the copy — being later — cannot steal the
     /// original's traffic.
     func duplicateLocalMap(id: String) throws -> String? {
-        try database.write { db in
+        defer { invalidateRulesCache() }
+        return try database.write { db in
             guard let source = try MapLocalObject.fetchOne(db, key: id) else { return nil }
             let copy = MapLocalObject()
             copy.enable = source.enable
@@ -297,6 +391,7 @@ class DB: DBProtocol {
     }
 
     func deleteLocalMap(id: String) throws {
+        defer { invalidateRulesCache() }
         _ = try database.write { db in
             try MapLocalObject.deleteOne(db, key: id)
         }
@@ -306,6 +401,7 @@ class DB: DBProtocol {
         write { db in
             _ = try MapLocalObject.deleteAll(db)
         }
+        invalidateRulesCache()
     }
 
     func getLocalMap(id: String) throws -> MapLocalObject? {
@@ -322,16 +418,13 @@ class DB: DBProtocol {
         // out untouched — without having to turn each rule off and back on.
         guard Utils.mapRulesEnabled else { return nil }
 
-        // Read first, write only if something matched: this runs on every
-        // outgoing request, and most of them match no rule at all — taking the
-        // writer for those would put every request behind one lock.
-        let rules = try database.read { db in
-            try Self.rulesInPriorityOrder
-                .filter(Column("enable") == true)
-                .fetchAll(db)
-        }
+        // Matched against the compiled copy, and written to only if something
+        // matched: this runs on every outgoing request, and most of them match
+        // no rule at all — reading the table for those, then taking the writer,
+        // would put every request behind one lock.
+        let rules = try enabledRules()
 
-        var applied = [MapLocalObject]()
+        var applied = [CompiledRule]()
         var headers = [String: String]()
         var query = [String: String]()
         var body: String?
@@ -348,8 +441,8 @@ class DB: DBProtocol {
                 // Later rules win on a header or parameter both set, the same
                 // way the list reads: the rule nearer the bottom is the last
                 // word.
-                rule.reqHeadersMap.forEach { headers[$0.key] = resolver.resolve($0.value) }
-                rule.reqQueryMap.forEach { query[$0.key] = resolver.resolve($0.value) }
+                rule.reqHeaders.forEach { headers[$0.key] = resolver.resolve($0.value) }
+                rule.reqQuery.forEach { query[$0.key] = resolver.resolve($0.value) }
                 if !rule.reqString.isEmpty { body = resolver.resolve(rule.reqString) }
                 applied.append(rule)
             case .mapResponse:
@@ -406,16 +499,31 @@ class DB: DBProtocol {
         }
     }
 
+    /// The row a call in flight is still writing to, if it has one.
+    ///
+    /// Looked up by the client's key rather than by the row's own id: the two
+    /// are separate so that finishing a call is an update and not a re-key —
+    /// see `URLTaskObject.liveKey`.
+    private static func liveTask(_ db: Database, key: String) throws -> URLTaskObject? {
+        try URLTaskObject.filter(Column("liveKey") == key).fetchOne(db)
+    }
+
+    private static func newTask(key: String) -> URLTaskObject {
+        let item = URLTaskObject(taskId: UUID().uuidString)
+        item.liveKey = key
+        return item
+    }
+
     func recordBegin(task: URLTaskModelBegin) throws {
         try database.write { db in
-            if let item = try URLTaskObject.fetchOne(db, key: task.taskId) {
+            if let item = try Self.liveTask(db, key: task.taskId) {
                 item.updateFrom(task: task)
                 if item.url != task.url {
                     Logger.debugPrint("🔴 error: \(task.url) 🔷 \(item.url)")
                 }
                 try item.update(db)
             } else {
-                let item = URLTaskObject(taskId: task.taskId)
+                let item = Self.newTask(key: task.taskId)
                 item.updateFrom(task: task)
                 try item.insert(db)
             }
@@ -427,24 +535,29 @@ class DB: DBProtocol {
     /// race, and either can arrive first.
     func recordUpdate(task: URLTaskModelUpdate) throws {
         try database.write { db in
-            if let item = try URLTaskObject.fetchOne(db, key: task.taskId) {
+            if let item = try Self.liveTask(db, key: task.taskId) {
                 item.updateFrom(task: task)
                 try item.update(db)
             } else {
-                let item = URLTaskObject(taskId: task.taskId)
+                let item = Self.newTask(key: task.taskId)
                 item.updateFrom(task: task)
                 try item.insert(db)
             }
         }
     }
 
+    /// Finishes the row the call was writing to, in place.
+    ///
+    /// The client's key is only borrowed — it is an address, handed out again
+    /// once the task that held it goes away — so it is released here rather
+    /// than kept. The row itself keeps the id it was given at the start, which
+    /// is what stops the list having to rebuild every finishing row.
     func recordEnd(task: URLTaskModelEnd) throws {
         try database.write { db in
-            guard let item = try URLTaskObject.fetchOne(db, key: task.taskId) else { return }
-            let new = item.createCopy()
-            new.updateFrom(task: task)
-            try new.insert(db)
-            try item.delete(db)
+            guard let item = try Self.liveTask(db, key: task.taskId) else { return }
+            item.updateFrom(task: task)
+            item.liveKey = ""
+            try item.update(db)
         }
     }
 

@@ -134,8 +134,38 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    // MARK: - Endpoint tree
+
+    /// Whether the Structure tab is the one on screen.
+    ///
+    /// Building the tree walks every recorded call, and the Sequence tab does
+    /// not show it — under a flood that is a whole tree thrown away several
+    /// times a second for nobody. It is built when the tab comes back instead.
+    private var treeVisible = false
+
+    /// Set while the tree is not being built, so switching to it rebuilds
+    /// rather than showing whatever it held when it was last on screen.
+    private var treeStale = true
+
+    /// The snapshots the last build made, reused by the next one for every row
+    /// that has not changed since — see `EndpointTree.build`.
+    private var endpointCache: [String: EndpointRequest] = [:]
+
+    func setTreeVisible(_ visible: Bool) {
+        guard treeVisible != visible else { return }
+        treeVisible = visible
+        if visible && treeStale {
+            rebuildTree(list)
+        }
+    }
+
     private func rebuildTree(_ items: [URLTaskRow]?) {
-        let nodes = items.map { EndpointTree.build(from: $0) } ?? []
+        guard treeVisible else {
+            treeStale = true
+            return
+        }
+        treeStale = false
+        let nodes = items.map { EndpointTree.build(from: $0, cache: &endpointCache) } ?? []
         for node in nodes where !seenNodes.contains(node.id) {
             seenNodes.insert(node.id)
             expandedNodes.insert(node.id)
@@ -151,6 +181,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         db.clearAllRecords()
         seenNodes.removeAll()
         expandedNodes.removeAll()
+        endpointCache.removeAll()
         fetch()
         if let first = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("cache") {
             try? FileManager.default.removeItem(atPath: first.path)
