@@ -92,14 +92,20 @@ struct MyTextEditor: View {
                         .stroke(lineWidth: 0.2)
                 }
             }
-            CodeEditor(
+            EditorBox(
                 source: $source,
-                selection: selectionBinding,
+                // Attached only while the find bar is up. Reporting the caret
+                // means writing it to `@State`, and every one of those writes
+                // rebuilds this view — which drags the whole editor through an
+                // update it does not need. Selecting text reports continuously,
+                // so with the bar closed nothing is listening.
+                selection: showingFind ? selectionBinding : nil,
                 language: language,
                 theme: theme,
-                fontSize: .constant(fontSize),
+                fontSize: fontSize,
                 flags: flags
             )
+            .equatable()
             // Only while the bar is up: the decorations paint into the text
             // view itself, so they have to come back off when find is done.
             .overlay(alignment: .trailing) {
@@ -149,7 +155,13 @@ struct MyTextEditor: View {
             refreshMatches()
         }
         .onChange(of: showingFind) { _, newValue in
-            if !newValue { matches = [] }
+            if !newValue {
+                matches = []
+                // Nothing reports the caret while the bar is closed, so what is
+                // held here is only as current as the last time it was open.
+                caret = nil
+                pending = nil
+            }
         }
     }
 
@@ -258,6 +270,46 @@ struct MyTextEditor: View {
             pending = first
             selectedFindIndex = 1
         }
+    }
+}
+
+/// The editor itself, held apart from everything drawn around it.
+///
+/// `CodeEditor` does real work on every `updateNSView`: it reloads its theme
+/// from disk, rebuilds the fonts from it and re-applies one across the whole
+/// document — so an update it does not need costs a relayout of the text. Being
+/// compared on its own inputs, it is only rebuilt when one of them changes; a
+/// redraw of the find bar's counter, or of the pane behind it, stops here.
+private struct EditorBox: View, Equatable {
+
+    let source: Binding<String>
+    let selection: Binding<Range<String.Index>>?
+    let language: CodeEditor.Language
+    let theme: CodeEditor.ThemeName
+    let fontSize: Double
+    let flags: CodeEditor.Flags
+
+    static func == (lhs: EditorBox, rhs: EditorBox) -> Bool {
+        // Two views of the same text usually hold the same storage, which is
+        // the case `String` answers by comparing pointers.
+        lhs.source.wrappedValue == rhs.source.wrappedValue
+            && lhs.selection?.wrappedValue == rhs.selection?.wrappedValue
+            && (lhs.selection == nil) == (rhs.selection == nil)
+            && lhs.language == rhs.language
+            && lhs.theme.rawValue == rhs.theme.rawValue
+            && lhs.fontSize == rhs.fontSize
+            && lhs.flags == rhs.flags
+    }
+
+    var body: some View {
+        CodeEditor(
+            source: source,
+            selection: selection,
+            language: language,
+            theme: theme,
+            fontSize: .constant(fontSize),
+            flags: flags
+        )
     }
 }
 
