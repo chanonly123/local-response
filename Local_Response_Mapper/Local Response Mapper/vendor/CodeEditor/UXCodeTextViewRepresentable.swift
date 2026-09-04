@@ -208,6 +208,10 @@ struct UXCodeTextViewRepresentable : UXViewRepresentable {
         assertionFailure("no text storage?")
         textView.string = source.wrappedValue
       }
+      // Local change: the text just put in carries no color, so the theme's
+      // plain-text color is written over it. Where a language is set the
+      // highlighter's own attributes land on top of this a moment later.
+      textView.reapplyPlainTextColor()
     }
     
     if let selection = selection {

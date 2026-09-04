@@ -11,11 +11,13 @@ import Highlightr
 #if os(macOS)
   import AppKit
 
+  typealias UXColor             = NSColor
   typealias UXTextView          = NSTextView
   typealias UXTextViewDelegate  = NSTextViewDelegate
 #else
   import UIKit
 
+  typealias UXColor             = UIColor
   typealias UXTextView          = UITextView
   typealias UXTextViewDelegate  = UITextViewDelegate
 #endif
@@ -257,10 +259,55 @@ final class UXCodeTextView: UXTextView {
           highlightr.setTheme(to: newTheme.rawValue),
           let theme      = highlightr.theme else { return false }
     self.backgroundColor = theme.themeBackgroundColor
+    applyPlainTextColor(for: theme.themeBackgroundColor)
     if let font = theme.codeFont, font !== self.font { self.font = font }
     appliedThemeName = newTheme
     appliedFontSize  = theme.codeFont?.pointSize
     return true
+  }
+
+  /// Local change: the color the theme uses for ordinary text is not exposed,
+  /// and with no language set nothing colors the text at all — which left it
+  /// black on a dark theme's background. Read off the background instead, so
+  /// unhighlighted text is legible under either theme.
+  ///
+  /// Where highlighting is on this is only the starting color; the highlighter's
+  /// own attributes are applied over it.
+  /// Local change: applied again after the text is replaced.
+  ///
+  /// `textColor` writes an attribute across the text the view holds at that
+  /// moment, and text put in afterwards carries no color of its own — so a body
+  /// set after the theme was applied drew in the system default, black, until
+  /// something made the theme apply again.
+  func reapplyPlainTextColor() {
+    applyPlainTextColor(for: highlightr?.theme?.themeBackgroundColor)
+  }
+
+  private func applyPlainTextColor(for background: UXColor?) {
+    let color: UXColor = Self.isDark(background) ? .white : .black
+    #if os(macOS)
+      self.textColor = color
+      self.insertionPointColor = color
+    #else
+      self.textColor = color
+      self.tintColor = color
+    #endif
+  }
+
+  private static func isDark(_ color: UXColor?) -> Bool {
+    #if os(macOS)
+      guard let rgb = color?.usingColorSpace(.sRGB) else { return false }
+      let luminance = 0.299 * rgb.redComponent
+                    + 0.587 * rgb.greenComponent
+                    + 0.114 * rgb.blueComponent
+    #else
+      var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+      guard color?.getRed(&red, green: &green, blue: &blue, alpha: &alpha) == true else {
+        return false
+      }
+      let luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+    #endif
+    return luminance < 0.5
   }
 
   @discardableResult
@@ -282,6 +329,8 @@ final class UXCodeTextView: UXTextView {
           let theme      = highlightr.theme else { return false }
     
     guard theme.codeFont?.pointSize != newSize else {
+      self.backgroundColor = theme.themeBackgroundColor
+      applyPlainTextColor(for: theme.themeBackgroundColor)
       appliedThemeName = wantedTheme
       appliedFontSize  = newSize
       return true
@@ -291,6 +340,7 @@ final class UXCodeTextView: UXTextView {
     theme.boldCodeFont   = theme.boldCodeFont?  .withSize(newSize)
     theme.italicCodeFont = theme.italicCodeFont?.withSize(newSize)
     self.backgroundColor = theme.themeBackgroundColor
+    applyPlainTextColor(for: theme.themeBackgroundColor)
     if let font = theme.codeFont, font !== self.font { self.font = font }
     appliedThemeName = wantedTheme
     appliedFontSize  = newSize

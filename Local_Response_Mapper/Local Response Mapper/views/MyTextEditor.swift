@@ -31,7 +31,15 @@ struct MyTextEditor: View {
     /// The language actually handed to the editor — see `HighlightBudget`.
     @State private var effectiveLanguage: CodeEditor.Language?
 
-    @State private var matches: [Range<Int>] = []
+    @State private var matches: [FindHit] = []
+
+    /// UTF-16 length of the text the hits were found in — the scale the ruler
+    /// places its ticks on.
+    @State private var matchesDocumentLength: Int = 0
+
+    /// The search in flight, cancelled the moment another is asked for — a
+    /// query is retyped a character at a time, and only the last one matters.
+    @State private var searchTask: Task<Void, Never>?
     @State private var findString: String = ""
     @State private var showingFind: Bool
     @State private var findCaseSensitive: Bool = false
@@ -113,8 +121,8 @@ struct MyTextEditor: View {
             .overlay(alignment: .trailing) {
                 if showingFind {
                     FindMatchDecorations(
-                        source: source,
-                        matches: matches,
+                        hits: matches,
+                        documentLength: matchesDocumentLength,
                         selected: selectedFindIndex - 1
                     )
                     .frame(width: 10)
@@ -159,6 +167,8 @@ struct MyTextEditor: View {
         }
         .onChange(of: showingFind) { _, newValue in
             if !newValue {
+                searchTask?.cancel()
+                searchTask = nil
                 matches = []
                 // Nothing reports the caret while the bar is closed, so what is
                 // held here is only as current as the last time it was open.
@@ -220,39 +230,124 @@ struct MyTextEditor: View {
     }
 
     private func onChangeFindString() {
-        let found = currentMatches()
-        matches = found
-        pending = found.first
-        selectedFindIndex = found.isEmpty ? 0 : 1
+        search(jumpToFirstHit: true)
     }
 
     /// The text moved under an open find bar, so the hits moved with it. The
     /// caret is the user's here — unlike a new search, this never jumps it.
     private func refreshMatches() {
         guard showingFind else { return }
-        matches = currentMatches()
-        if selectedFindIndex > matches.count {
-            selectedFindIndex = matches.isEmpty ? 0 : 1
+        search(jumpToFirstHit: false)
+    }
+
+    /// Runs the search and puts the result on screen.
+    ///
+    /// A large body is searched off the main thread: the query is retyped a
+    /// character at a time and each keystroke searches again, so a pass that
+    /// takes long enough to be felt is a field that stutters as it is typed in.
+    /// Small bodies are searched in place — the hop off the main thread and
+    /// back costs more than the search does, and going through it would leave
+    /// the count a frame behind the typing.
+    private func search(jumpToFirstHit: Bool) {
+        searchTask?.cancel()
+        searchTask = nil
+
+        let text = source
+        let query = findString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let caseSensitive = findCaseSensitive
+
+        guard !query.isEmpty else {
+            apply(.empty, jumpToFirstHit: jumpToFirstHit)
+            return
+        }
+
+        guard text.utf8.count > Self.inlineSearchLimit else {
+            apply(
+                Self.matches(of: query, in: text, caseSensitive: caseSensitive),
+                jumpToFirstHit: jumpToFirstHit
+            )
+            return
+        }
+
+        searchTask = Task {
+            let found = await Task.detached(priority: .userInitiated) {
+                Self.matches(of: query, in: text, caseSensitive: caseSensitive)
+            }.value
+            guard !Task.isCancelled else { return }
+            // The text or the query may have moved on while this ran — a
+            // cancelled task is not the only way to be out of date.
+            guard query == findString.trimmingCharacters(in: .whitespacesAndNewlines),
+                  caseSensitive == findCaseSensitive,
+                  text == source
+            else { return }
+            apply(found, jumpToFirstHit: jumpToFirstHit)
         }
     }
 
-    /// Every hit for the current query, in document order.
-    private func currentMatches() -> [Range<Int>] {
-        let final = findString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !final.isEmpty else { return [] }
-        // Searched with `.caseInsensitive` rather than over `source.lowercased()`:
+    /// Bodies at or under this are searched on the main thread — see `search`.
+    private static let inlineSearchLimit = 64 * 1024
+
+    private func apply(_ result: FindResult, jumpToFirstHit: Bool) {
+        matches = result.hits
+        matchesDocumentLength = result.documentLength
+        if jumpToFirstHit {
+            pending = result.hits.first?.characters
+            selectedFindIndex = result.hits.isEmpty ? 0 : 1
+        } else if selectedFindIndex > result.hits.count {
+            selectedFindIndex = result.hits.isEmpty ? 0 : 1
+        }
+    }
+
+    /// Every hit for `query`, in document order.
+    ///
+    /// Both offset kinds are counted in this one pass, and each is counted on
+    /// from the hit before it rather than from the start of the document:
+    /// `distance(from:to:)` walks, so measuring every hit against `startIndex`
+    /// would cost a pass over the whole text per hit. Doing the utf16 side here
+    /// as well is what lets the ruler and the shading work off plain numbers —
+    /// converting them on the main thread was the reason hits had to be capped.
+    ///
+    /// Takes everything it needs as arguments so it can run off the main
+    /// thread — see `search(jumpToFirstHit:)`.
+    private static func matches(
+        of query: String,
+        in text: String,
+        caseSensitive: Bool
+    ) -> FindResult {
+        // Searched with `.caseInsensitive` rather than over `text.lowercased()`:
         // that is a separate string, and its ranges do not address this one.
-        let options: String.CompareOptions = findCaseSensitive ? [] : [.caseInsensitive]
-        var found = [Range<Int>]()
-        var start = source.startIndex
-        while start < source.endIndex,
-              let match = source.range(of: final, options: options, range: start..<source.endIndex) {
-            found.append(Self.offsets(of: match, in: source))
+        let options: String.CompareOptions = caseSensitive ? [] : [.caseInsensitive]
+        var found = [FindHit]()
+        var start = text.startIndex
+
+        var counted = text.startIndex
+        var characterOffset = 0
+        var utf16Offset = 0
+
+        while start < text.endIndex,
+              let match = text.range(of: query, options: options, range: start..<text.endIndex) {
+            // Off the main thread this is a search nobody is waiting for any
+            // more; on it, this is false and the check costs nothing.
+            if Task.isCancelled { return .empty }
+
+            characterOffset += text.distance(from: counted, to: match.lowerBound)
+            utf16Offset += text.utf16.distance(from: counted, to: match.lowerBound)
+            counted = match.lowerBound
+
+            let characters = text.distance(from: match.lowerBound, to: match.upperBound)
+            let units = text.utf16.distance(from: match.lowerBound, to: match.upperBound)
+            found.append(
+                FindHit(
+                    characters: characterOffset..<(characterOffset + characters),
+                    utf16: NSRange(location: utf16Offset, length: units)
+                )
+            )
+
             start = match.upperBound > match.lowerBound
                 ? match.upperBound
-                : source.index(after: match.lowerBound)
+                : text.index(after: match.lowerBound)
         }
-        return found
+        return FindResult(hits: found, documentLength: text.utf16.count)
     }
 
     private func jumpToTextPressEnter(next: Bool) {
@@ -263,17 +358,33 @@ struct MyTextEditor: View {
         // once `pending` has cleared.
         let current = pending ?? caretOffsets
 
-        if let current, let index = matches.firstIndex(of: current) {
+        if let current, let index = matches.firstIndex(where: { $0.characters == current }) {
             var new = (index + (next ? 1 : -1))
             if new < 0 { new = matches.count - 1 }
             let i = new % matches.count
-            pending = matches[i]
+            pending = matches[i].characters
             selectedFindIndex = i + 1
         } else {
-            pending = first
+            pending = first.characters
             selectedFindIndex = 1
         }
     }
+}
+
+/// One find hit, in both the units that ask about it: the editor's selection
+/// speaks in Characters, the layout manager counts in UTF-16.
+struct FindHit: Equatable, Sendable {
+    let characters: Range<Int>
+    let utf16: NSRange
+}
+
+/// What one search produced, and the scale to read it against.
+struct FindResult: Sendable {
+    let hits: [FindHit]
+    /// UTF-16 length of the text searched.
+    let documentLength: Int
+
+    static let empty = FindResult(hits: [], documentLength: 0)
 }
 
 /// When syntax coloring is worth what it costs.
@@ -285,8 +396,16 @@ struct MyTextEditor: View {
 /// text; the alternative is an editor that does not scroll.
 enum HighlightBudget {
 
-    static let maxBytes = 200_000
+    /// A backstop, not the real limit — the line length below is. A document of
+    /// short lines is colored one paragraph at a time, so its size costs only
+    /// the first pass, and that is worth paying to keep a laid-out response
+    /// readable.
+    static let maxBytes = 512 * 1024
+
+    /// What actually hurts: one line this long is one paragraph, re-colored
+    /// whole on every change and laid out as a single run of text.
     static let maxLineLength = 20_000
+
 
     static func language(
         _ language: CodeEditor.Language,
@@ -362,10 +481,10 @@ private struct EditorBox: View, Equatable {
 /// and rewrites it on every edit, which would wipe anything left there.
 private struct FindMatchDecorations: NSViewRepresentable {
 
-    let source: String
-    /// Character offsets, in document order — the same ranges the find bar counts.
-    let matches: [Range<Int>]
-    /// Index into `matches` of the hit the caret is on, or -1 for none.
+    let hits: [FindHit]
+    /// UTF-16 length of the text the hits were found in.
+    let documentLength: Int
+    /// Index into `hits` of the hit the caret is on, or -1 for none.
     let selected: Int
 
     func makeNSView(context: Context) -> FindRulerView {
@@ -373,7 +492,7 @@ private struct FindMatchDecorations: NSViewRepresentable {
     }
 
     func updateNSView(_ view: FindRulerView, context: Context) {
-        view.apply(source: source, matches: matches, selected: selected)
+        view.apply(hits: hits, documentLength: documentLength, selected: selected)
     }
 
     static func dismantleNSView(_ view: FindRulerView, coordinator: ()) {
@@ -390,16 +509,26 @@ private final class FindRulerView: NSView {
     private static let matchTick = NSColor.systemYellow.withAlphaComponent(0.75)
     private static let selectedTick = NSColor.systemOrange
 
-    /// UTF-16 ranges, which is what the layout manager counts in.
-    private var ranges: [NSRange] = []
+    /// Every hit, for the ticks — placing one is arithmetic, so all of them
+    /// can be shown however many there are.
+    private var hits: [FindHit] = []
     private var selected = -1
+
+    /// UTF-16 length of the text the hits were found in, which is the scale the
+    /// ticks are placed on.
+    private var documentLength = 0
+
+    /// How many hits are shaded in the text itself.
+    ///
+    /// Each one is a temporary attribute the layout manager has to keep and
+    /// redraw, and unlike a tick that is not free — so the shading follows the
+    /// caret through the document in a window this size, rather than trying to
+    /// paint every hit of a query that matched ten thousand times.
+    private static let shadingWindow = 400
+
     /// Held weakly, and re-found whenever it has gone: the text view belongs to
     /// `CodeEditor`, and SwiftUI may rebuild it under us.
     private weak var textView: NSTextView?
-
-    /// Length of the text the ranges were made against, which is the scale the
-    /// ticks are placed on.
-    private var documentLength = 0
 
     override var isFlipped: Bool { true }
 
@@ -412,9 +541,9 @@ private final class FindRulerView: NSView {
         repaint()
     }
 
-    func apply(source: String, matches: [Range<Int>], selected: Int) {
-        ranges = Self.utf16Ranges(of: matches, in: source)
-        documentLength = (source as NSString).length
+    func apply(hits: [FindHit], documentLength: Int, selected: Int) {
+        self.hits = hits
+        self.documentLength = documentLength
         self.selected = selected
         repaint()
     }
@@ -427,6 +556,15 @@ private final class FindRulerView: NSView {
         )
     }
 
+    /// The slice of hits shaded in the text: `shadingWindow` of them, centred on
+    /// the one the caret is on.
+    private var shadedSlice: Range<Int> {
+        guard hits.count > Self.shadingWindow else { return 0..<hits.count }
+        let centre = selected >= 0 ? selected : 0
+        let lower = max(0, min(centre - Self.shadingWindow / 2, hits.count - Self.shadingWindow))
+        return lower..<(lower + Self.shadingWindow)
+    }
+
     private func repaint() {
         needsDisplay = true
         guard let textView = locateTextView(), let layoutManager = textView.layoutManager else { return }
@@ -436,10 +574,10 @@ private final class FindRulerView: NSView {
             .backgroundColor,
             forCharacterRange: NSRange(location: 0, length: length)
         )
-        for (index, range) in ranges.enumerated() where NSMaxRange(range) <= length {
+        for index in shadedSlice where NSMaxRange(hits[index].utf16) <= length {
             layoutManager.addTemporaryAttributes(
                 [.backgroundColor: index == selected ? Self.selectedColor : Self.matchColor],
-                forCharacterRange: range
+                forCharacterRange: hits[index].utf16
             )
         }
     }
@@ -452,10 +590,10 @@ private final class FindRulerView: NSView {
     /// the view scrolls or resizes. Wrapped lines make the two disagree a
     /// little; this is a slim indicator, not a map.
     override func draw(_ dirtyRect: NSRect) {
-        guard !ranges.isEmpty, documentLength > 0 else { return }
+        guard !hits.isEmpty, documentLength > 0 else { return }
 
-        for (index, range) in ranges.enumerated() where range.location <= documentLength {
-            let position = CGFloat(range.location) / CGFloat(documentLength)
+        for (index, hit) in hits.enumerated() where hit.utf16.location <= documentLength {
+            let position = CGFloat(hit.utf16.location) / CGFloat(documentLength)
             let y = position * bounds.height
             let tick = NSRect(x: 2, y: max(0, y - 1.5), width: max(1, bounds.width - 4), height: 3)
             (index == selected ? Self.selectedTick : Self.matchTick).setFill()
@@ -509,32 +647,6 @@ private final class FindRulerView: NSView {
         }
     }
 
-    /// Character offsets to UTF-16 ranges in one pass: `String` counts
-    /// Characters and the layout manager counts UTF-16 units, and converting
-    /// each hit on its own would walk the document once per hit.
-    ///
-    /// Relies on `offsets` being in ascending, non-overlapping document order,
-    /// which is how the search produces them.
-    private static func utf16Ranges(of offsets: [Range<Int>], in text: String) -> [NSRange] {
-        var index = text.startIndex
-        var characters = 0
-        var units = 0
-
-        func advance(to target: Int) {
-            while characters < target, index < text.endIndex {
-                units += text[index].utf16.count
-                index = text.index(after: index)
-                characters += 1
-            }
-        }
-
-        return offsets.map { offset in
-            advance(to: offset.lowerBound)
-            let start = units
-            advance(to: offset.upperBound)
-            return NSRange(location: start, length: units - start)
-        }
-    }
 }
 
 #if DEBUG

@@ -17,3 +17,16 @@ can be fixed. Everything else is upstream as it was.
 
   The upstream guard in the sibling `applyNewTheme(_:)` does not help either:
   it compares against `themeName`, which nothing ever assigns.
+
+- `UXCodeTextView` sets a plain-text color whenever it applies a theme, taken
+  from the luminance of the theme's own background.
+
+  Upstream sets the background but never the text color, so text no highlighter
+  has colored — every character when no language is set, and unmatched spans
+  when one is — stayed black, which is invisible on a dark theme. Highlightr's
+  `Theme` does not expose its foreground color, hence reading it off the
+  background.
+
+  Applied again in `UXCodeTextViewRepresentable.updateTextView` after the text
+  is replaced: `textColor` only colors the text present when it is set, so a
+  body arriving later drew black until something re-applied the theme.
