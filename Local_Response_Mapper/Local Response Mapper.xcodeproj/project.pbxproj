@@ -30,6 +30,12 @@
 		18CB6DAC2C6E58130074B8E0 /* FlyingSocks in Frameworks */ = {isa = PBXBuildFile; productRef = 18CB6DAB2C6E58130074B8E0 /* FlyingSocks */; };
 		18D50D392C7093DE004B0D44 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D50D382C7093DE004B0D44 /* Utils.swift */; };
 		18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E5A1A82C6FB4710045C3C8 /* URLTaskObject.swift */; };
+		18C0DF002C8090EC00E8342B /* CodeEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE002C8090EC00E8342B /* CodeEditor.swift */; };
+		18C0DF012C8090EC00E8342B /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE012C8090EC00E8342B /* Language.swift */; };
+		18C0DF022C8090EC00E8342B /* ThemeName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE022C8090EC00E8342B /* ThemeName.swift */; };
+		18C0DF032C8090EC00E8342B /* TypedString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE032C8090EC00E8342B /* TypedString.swift */; };
+		18C0DF042C8090EC00E8342B /* UXCodeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE042C8090EC00E8342B /* UXCodeTextView.swift */; };
+		18C0DF052C8090EC00E8342B /* UXCodeTextViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C0DE052C8090EC00E8342B /* UXCodeTextViewRepresentable.swift */; };
 		18E5A1AB2C6FB48B0045C3C8 /* MapLocalObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E5A1AA2C6FB48B0045C3C8 /* MapLocalObject.swift */; };
 		18E5A1B12C6FB4710045C3C9 /* URLTaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E5A1B02C6FB4710045C3C9 /* URLTaskRow.swift */; };
 		18F8558F2CBEB88B001CCD17 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F8558B2CBEB88A001CCD17 /* Constants.swift */; };
@@ -88,6 +94,12 @@
 		18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
 		18D50D382C7093DE004B0D44 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		18E5A1A82C6FB4710045C3C8 /* URLTaskObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTaskObject.swift; sourceTree = "<group>"; };
+		18C0DE002C8090EC00E8342B /* CodeEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditor.swift; sourceTree = "<group>"; };
+		18C0DE012C8090EC00E8342B /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
+		18C0DE022C8090EC00E8342B /* ThemeName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeName.swift; sourceTree = "<group>"; };
+		18C0DE032C8090EC00E8342B /* TypedString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypedString.swift; sourceTree = "<group>"; };
+		18C0DE042C8090EC00E8342B /* UXCodeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UXCodeTextView.swift; sourceTree = "<group>"; };
+		18C0DE052C8090EC00E8342B /* UXCodeTextViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UXCodeTextViewRepresentable.swift; sourceTree = "<group>"; };
 		18E5A1AA2C6FB48B0045C3C8 /* MapLocalObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLocalObject.swift; sourceTree = "<group>"; };
 		18E5A1B02C6FB4710045C3C9 /* URLTaskRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTaskRow.swift; sourceTree = "<group>"; };
 		18F8558B2CBEB88A001CCD17 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -156,6 +168,7 @@
 		1805D02C2C6CF8E200333A88 /* Local Response Mapper */ = {
 			isa = PBXGroup;
 			children = (
+				18C0DEFF2C8090EC00E8342B /* CodeEditor */,
 				8D15559E2E2FAA0F00C50B67 /* Models */,
 				1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */,
 				18CB6DA12C6E51770074B8E0 /* AppDelegate.swift */,
@@ -269,6 +282,19 @@
 			path = "Local Response MapperTests";
 			sourceTree = "<group>";
 		};
+		18C0DEFF2C8090EC00E8342B /* CodeEditor */ = {
+			isa = PBXGroup;
+			children = (
+				18C0DE002C8090EC00E8342B /* CodeEditor.swift */,
+				18C0DE012C8090EC00E8342B /* Language.swift */,
+				18C0DE022C8090EC00E8342B /* ThemeName.swift */,
+				18C0DE032C8090EC00E8342B /* TypedString.swift */,
+				18C0DE042C8090EC00E8342B /* UXCodeTextView.swift */,
+				18C0DE052C8090EC00E8342B /* UXCodeTextViewRepresentable.swift */,
+			);
+			path = vendor/CodeEditor;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -291,7 +317,7 @@
 				18CB6DAB2C6E58130074B8E0 /* FlyingSocks */,
 				18C48ABF2C6E5F4900A005EF /* GRDB */,
 				1820A13D2C6F2E940016934A /* Factory */,
-				188AFF452C8090EC00E8342B /* CodeEditor */,
+				188AFF452C8090EC00E8342B /* Highlightr */,
 			);
 			productName = "Local Response Mapper";
 			productReference = 1805D02A2C6CF8E200333A88 /* Local Response Mapper.app */;
@@ -344,7 +370,7 @@
 				18CB6DA82C6E58130074B8E0 /* XCRemoteSwiftPackageReference "FlyingFox" */,
 				18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB" */,
 				1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */,
-				188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */,
+				188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "Highlightr" */,
 			);
 			productRefGroup = 1805D02B2C6CF8E200333A88 /* Products */;
 			projectDirPath = "";
@@ -378,6 +404,12 @@
 			files = (
 				8D64EBA72E5F288C0077DA50 /* IPFinder.swift in Sources */,
 				18E5A1A92C6FB4710045C3C8 /* URLTaskObject.swift in Sources */,
+				18C0DF002C8090EC00E8342B /* CodeEditor.swift in Sources */,
+				18C0DF012C8090EC00E8342B /* Language.swift in Sources */,
+				18C0DF022C8090EC00E8342B /* ThemeName.swift in Sources */,
+				18C0DF032C8090EC00E8342B /* TypedString.swift in Sources */,
+				18C0DF042C8090EC00E8342B /* UXCodeTextView.swift in Sources */,
+				18C0DF052C8090EC00E8342B /* UXCodeTextViewRepresentable.swift in Sources */,
 				18E5A1B12C6FB4710045C3C9 /* URLTaskRow.swift in Sources */,
 				184B53402D815D4800D6EA3A /* MyTextEditor.swift in Sources */,
 				8D15559D2E2FA79B00C50B67 /* ResponseView.swift in Sources */,
@@ -702,12 +734,12 @@
 				minimumVersion = 2.3.2;
 			};
 		};
-		188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
+		188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "Highlightr" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ZeeZide/CodeEditor";
+			repositoryURL = "https://github.com/helje5/Highlightr";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.6;
+				minimumVersion = 3.0.2;
 			};
 		};
 		18C48ABC2C6E5F4900A005EF /* XCRemoteSwiftPackageReference "GRDB" */ = {
@@ -734,10 +766,10 @@
 			package = 1820A13C2C6F2E940016934A /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = Factory;
 		};
-		188AFF452C8090EC00E8342B /* CodeEditor */ = {
+		188AFF452C8090EC00E8342B /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "CodeEditor" */;
-			productName = CodeEditor;
+			package = 188AFF442C8090EC00E8342B /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
 		};
 		18C48ABF2C6E5F4900A005EF /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;

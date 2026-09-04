@@ -1,5 +1,4 @@
 import SwiftUI
-import CodeEditor
 
 struct MyTextEditor: View {
 
@@ -28,6 +27,9 @@ struct MyTextEditor: View {
     /// was made from, and converting a kept one against a later string traps
     /// inside `NSRange(_:in:)`.
     @State private var pending: Range<Int>?
+
+    /// The language actually handed to the editor — see `HighlightBudget`.
+    @State private var effectiveLanguage: CodeEditor.Language?
 
     @State private var matches: [Range<Int>] = []
     @State private var findString: String = ""
@@ -100,7 +102,7 @@ struct MyTextEditor: View {
                 // update it does not need. Selecting text reports continuously,
                 // so with the bar closed nothing is listening.
                 selection: showingFind ? selectionBinding : nil,
-                language: language,
+                language: effectiveLanguage,
                 theme: theme,
                 fontSize: fontSize,
                 flags: flags
@@ -151,7 +153,8 @@ struct MyTextEditor: View {
         .onChange(of: findCaseSensitive) { _, newValue in
             onChangeFindString()
         }
-        .onChange(of: source) { _, _ in
+        .onChange(of: source, initial: true) { _, newValue in
+            effectiveLanguage = HighlightBudget.language(language, for: newValue)
             refreshMatches()
         }
         .onChange(of: showingFind) { _, newValue in
@@ -273,6 +276,42 @@ struct MyTextEditor: View {
     }
 }
 
+/// When syntax coloring is worth what it costs.
+///
+/// Highlightr re-colors the paragraph an edit touches, and a body with no
+/// newlines in it is one paragraph — so a minified megabyte is put through
+/// highlight.js in full on every change, on top of TextKit laying out a single
+/// enormous line. Past either limit the text is shown plain, which is still the
+/// text; the alternative is an editor that does not scroll.
+enum HighlightBudget {
+
+    static let maxBytes = 200_000
+    static let maxLineLength = 20_000
+
+    static func language(
+        _ language: CodeEditor.Language,
+        for source: String
+    ) -> CodeEditor.Language? {
+        guard source.utf8.count <= maxBytes, !hasOverlongLine(source) else { return nil }
+        return language
+    }
+
+    /// Scanned over utf8, which needs no character breaking, and stops at the
+    /// first line long enough to decide.
+    private static func hasOverlongLine(_ source: String) -> Bool {
+        var run = 0
+        for byte in source.utf8 {
+            if byte == 0x0A {
+                run = 0
+                continue
+            }
+            run += 1
+            if run > maxLineLength { return true }
+        }
+        return false
+    }
+}
+
 /// The editor itself, held apart from everything drawn around it.
 ///
 /// `CodeEditor` does real work on every `updateNSView`: it reloads its theme
@@ -284,7 +323,7 @@ private struct EditorBox: View, Equatable {
 
     let source: Binding<String>
     let selection: Binding<Range<String.Index>>?
-    let language: CodeEditor.Language
+    let language: CodeEditor.Language?
     let theme: CodeEditor.ThemeName
     let fontSize: Double
     let flags: CodeEditor.Flags
@@ -357,18 +396,15 @@ private final class FindRulerView: NSView {
     /// Held weakly, and re-found whenever it has gone: the text view belongs to
     /// `CodeEditor`, and SwiftUI may rebuild it under us.
     private weak var textView: NSTextView?
-    private var frameObserver: NSObjectProtocol?
+
+    /// Length of the text the ranges were made against, which is the scale the
+    /// ticks are placed on.
+    private var documentLength = 0
 
     override var isFlipped: Bool { true }
 
     /// Never in the way of the text — this is a readout, not a control.
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    deinit {
-        if let frameObserver {
-            NotificationCenter.default.removeObserver(frameObserver)
-        }
-    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -378,6 +414,7 @@ private final class FindRulerView: NSView {
 
     func apply(source: String, matches: [Range<Int>], selected: Int) {
         ranges = Self.utf16Ranges(of: matches, in: source)
+        documentLength = (source as NSString).length
         self.selected = selected
         repaint()
     }
@@ -407,25 +444,19 @@ private final class FindRulerView: NSView {
         }
     }
 
+    /// Ticks sit where the hit falls in the document, by character offset.
+    ///
+    /// Not by where the text is laid out: asking the layout manager for a hit's
+    /// bounding rect forces layout up to it, which for a hit near the end of a
+    /// long document is layout of the whole thing — and this redraws whenever
+    /// the view scrolls or resizes. Wrapped lines make the two disagree a
+    /// little; this is a slim indicator, not a map.
     override func draw(_ dirtyRect: NSRect) {
-        guard !ranges.isEmpty,
-              let textView = locateTextView(),
-              let layoutManager = textView.layoutManager,
-              let container = textView.textContainer
-        else { return }
+        guard !ranges.isEmpty, documentLength > 0 else { return }
 
-        // The text view is sized to the whole document inside its scroll view,
-        // so its height is the scale the ticks are placed on — and reading it
-        // costs nothing, where measuring the laid-out text would force layout
-        // of the entire document.
-        let documentHeight = textView.frame.height
-        guard documentHeight > 0 else { return }
-
-        let length = (textView.string as NSString).length
-        for (index, range) in ranges.enumerated() where NSMaxRange(range) <= length {
-            let glyphs = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-            let box = layoutManager.boundingRect(forGlyphRange: glyphs, in: container)
-            let y = (box.midY / documentHeight) * bounds.height
+        for (index, range) in ranges.enumerated() where range.location <= documentLength {
+            let position = CGFloat(range.location) / CGFloat(documentLength)
+            let y = position * bounds.height
             let tick = NSRect(x: 2, y: max(0, y - 1.5), width: max(1, bounds.width - 4), height: 3)
             (index == selected ? Self.selectedTick : Self.matchTick).setFill()
             NSBezierPath(roundedRect: tick, xRadius: 1.5, yRadius: 1.5).fill()
@@ -445,7 +476,7 @@ private final class FindRulerView: NSView {
             var found = [NSTextView]()
             Self.collectTextViews(in: current, into: &found)
             if let best = nearest(of: found) {
-                observe(best)
+                textView = best
                 return best
             }
             ancestor = current.superview
@@ -475,23 +506,6 @@ private final class FindRulerView: NSView {
         }
         for subview in view.subviews {
             collectTextViews(in: subview, into: &found)
-        }
-    }
-
-    /// Reflow moves every hit, and the text view is the only thing that knows
-    /// it happened — the ranges themselves have not changed.
-    private func observe(_ textView: NSTextView) {
-        self.textView = textView
-        if let frameObserver {
-            NotificationCenter.default.removeObserver(frameObserver)
-        }
-        textView.postsFrameChangedNotifications = true
-        frameObserver = NotificationCenter.default.addObserver(
-            forName: NSView.frameDidChangeNotification,
-            object: textView,
-            queue: .main
-        ) { [weak self] _ in
-            self?.needsDisplay = true
         }
     }
 

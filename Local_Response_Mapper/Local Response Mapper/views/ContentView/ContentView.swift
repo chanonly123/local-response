@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CodeEditor
 
 struct ContentView: View {
 

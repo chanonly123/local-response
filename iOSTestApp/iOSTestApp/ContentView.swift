@@ -14,6 +14,9 @@ enum Endpoints {
     static let jsonPlaceholder = "https://jsonplaceholder.typicode.com"
     static let postmanEcho = "https://postman-echo.com"
     static let webSocketEcho = "wss://ws.postman-echo.com/raw"
+    /// Static json files in matched sizes, pretty and minified — see the
+    /// "Large payloads" group.
+    static let jsonDummy = "https://microsoftedge.github.io/Demos/json-dummy-data"
 }
 
 // MARK: - Result formatting
@@ -184,6 +187,7 @@ enum ApiCatalog {
         statusCodes,
         headersAndCookies,
         contentTypes,
+        largePayloads,
         requestBodies,
         uploads,
         downloadsAndStreaming,
@@ -197,9 +201,6 @@ enum ApiCatalog {
     // MARK: HTTP methods
 
     static let httpMethods = ApiGroup(name: "HTTP methods", samples: [
-        ApiSample(title: "GET", subtitle: "https://echo.free.beeceptor.com") {
-            await Net.send(Net.request("GET", "https://echo.free.beeceptor.com"))
-        },
         ApiSample(title: "GET", subtitle: "\(Endpoints.jsonPlaceholder)/todos/1?hello=world") {
             await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/todos/1?hello=world"))
         },
@@ -229,16 +230,13 @@ enum ApiCatalog {
         },
         ApiSample(title: "HEAD", subtitle: "no response body") {
             await Net.send(Net.request("HEAD", "\(Endpoints.httpbin)/anything"))
-        },
-        ApiSample(title: "OPTIONS", subtitle: "preflight-style call") {
-            await Net.send(Net.request("OPTIONS", "\(Endpoints.httpbin)/anything"))
         }
     ])
 
     // MARK: Status codes
 
     static let statusCodes: ApiGroup = {
-        let codes = [200, 201, 204, 301, 302, 304, 400, 401, 403, 404, 418, 429, 500, 503]
+        let codes = [200, 204, 301, 401, 404, 429, 500]
         return ApiGroup(name: "Status codes", samples: codes.map { code in
             ApiSample(title: "\(code)", subtitle: "\(Endpoints.httpbin)/status/\(code)") {
                 await Net.send(Net.request("GET", "\(Endpoints.httpbin)/status/\(code)"))
@@ -269,9 +267,6 @@ enum ApiCatalog {
         ApiSample(title: "Set cookies", subtitle: "\(Endpoints.httpbin)/cookies/set") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/cookies/set?session=abc123&theme=dark"))
         },
-        ApiSample(title: "Read cookies back", subtitle: "\(Endpoints.httpbin)/cookies") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/cookies"))
-        },
         ApiSample(title: "Follow redirect", subtitle: "3 hops via /redirect/3") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/redirect/3"))
         },
@@ -285,11 +280,6 @@ enum ApiCatalog {
     static let contentTypes = ApiGroup(name: "Content types", samples: [
         ApiSample(title: "JSON", subtitle: "application/json") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/json"))
-        },
-        ApiSample(title: "Large JSON", subtitle: "100 posts + 500 comments") {
-            let posts = await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/posts"))
-            let comments = await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/comments"))
-            return .success("posts → \(posts.text.prefix(40))\ncomments → \(comments.text.prefix(40))")
         },
         ApiSample(title: "XML", subtitle: "application/xml") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/xml"))
@@ -306,23 +296,35 @@ enum ApiCatalog {
         ApiSample(title: "Gzip encoded", subtitle: "Content-Encoding: gzip") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/gzip"))
         },
-        ApiSample(title: "Deflate encoded", subtitle: "Content-Encoding: deflate") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/deflate"))
-        },
-        ApiSample(title: "Brotli encoded", subtitle: "Content-Encoding: br") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/brotli"))
-        },
         ApiSample(title: "PNG image", subtitle: "binary body") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/image/png"))
         },
-        ApiSample(title: "JPEG image", subtitle: "binary body") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/image/jpeg"))
-        },
-        ApiSample(title: "WebP image", subtitle: "binary body") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/image/webp"))
-        },
         ApiSample(title: "SVG image", subtitle: "text-ish binary body") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/image/svg"))
+        }
+    ])
+
+    // MARK: Large payloads
+
+    /// Big response bodies, in the two shapes that behave differently: laid out
+    /// over many lines, and minified onto one. A single enormous line is what
+    /// makes the mapper's editor crawl — see `HighlightBudget` there — so the
+    /// pretty and minified files are kept in matched sizes.
+    static let largePayloads = ApiGroup(name: "Large payloads", samples: [
+        ApiSample(title: "64 KB JSON", subtitle: "pretty · still highlighted") {
+            await Net.send(Net.request("GET", "\(Endpoints.jsonDummy)/64KB.json"))
+        },
+        ApiSample(title: "256 KB JSON", subtitle: "pretty · past the highlight budget") {
+            await Net.send(Net.request("GET", "\(Endpoints.jsonDummy)/256KB.json"))
+        },
+        ApiSample(title: "512 KB JSON", subtitle: "minified · one 464 KB line") {
+            await Net.send(Net.request("GET", "\(Endpoints.jsonDummy)/512KB-min.json"))
+        },
+        ApiSample(title: "5 MB JSON", subtitle: "minified · one 4.6 MB line") {
+            await Net.send(Net.request("GET", "\(Endpoints.jsonDummy)/5MB-min.json"), note: "big")
+        },
+        ApiSample(title: "1 MB array", subtitle: "\(Endpoints.jsonPlaceholder)/photos · 5000 objects") {
+            await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/photos"))
         }
     ])
 
@@ -352,13 +354,6 @@ enum ApiCatalog {
                 body: body
             ))
         },
-        ApiSample(title: "Raw text body", subtitle: "text/plain") {
-            await Net.send(Net.request(
-                "POST", "\(Endpoints.httpbin)/post",
-                headers: ["Content-Type": "text/plain; charset=utf-8"],
-                body: Data("plain text payload — with unicode ✅".utf8)
-            ))
-        },
         ApiSample(title: "Nested JSON body", subtitle: "arrays + nested objects") {
             let payload: [String: Any] = [
                 "user": ["id": 42, "name": "Chandan", "roles": ["admin", "tester"]],
@@ -379,9 +374,6 @@ enum ApiCatalog {
                 headers: ["Content-Type": "application/json"],
                 body: Net.json(payload)
             ))
-        },
-        ApiSample(title: "Empty body POST", subtitle: "no Content-Type") {
-            await Net.send(Net.request("POST", "\(Endpoints.httpbin)/post"))
         }
     ])
 
@@ -471,15 +463,6 @@ enum ApiCatalog {
         ApiSample(title: "Chunked JSON stream", subtitle: "/stream/25 newline-delimited") {
             await Net.send(Net.request("GET", "\(Endpoints.httpbin)/stream/25"))
         },
-        ApiSample(title: "Slow drip", subtitle: "10 bytes over 5s") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/drip?duration=5&numbytes=10&code=200"), note: "drip")
-        },
-        ApiSample(title: "Byte-range request", subtitle: "Range: bytes=0-1023") {
-            await Net.send(Net.request(
-                "GET", "\(Endpoints.httpbin)/range/8192",
-                headers: ["Range": "bytes=0-1023"]
-            ))
-        },
         ApiSample(title: "URLSession.bytes stream", subtitle: "async line-by-line consumption") {
             do {
                 let (bytes, response) = try await URLSession.shared.bytes(for: Net.request("GET", "\(Endpoints.httpbin)/stream/15"))
@@ -502,9 +485,6 @@ enum ApiCatalog {
         },
         ApiSample(title: "MP4 video (small)", subtitle: "person-bicycle-car-detection.mp4") {
             await Net.send(Net.request("GET", "https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4"))
-        },
-        ApiSample(title: "MP4 video (Big Buck Bunny)", subtitle: "large binary download") {
-            await Net.send(Net.request("GET", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"))
         },
         ApiSample(title: "Video first 2 MB", subtitle: "ranged media fetch") {
             await Net.send(Net.request(
@@ -537,9 +517,6 @@ enum ApiCatalog {
         ApiSample(title: "Expired TLS certificate", subtitle: "expired.badssl.com") {
             await Net.send(Net.request("GET", "https://expired.badssl.com/", timeout: 10))
         },
-        ApiSample(title: "Self-signed certificate", subtitle: "self-signed.badssl.com") {
-            await Net.send(Net.request("GET", "https://self-signed.badssl.com/", timeout: 10))
-        },
         ApiSample(title: "Malformed JSON response", subtitle: "server returns HTML for a JSON call") {
             let outcome = await Net.send(Net.request("GET", "\(Endpoints.httpbin)/html", headers: ["Accept": "application/json"]))
             return outcome
@@ -568,9 +545,6 @@ enum ApiCatalog {
                 "GET", "\(Endpoints.httpbin)/bearer",
                 headers: ["Authorization": "Bearer local-response-test-token"]
             ))
-        },
-        ApiSample(title: "Digest auth", subtitle: "URLSession handles the challenge") {
-            await Net.send(Net.request("GET", "\(Endpoints.httpbin)/digest-auth/auth/user/passwd"))
         },
         ApiSample(title: "Token refresh flow", subtitle: "401 → fetch token → retry") {
             let first = await Net.send(Net.request("GET", "\(Endpoints.httpbin)/status/401"))
@@ -611,16 +585,6 @@ enum ApiCatalog {
             defer { session.finishTasksAndInvalidate() }
             return await Net.send(Net.request("GET", "\(Endpoints.httpbin)/get"), session: session, note: "ephemeral")
         },
-        ApiSample(title: "Cache-only policy", subtitle: "returnCacheDataElseLoad") {
-            var request = Net.request("GET", "\(Endpoints.httpbin)/cache/60")
-            request.cachePolicy = .returnCacheDataElseLoad
-            return await Net.send(request, note: "cache policy")
-        },
-        ApiSample(title: "Reload ignoring cache", subtitle: "reloadIgnoringLocalCacheData") {
-            var request = Net.request("GET", "\(Endpoints.httpbin)/cache/60")
-            request.cachePolicy = .reloadIgnoringLocalCacheData
-            return await Net.send(request, note: "no cache")
-        },
         ApiSample(title: "HTTP/2 endpoint", subtitle: "postman-echo over h2") {
             await Net.send(Net.request("GET", "\(Endpoints.postmanEcho)/get?protocol=h2"))
         }
@@ -629,19 +593,6 @@ enum ApiCatalog {
     // MARK: Concurrency
 
     static let concurrency = ApiGroup(name: "Concurrency", samples: [
-        ApiSample(title: "10 parallel GETs", subtitle: "burst of independent requests") {
-            let results = await withTaskGroup(of: Bool.self) { group -> [Bool] in
-                for id in 1...10 {
-                    group.addTask {
-                        await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/todos/\(id)")).ok
-                    }
-                }
-                var collected = [Bool]()
-                for await value in group { collected.append(value) }
-                return collected
-            }
-            return .success("\(results.filter { $0 }.count)/\(results.count) succeeded in parallel")
-        },
         ApiSample(title: "Sequential chain", subtitle: "user → posts → comments") {
             let user = await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/users/1"))
             guard user.ok else { return user }
@@ -667,16 +618,6 @@ enum ApiCatalog {
                 return collected
             }
             return .success("\(outcomes.filter { $0 }.count) completed, \(outcomes.filter { !$0 }.count) errored")
-        },
-        ApiSample(title: "Rapid fire (25 calls)", subtitle: "stress the recorder") {
-            await withTaskGroup(of: Void.self) { group in
-                for id in 1...25 {
-                    group.addTask {
-                        _ = await Net.send(Net.request("GET", "\(Endpoints.jsonPlaceholder)/todos/\(id)"))
-                    }
-                }
-            }
-            return .success("fired 25 requests")
         }
     ])
 }
