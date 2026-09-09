@@ -71,6 +71,48 @@ final class URLTaskRow: Codable, Identifiable, FetchableRecord {
         return (urlObj.host() ?? "") + urlObj.path()
     }()
 
+    /// The same, with whatever the url carries after the `?`.
+    ///
+    /// Two calls to one endpoint often differ only in their parameters, so
+    /// without these the rows read as duplicates — see the footer switch.
+    /// Parameter by parameter rather than as one string: a single oversized
+    /// value — a token, a signature — would otherwise be the whole column, so
+    /// a value past `Constants.collapseLimit` is replaced by `"..."` and only
+    /// its name is shown.
+    ///
+    /// Read straight off the url rather than through `URLComponents`, which
+    /// percent-decodes what it hands back and gives nothing at all for a url it
+    /// cannot parse. The column shows the query as it went over the wire; the
+    /// tooltip still carries the whole url, and the detail pane lists the
+    /// parameters decoded.
+    lazy var getPathWithQuery: String = {
+        guard let mark = url.firstIndex(of: "?") else { return getPathString }
+
+        // A fragment is not part of the query and belongs to nobody here.
+        var raw = url[url.index(after: mark)...]
+        if let hash = raw.firstIndex(of: "#") {
+            raw = raw[..<hash]
+        }
+        guard !raw.isEmpty else { return getPathString }
+
+        let query = raw
+            .split(separator: "&", omittingEmptySubsequences: false)
+            .map { pair -> String in
+                guard let equals = pair.firstIndex(of: "=") else { return String(pair) }
+                let value = pair[pair.index(after: equals)...]
+                guard value.count > Constants.collapseLimit else { return String(pair) }
+                // Dropped whole rather than cut short: half a token says no
+                // more than none of it, and the name is what identifies the
+                // parameter in a row this narrow. Quoted so the row reads as a
+                // value deliberately left out, not one that is literally three
+                // dots.
+                return "\(pair[..<equals])=\"...\""
+            }
+            .joined(separator: "&")
+
+        return "\(getPathString)?\(query)"
+    }()
+
     // Reused across every row/render — allocating a NumberFormatter per call is expensive.
     private static let timeDelayFormatter: NumberFormatter = {
         let formatter = NumberFormatter()

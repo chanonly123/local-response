@@ -13,7 +13,7 @@ struct ContentView: View {
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = ContentViewModel()
     @StateObject private var server = LocalServer()
-    @State private var autoScroll: Bool = true
+    @AppStorage(Constants.autoScrollOffKey) private var autoScrollOff = false
     @State private var scrollToId: String?
     @Environment(\.openWindow) private var openWindow
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
@@ -21,8 +21,46 @@ struct ContentView: View {
     @AppStorage(Constants.mapRulesOffKey) private var rulesOff = false
     @AppStorage(Constants.mapDelayMsKey) private var delayMs = 0
 
-    @SceneStorage("ContentViewCustomization")
-    private var customization: TableColumnCustomization<URLTaskRow>
+    /// Which columns are shown, and in what order.
+    ///
+    /// Kept in `UserDefaults` rather than scene storage: scene storage belongs
+    /// to a window's restored state, so a window opened fresh — or opened after
+    /// the app was relaunched without restoration — came up with every column
+    /// back. Columns are a preference, and this is where preferences live.
+    @State private var customization: TableColumnCustomization<URLTaskRow>
+
+    @AppStorage(Constants.hideUrlQueryKey) private var hideUrlQuery = false
+
+    /// Both settings are stored as their opposite — see `Constants` — so each
+    /// switch reads and writes through the sense the user sees.
+    private var autoScroll: Binding<Bool> {
+        Binding { !autoScrollOff } set: { autoScrollOff = !$0 }
+    }
+
+    private var showUrlQuery: Binding<Bool> {
+        Binding { !hideUrlQuery } set: { hideUrlQuery = !$0 }
+    }
+
+    init() {
+        _customization = State(initialValue: Self.loadColumns())
+    }
+
+    private static func loadColumns() -> TableColumnCustomization<URLTaskRow> {
+        guard let data = UserDefaults.standard.data(forKey: Constants.tableColumnsKey),
+              let stored = try? JSONDecoder().decode(
+                TableColumnCustomization<URLTaskRow>.self,
+                from: data
+              )
+        else {
+            return TableColumnCustomization<URLTaskRow>()
+        }
+        return stored
+    }
+
+    private static func saveColumns(_ columns: TableColumnCustomization<URLTaskRow>) {
+        guard let data = try? JSONEncoder().encode(columns) else { return }
+        UserDefaults.standard.set(data, forKey: Constants.tableColumnsKey)
+    }
 
     @State private var showMultiCopyPopover = false
     @State private var multiCopySelectedItems: Set<CopyOptions> = [.method, .url, .body, .statusCode]
@@ -37,15 +75,11 @@ struct ContentView: View {
             }
 
             HStack {
-                Button {
-                    autoScroll.toggle()
-                } label: {
-                    HStack {
-                        Circle().fill(autoScroll ? Color.green : Color.gray)
-                            .frame(width: 10)
-                        Text("Auto scroll")
-                    }
-                }
+                Toggle("Auto scroll", isOn: autoScroll)
+                    .help("Follow the newest recorded call")
+
+                Toggle("Query params", isOn: showUrlQuery)
+                    .help("Show the query string after the path in the URL column")
 
                 MapRuleControls()
 
@@ -74,6 +108,7 @@ struct ContentView: View {
                 }
             }
             .padding(2)
+            .padding(.leading, 6)
         }
         .font(.system(size: fontSize - 2))
         .monospaced()
@@ -83,6 +118,9 @@ struct ContentView: View {
             server.startServer()
             server.reloadLocalAddress()
             viewm.checkForNewVersion()
+        }
+        .onChange(of: customization) { _, columns in
+            Self.saveColumns(columns)
         }
         .toolbar {
 
@@ -276,7 +314,7 @@ struct ContentView: View {
                             .customizationID("Status")
 
                             TableColumn("URL", content: { val in
-                                Text("\(val.getPathString)")
+                                Text(urlDisplay(val))
                                     .truncationMode(.head)
                                     .help(val.url)
                             })
@@ -300,7 +338,7 @@ struct ContentView: View {
                     )
                     .frame(minWidth: 300)
                     .onChange(of: viewm.listCount) { _, _ in
-                        if autoScroll, let last = viewm.list?.last {
+                        if autoScroll.wrappedValue, let last = viewm.list?.last {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
@@ -429,6 +467,20 @@ struct ContentView: View {
                     .frame(maxHeight: .infinity)
             }
         }
+    }
+
+    /// The url column's text, with the query parameters told apart from the
+    /// path and from each other.
+    ///
+    /// A selected row is left plain: the table paints the selection and draws
+    /// that row's text to sit on it, which colors of ours would not survive —
+    /// dark text on the selection fill reads as a smudge.
+    private func urlDisplay(_ row: URLTaskRow) -> AttributedString {
+        let text = hideUrlQuery ? row.getPathString : row.getPathWithQuery
+        guard !viewm.selected.contains(row.taskId) else {
+            return AttributedString(text)
+        }
+        return SyntaxStyle.current.url(text)
     }
 
     /// Says which arrow is which — the column is two glyphs wide, so the
@@ -563,13 +615,8 @@ struct SelectionPopoverView: View {
 
 /// Renders headers or query parameters, one `key: value` per line.
 ///
-/// A single oversized value — an auth token, a base64 blob — otherwise pushes
-/// everything below it off screen, so values past `collapseLimit` are cut and
-/// expanded on demand. Only the display is shortened: copying, mapping and the
-/// stored record all keep the full value.
+/// Values past `Constants.collapseLimit` are cut and expanded on demand.
 struct KeyValueList: View {
-
-    private static let collapseLimit = 50
 
     let pairs: [KeyValuePair]
 
@@ -578,12 +625,12 @@ struct KeyValueList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(pairs) { pair in
-                let isLong = pair.value.count > Self.collapseLimit
+                let isLong = pair.value.count > Constants.collapseLimit
                 let isExpanded = expanded.contains(pair.key)
                 // `prefix` counts Characters, so a cut never lands inside a
                 // grapheme cluster.
                 let shown = isLong && !isExpanded
-                    ? String(pair.value.prefix(Self.collapseLimit)) + "…"
+                    ? String(pair.value.prefix(Constants.collapseLimit)) + "…"
                     : pair.value
 
                 HStack(alignment: .top, spacing: 6) {

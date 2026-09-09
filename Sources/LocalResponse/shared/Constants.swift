@@ -61,6 +61,23 @@ class Constants {
     /// How long the mapper holds every request a rule matched, in milliseconds.
     /// One setting for all rules rather than a field on each.
     static let mapDelayMsKey: String = "mapDelayMs"
+    /// Which columns the request table shows, and in what order — the encoded
+    /// `TableColumnCustomization`.
+    static let tableColumnsKey: String = "tableColumns"
+    /// Stored inverted — the key holds "the query is hidden" — so the value
+    /// `UserDefaults` invents for a fresh install, `false`, is the one that
+    /// shows it.
+    static let hideUrlQueryKey: String = "hideUrlQuery"
+    /// Inverted for the same reason: a fresh install follows the newest call.
+    static let autoScrollOffKey: String = "autoScrollOff"
+
+    /// Longest a single value is shown in full wherever one is listed — a
+    /// header, a query parameter, the url column.
+    ///
+    /// One oversized value — an auth token, a base64 blob — otherwise pushes
+    /// everything around it out of view. Only the display is cut: copying,
+    /// mapping and the stored record all keep the whole value.
+    static let collapseLimit = 50
     static let contentRightPaneWidthKey: String = "contentRightPaneWidth"
     static let mapLocalRightPaneWidthKey: String = "mapLocalRightPaneWidth"
     static let recordBeginUrl = "POST /record-begin"

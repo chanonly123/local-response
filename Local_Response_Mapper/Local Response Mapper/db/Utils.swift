@@ -19,13 +19,20 @@ struct SyntaxStyle {
     let string: Color
     let number: Color
     let keyword: Color
+    /// Query parameter names in the url column.
+    ///
+    /// Its own color rather than `key`: in the dark theme keys fall back to
+    /// base, which in a single line of url would leave the names and the path
+    /// looking the same.
+    let queryName: Color
 
     static let light = SyntaxStyle(
         base: Color(hex: 0x000000),
         key: Color(hex: 0x836C28),
         string: Color(hex: 0xC41A16),
         number: Color(hex: 0x1C00CF),
-        keyword: Color(hex: 0xAA0D91)
+        keyword: Color(hex: 0xAA0D91),
+        queryName: Color(hex: 0x836C28)
     )
 
     /// tomorrow-night-bright defines no `.hljs-attr`, so keys fall back to base.
@@ -34,7 +41,8 @@ struct SyntaxStyle {
         key: Color(hex: 0xEAEAEA),
         string: Color(hex: 0xB9CA4A),
         number: Color(hex: 0xE78C45),
-        keyword: Color(hex: 0xE78C45)
+        keyword: Color(hex: 0xE78C45),
+        queryName: Color(hex: 0xE7C547)
     )
 
     static var current: SyntaxStyle {
@@ -61,6 +69,42 @@ struct SyntaxStyle {
     /// One `key: value` line.
     func pair(key keyText: String, value: String) -> AttributedString {
         return run("\(keyText):", key) + run(" ", base) + run(value, color(for: value))
+    }
+
+    /// One row of the url column: the path as it is, then each query parameter
+    /// with its name and its value apart.
+    ///
+    /// No font is set, unlike the runs above — this goes into a table whose rows
+    /// carry their own, and a font here would override it.
+    func url(_ display: String) -> AttributedString {
+        guard let mark = display.firstIndex(of: "?") else {
+            return colored(String(display), base)
+        }
+
+        var out = colored(String(display[..<mark]), base) + colored("?", base)
+        let query = display[display.index(after: mark)...]
+
+        for (index, pair) in query.split(separator: "&", omittingEmptySubsequences: false).enumerated() {
+            if index > 0 {
+                out += colored("&", base)
+            }
+            guard let equals = pair.firstIndex(of: "=") else {
+                // A parameter with no value is still a name.
+                out += colored(String(pair), queryName)
+                continue
+            }
+            let value = String(pair[pair.index(after: equals)...])
+            out += colored(String(pair[..<equals]), queryName)
+            out += colored("=", base)
+            out += colored(value, color(for: value))
+        }
+        return out
+    }
+
+    private func colored(_ text: String, _ color: Color) -> AttributedString {
+        var out = AttributedString(text)
+        out.foregroundColor = color
+        return out
     }
 
     private func color(for scalar: String) -> Color {

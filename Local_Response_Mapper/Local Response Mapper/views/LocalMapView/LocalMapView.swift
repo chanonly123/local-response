@@ -485,12 +485,8 @@ struct MapRuleControls: View {
         HStack(spacing: 8) {
             barDivider
 
-            Toggle(isOn: rulesEnabled) {
-                Text("Rules")
-            }
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-            .help("Master switch. Off leaves every rule as it is but maps nothing — requests go out untouched.")
+            Toggle("Rules", isOn: rulesEnabled)
+                .help("Master switch. Off leaves every rule as it is but maps nothing — requests go out untouched.")
 
             barDivider
 
