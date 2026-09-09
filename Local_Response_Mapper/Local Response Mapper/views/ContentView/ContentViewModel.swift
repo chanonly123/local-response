@@ -120,18 +120,49 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
+    /// The read in flight. Cancelled when another is asked for: a refresh
+    /// started before this one finished would land out of order.
+    private var fetchTask: Task<Void, Never>?
+
+    /// Re-reads the list off the main thread and publishes the result.
+    ///
+    /// Reading it decodes every recorded row, and that used to happen on the
+    /// main thread on every tick — the list grows all session, so the cost of a
+    /// refresh grew with it while the window was trying to stay responsive.
     func fetch() {
-        do {
-            let newList = try db.getRecordsList(filter: filter)
-            listCount = newList.count
-            list = newList
-            rebuildTree(newList)
-            // The rows behind the panes have just been written to; whatever was
-            // read before this point may no longer be what the table holds.
-            detailCache.removeAll()
-        } catch let e {
-            appendError(e)
+        let filter = self.filter
+        let db = self.db
+        fetchTask?.cancel()
+        fetchTask = Task { [weak self] in
+            do {
+                let newList = try await Task.detached(priority: .userInitiated) {
+                    try db.getRecordsList(filter: filter)
+                }.value
+                guard !Task.isCancelled, let self else { return }
+                self.apply(newList)
+            } catch {
+                self?.appendError(error)
+            }
         }
+    }
+
+    private func apply(_ newList: [URLTaskRow]) {
+        // A recorded call the filter hides still commits, and the refresh it
+        // triggers still reads the list — but publishing the identical result
+        // would have SwiftUI diff and redraw the table for a row nobody can
+        // see. Comparing the rows costs a pass; publishing them costs a frame.
+        guard hasChanged(newList) else { return }
+
+        listCount = newList.count
+        list = newList
+        rebuildTree(newList)
+        pruneDetailCache(against: newList)
+    }
+
+    private func hasChanged(_ newList: [URLTaskRow]) -> Bool {
+        guard let current = list else { return true }
+        guard current.count == newList.count else { return true }
+        return !zip(current, newList).allSatisfy { $0.sameContent(as: $1) }
     }
 
     // MARK: - Endpoint tree
@@ -227,6 +258,45 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     /// Far more than the panes need at once — the cache exists to survive
     /// redraws, not to hold the table.
     private static let detailCacheLimit = 64
+
+    /// Bumped to rebuild the detail pane — see `reloadDetail()`.
+    @Published private(set) var detailReloadToken = 0
+
+    /// Re-reads the focused record from scratch.
+    ///
+    /// A non-text response body is kept in a file written after the row is
+    /// committed, so a pane opened in that moment finds nothing there — and
+    /// what it found is cached, on the record's own lazy properties, until the
+    /// record itself is replaced. This drops it and makes the pane build again.
+    func reloadDetail() {
+        guard let taskId = focusedTaskId else { return }
+        detailCache.removeValue(forKey: taskId)
+        detailReloadToken += 1
+    }
+
+    /// Drops the cached records the refresh actually changed, and keeps the
+    /// rest.
+    ///
+    /// Clearing the whole cache meant the focused record was read again — with
+    /// its bodies — and laid out again on every tick, which with a large
+    /// response selected was the most expensive thing the main thread did.
+    private func pruneDetailCache(against rows: [URLTaskRow]) {
+        guard !detailCache.isEmpty else { return }
+
+        var stillListed = Set<String>(minimumCapacity: detailCache.count)
+        var stale = [String]()
+        for row in rows {
+            guard let cached = detailCache[row.taskId] else { continue }
+            stillListed.insert(row.taskId)
+            if !cached.matches(row) {
+                stale.append(row.taskId)
+            }
+        }
+        // A record the list no longer carries has been deleted, or filtered out
+        // of view — either way this is not the copy to answer with next time.
+        stale.append(contentsOf: detailCache.keys.filter { !stillListed.contains($0) })
+        stale.forEach { detailCache.removeValue(forKey: $0) }
+    }
 
     func fetch(taskId: String?) -> URLTaskObject? {
         guard let taskId else { return nil }

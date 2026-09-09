@@ -75,7 +75,7 @@ struct ResponseView: View {
                     }
                 case .video:
                     if let player = player {
-                        VideoPlayer(player: player)
+                        PlayerView(player: player)
                     } else {
                         Text("Bad video data")
                     }
@@ -88,6 +88,39 @@ struct ResponseView: View {
         } else {
             ProgressView()
         }
+    }
+}
+
+/// AVKit's `AVPlayerView`, wrapped here rather than using SwiftUI's
+/// `VideoPlayer`.
+///
+/// `VideoPlayer` comes from `_AVKit_SwiftUI`, and building its view aborts in
+/// the Swift runtime — `getSuperclassMetadata`, while instantiating the
+/// representable's generic metadata — in a release build on macOS 26. The
+/// AppKit view underneath it has none of that machinery.
+private struct PlayerView: NSViewRepresentable {
+
+    let player: AVPlayer
+
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView()
+        view.controlsStyle = .inline
+        view.videoGravity = .resizeAspect
+        view.player = player
+        return view
+    }
+
+    func updateNSView(_ view: AVPlayerView, context: Context) {
+        if view.player !== player {
+            view.player = player
+        }
+    }
+
+    /// The view keeps playing — and keeps the file open — unless it is told to
+    /// stop as it goes away.
+    static func dismantleNSView(_ view: AVPlayerView, coordinator: ()) {
+        view.player?.pause()
+        view.player = nil
     }
 }
 

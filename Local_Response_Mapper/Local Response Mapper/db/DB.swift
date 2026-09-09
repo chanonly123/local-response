@@ -36,8 +36,10 @@ private final class GRDBObservationToken: DBObservationToken {
     }
 }
 
-protocol DBProtocol {
-    @MainActor func getRecordsList(filter: String) throws -> [URLTaskRow]
+protocol DBProtocol: Sendable {
+    /// Deliberately not main-actor bound: the list is read on a background task
+    /// and published from there — see `ContentViewModel.fetch()`.
+    func getRecordsList(filter: String) throws -> [URLTaskRow]
     @MainActor func getMapList() throws -> [MapLocalObject]
     @MainActor func getItemTask(taskId: String?) throws -> URLTaskObject?
     @MainActor func getItemMapLocal(id: String?) throws -> MapLocalObject?
@@ -63,7 +65,10 @@ protocol DBProtocol {
     func getLocalMap(id: String) throws -> MapLocalObject?
 }
 
-class DB: DBProtocol {
+/// Unchecked because its two pieces of mutable state — the open pool and the
+/// compiled rules — are each guarded by a lock, and everything else it touches
+/// is GRDB's own thread-safe API.
+final class DB: DBProtocol, @unchecked Sendable {
 
     // MARK: - Opening the file
 
@@ -553,13 +558,35 @@ class DB: DBProtocol {
     /// than kept. The row itself keeps the id it was given at the start, which
     /// is what stops the list having to rebuild every finishing row.
     func recordEnd(task: URLTaskModelEnd) throws {
-        try database.write { db in
-            guard let item = try Self.liveTask(db, key: task.taskId) else { return }
+        // Decided inside the transaction, where the finished row is, and written
+        // outside it — see `URLTaskObject.pendingFile(for:)`.
+        let pending = try database.write { db -> (url: URL, data: Data)? in
+            guard let item = try Self.liveTask(db, key: task.taskId) else { return nil }
             item.updateFrom(task: task)
             item.liveKey = ""
-            try item.update(db)
+            // Only the columns the response fills. A full-row update rewrites
+            // the request body too — untouched here, and on a large request the
+            // bulk of the row.
+            try item.update(db, columns: Self.responseColumns)
+            return item.pendingFile(for: task)
+        }
+
+        // Off the connection's own task: a video is megabytes, and the client
+        // is waiting on this call. The row is committed either way — the pane
+        // has a reload for the case where it is opened before the file lands.
+        if let pending {
+            Task.detached(priority: .utility) {
+                URLTaskObject.writeResponseFile(at: pending.url, data: pending.data)
+            }
         }
     }
+
+    /// What `URLTaskObject.updateFrom(task: URLTaskModelEnd)` writes, plus the
+    /// key it releases.
+    private static let responseColumns = [
+        "endTime", "bundleID", "resHeaders", "responseString",
+        "statusCode", "isEdited", "mimeType", "liveKey"
+    ]
 
     // MARK: - Preview data
 

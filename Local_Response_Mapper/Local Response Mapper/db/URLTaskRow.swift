@@ -43,6 +43,25 @@ final class URLTaskRow: Codable, Identifiable, FetchableRecord {
         CodingKeys.allCases.map { Column($0.rawValue) }
     }
 
+    /// Whether this row says the same as `other`.
+    ///
+    /// A refresh that changed nothing the list shows — a request filtered out of
+    /// view, most often — should not reach SwiftUI at all, and this is how that
+    /// is told apart from a refresh that did change something.
+    func sameContent(as other: URLTaskRow) -> Bool {
+        taskId == other.taskId
+            && statusCode == other.statusCode
+            && endTime == other.endTime
+            && startTime == other.startTime
+            && date == other.date
+            && url == other.url
+            && method == other.method
+            && bundleID == other.bundleID
+            && mimeType == other.mimeType
+            && isEdited == other.isEdited
+            && isRequestEdited == other.isRequestEdited
+    }
+
     /// Rows are re-fetched rather than mutated, so this is computed once per
     /// row and not once per redraw — the url column redraws on every refresh.
     lazy var getPathString: String = {

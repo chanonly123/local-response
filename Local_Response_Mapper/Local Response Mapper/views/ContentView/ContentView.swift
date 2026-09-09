@@ -316,9 +316,10 @@ struct ContentView: View {
             if let item = viewm.fetch(taskId: viewm.focusedTaskId) {
                 // Keyed on the request, so the pane is rebuilt rather than
                 // reused when the selection moves and nothing inside it can
-                // carry state over from the row that was on screen before.
+                // carry state over from the row that was on screen before. The
+                // token is part of the key so a reload rebuilds it too.
                 detailView(item: item)
-                    .id(item.id)
+                    .id("\(item.id)-\(viewm.detailReloadToken)")
             } else {
                 Image(systemName: "tray")
             }
@@ -345,6 +346,20 @@ struct ContentView: View {
                     }
                 }
                 Spacer()
+            }
+            .overlay(alignment: .trailing) {
+                // A non-text body is written to its file after the row is
+                // recorded, so a pane opened in that moment can find nothing
+                // there — and what it found is kept until the record is read
+                // again. This reads it again.
+                Button {
+                    viewm.reloadDetail()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .help("Reload this response from disk")
+                .padding(.trailing, 8)
             }
             .padding(2)
 

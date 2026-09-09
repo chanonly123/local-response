@@ -108,18 +108,58 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
         isEdited = resHeaders[LocalServer.isEditedKey] == "1"
         resHeaders[LocalServer.isEditedKey] = nil
         mimeType = task.mimeType ?? ""
-        if
+    }
+
+    /// The file a non-text response is kept in, and what goes in it — or `nil`
+    /// when the body is text and belongs in the row itself.
+    ///
+    /// Separate from `updateFrom` so the write can happen outside the database
+    /// transaction: an image or a video is written a page at a time, and doing
+    /// that while the writer lock is held stops every other recorded call for
+    /// as long as it takes.
+    func pendingFile(for task: URLTaskModelEnd) -> (url: URL, data: Data)? {
+        guard
             let data = Data(base64Encoded: task.resStringB64 ?? ""),
             contentType != .text,
             let path = fileURL
-        {
-            do {
-                try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
-                try data.write(to: path)
-            } catch {
-                print("Error saving video data: \(error)")
-            }
+        else {
+            return nil
         }
+        return (path, data)
+    }
+
+    /// Written atomically: the pane can be asked to reload while this is still
+    /// running, and a half-written file read at that moment would be cached as a
+    /// broken one. With `.atomic` the path either holds the previous file or the
+    /// finished one, never part of it.
+    static func writeResponseFile(at url: URL, data: Data) {
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try data.write(to: url, options: .atomic)
+        } catch {
+            Logger.debugPrint("Could not save response body: \(error)")
+        }
+    }
+
+    /// Whether this record still says what the list row says.
+    ///
+    /// Only the columns a recorded call can change after it is first written;
+    /// the rest are set once. Used to keep a cached record — and the laid-out
+    /// bodies hanging off it — across a refresh that did not touch it.
+    func matches(_ row: URLTaskRow) -> Bool {
+        taskId == row.taskId
+            && statusCode == row.statusCode
+            && endTime == row.endTime
+            && startTime == row.startTime
+            && date == row.date
+            && url == row.url
+            && method == row.method
+            && mimeType == row.mimeType
+            && isEdited == row.isEdited
+            && isRequestEdited == row.isRequestEdited
     }
 
     /// Bodies are stored exactly as they went over the wire and laid out only

@@ -8,20 +8,12 @@ struct MyTextEditor: View {
     let flags: CodeEditor.Flags
     @AppStorage(Constants.fontSizeKey) private var fontSize: Double = Constants.fontSize
 
-    /// The caret exactly as the text view last reported it, handed straight back
-    /// on the next update.
+    /// A caret this view is asking for — a find hit — and the only reason it
+    /// ever pushes one.
     ///
-    /// The text view reports a moved caret *before* it reports the edit that
-    /// moved it, so during that gap the caret addresses one more character than
-    /// `source` has. Measuring it against `source` there put it out of range —
-    /// and the editor then pushed that measurement back, which is what sent the
-    /// cursor to the top of the field on every keypress. Held as the range it
-    /// came as, it is only ever compared, never converted, so the round trip
-    /// leaves it where the user put it.
-    @State private var caret: Range<String.Index>?
-
-    /// A caret this view is asking for — a find hit. Cleared as soon as the text
-    /// view reports back, so typing is never fighting a position from before.
+    /// Cleared as soon as the text view reports back, or the text changes under
+    /// it. While it is `nil` the editor is handed no selection binding at all,
+    /// so nothing of ours can move a caret the user is typing with.
     ///
     /// Character offsets, not `String.Index`: an index belongs to the string it
     /// was made from, and converting a kept one against a later string traps
@@ -104,12 +96,13 @@ struct MyTextEditor: View {
             }
             EditorBox(
                 source: $source,
-                // Attached only while the find bar is up. Reporting the caret
-                // means writing it to `@State`, and every one of those writes
-                // rebuilds this view — which drags the whole editor through an
-                // update it does not need. Selecting text reports continuously,
-                // so with the bar closed nothing is listening.
-                selection: showingFind ? selectionBinding : nil,
+                // Attached only while this view is asking for a caret — a find
+                // hit to jump to. Attached at any other time, the editor
+                // compares what it holds against what this view last saw and
+                // pushes the difference back, which lands on the caret of
+                // somebody typing; and reporting the caret means a `@State`
+                // write, and a view rebuild, for every character selected.
+                selection: pending != nil ? selectionBinding : nil,
                 language: effectiveLanguage,
                 theme: theme,
                 fontSize: fontSize,
@@ -163,6 +156,10 @@ struct MyTextEditor: View {
         }
         .onChange(of: source, initial: true) { _, newValue in
             effectiveLanguage = HighlightBudget.language(language, for: newValue)
+            // The text moved, so a hit measured against the text before it is
+            // no longer a position worth pushing — and pushing one into an
+            // editor being typed in is what takes the caret away.
+            pending = nil
             refreshMatches()
         }
         .onChange(of: showingFind) { _, newValue in
@@ -170,45 +167,25 @@ struct MyTextEditor: View {
                 searchTask?.cancel()
                 searchTask = nil
                 matches = []
-                // Nothing reports the caret while the bar is closed, so what is
-                // held here is only as current as the last time it was open.
-                caret = nil
                 pending = nil
             }
         }
     }
 
-    /// Reports the caret the text view already has, so nothing is pushed into it
-    /// unless this view is the one moving it.
+    /// Carries the hit being jumped to, and nothing else.
+    ///
+    /// Only read while `pending` is set — see where it is attached above.
     private var selectionBinding: Binding<Range<String.Index>> {
         Binding {
-            if let pending {
-                return Self.range(of: pending, in: source)
+            guard let pending else {
+                return source.startIndex..<source.startIndex
             }
-            if let caret, Self.isValid(caret, in: source) {
-                return caret
-            }
-            // No caret yet, or the text was replaced under it — the end is the
-            // one position that exists in every string.
-            let start = caret == nil ? source.startIndex : source.endIndex
-            return start..<start
-        } set: { new in
-            caret = new
+            return Self.range(of: pending, in: source)
+        } set: { _ in
+            // The text view has moved its caret of its own accord; whatever
+            // this view was asking for is answered or overtaken.
             pending = nil
         }
-    }
-
-    /// Bounds check only: comparing indices compares their offsets, which is
-    /// safe even for indices made from another string — walking to them is not.
-    private static func isValid(_ range: Range<String.Index>, in text: String) -> Bool {
-        range.lowerBound >= text.startIndex && range.upperBound <= text.endIndex
-    }
-
-    /// Where the caret is in `source`, when that can be answered without
-    /// walking past its end.
-    private var caretOffsets: Range<Int>? {
-        guard let caret, Self.isValid(caret, in: source) else { return nil }
-        return Self.offsets(of: caret, in: source)
     }
 
     private static func range(of offsets: Range<Int>, in text: String) -> Range<String.Index> {
@@ -217,16 +194,6 @@ struct MyTextEditor: View {
         let upper = min(max(lower, offsets.upperBound), count)
         let start = text.index(text.startIndex, offsetBy: lower)
         return start..<text.index(text.startIndex, offsetBy: upper)
-    }
-
-    private static func offsets(of range: Range<String.Index>, in text: String) -> Range<Int> {
-        // Comparing indices only compares their offsets, so this is safe even
-        // when they came from another string — walking to them would not be.
-        guard range.lowerBound >= text.startIndex, range.upperBound <= text.endIndex else {
-            return 0..<0
-        }
-        let lower = text.distance(from: text.startIndex, to: range.lowerBound)
-        return lower..<text.distance(from: text.startIndex, to: range.upperBound)
     }
 
     private func onChangeFindString() {
@@ -350,24 +317,24 @@ struct MyTextEditor: View {
         return FindResult(hits: found, documentLength: text.utf16.count)
     }
 
+    /// Steps to the next hit, or the previous one.
+    ///
+    /// Counted from the hit the bar is showing rather than from where the caret
+    /// is: the caret is the user's, and asking the editor where it is means
+    /// keeping a binding attached that can push one back.
     private func jumpToTextPressEnter(next: Bool) {
-        guard let first = matches.first else { return }
+        guard !matches.isEmpty else { return }
 
-        // The hit the caret is sitting on — the one this steps off from. After
-        // a jump the caret is reported back, so this is where it lands even
-        // once `pending` has cleared.
-        let current = pending ?? caretOffsets
-
-        if let current, let index = matches.firstIndex(where: { $0.characters == current }) {
-            var new = (index + (next ? 1 : -1))
-            if new < 0 { new = matches.count - 1 }
-            let i = new % matches.count
-            pending = matches[i].characters
-            selectedFindIndex = i + 1
+        let current = selectedFindIndex - 1
+        let index: Int
+        if current < 0 || current >= matches.count {
+            index = next ? 0 : matches.count - 1
         } else {
-            pending = first.characters
-            selectedFindIndex = 1
+            index = (current + (next ? 1 : -1) + matches.count) % matches.count
         }
+
+        pending = matches[index].characters
+        selectedFindIndex = index + 1
     }
 }
 
@@ -400,7 +367,7 @@ enum HighlightBudget {
     /// short lines is colored one paragraph at a time, so its size costs only
     /// the first pass, and that is worth paying to keep a laid-out response
     /// readable.
-    static let maxBytes = 512 * 1024
+    static let maxBytes = 256 * 1024
 
     /// What actually hurts: one line this long is one paragraph, re-colored
     /// whole on every change and laid out as a single run of text.
