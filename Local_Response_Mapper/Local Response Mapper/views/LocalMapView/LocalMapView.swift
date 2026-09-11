@@ -15,6 +15,9 @@ struct LocalMapView: View {
     @AppStorage(Constants.mapRulesOffKey) private var rulesOff = false
     @State private var showVariables = false
 
+    /// Which field explainer is open, if any — see `HelpTopic`.
+    @State private var help: HelpTopic?
+
     var body: some View {
         PersistentHSplitView(widthKey: Constants.mapLocalRightPaneWidthKey) {
             leftView
@@ -208,7 +211,7 @@ struct LocalMapView: View {
         } content: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    fieldLabel("Does")
+                    fieldLabel("Does", help: .does)
 
                     Picker("", selection: viewm.getSetValue(item.id, keyPath: \.kind)) {
                         ForEach(MapLocalObject.RuleKind.allCases, id: \.self) {
@@ -226,7 +229,7 @@ struct LocalMapView: View {
                 }
 
                 HStack(spacing: 6) {
-                    fieldLabel("Method")
+                    fieldLabel("Method", help: .method)
 
                     Picker("", selection: viewm.getSetValue(item.id, keyPath: \.method)) {
                         ForEach(viewm.httpMethods, id: \.self) {
@@ -244,9 +247,20 @@ struct LocalMapView: View {
                 }
 
                 HStack(spacing: 6) {
-                    fieldLabel("URL contains")
+                    fieldLabel("URL", help: .url)
 
-                    TextField("* for every url", text: viewm.getSetValue(item.id, keyPath: \.subUrl))
+                    Picker("", selection: viewm.getSetValue(item.id, keyPath: \.urlMatch)) {
+                        ForEach(MapLocalObject.URLMatch.allCases, id: \.self) {
+                            Text($0.title)
+                                .font(.system(size: fontSize - 2))
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 110)
+                    .padding(.leading, -30)
+                    .help(item.urlMatch.help)
+
+                    TextField(item.urlMatch.placeholder, text: viewm.getSetValue(item.id, keyPath: \.subUrl))
                         .help(item.subUrl)
                 }
 
@@ -443,11 +457,21 @@ struct LocalMapView: View {
 
     /// Fixed-width leading label, so every control in a section lines up on one
     /// column instead of floating at its own indent.
-    func fieldLabel(_ title: String) -> some View {
-        Text(title)
-            .foregroundStyle(.secondary)
-            .frame(width: 90, alignment: .leading)
+    ///
+    /// The icon sits inside the fixed width, so a label that carries one does
+    /// not push its control out of the column the others line up on.
+    func fieldLabel(_ title: String, help topic: HelpTopic? = nil) -> some View {
+        HStack(spacing: 3) {
+            Text(title)
+                .foregroundStyle(.secondary)
+            if let topic {
+                HelpButton(topic: topic, selection: $help)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(width: 90, alignment: .leading)
     }
+
 
     /// Header for a field that owns a whole row — an editor rather than a
     /// single control.

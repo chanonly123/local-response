@@ -356,3 +356,6 @@ extension Bool: InitProvider {}
 extension MapLocalObject.RuleKind: InitProvider {
     init() { self = .mapResponse }
 }
+extension MapLocalObject.URLMatch: InitProvider {
+    init() { self = .contains }
+}

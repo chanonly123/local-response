@@ -134,13 +134,11 @@ struct MyTextEditor: View {
                 showingFind = true
                 findFocused = true
                 return .handled
-            } else if e.key == .init("=") && e.modifiers.contains(.command) {
-                fontSize = min(20, fontSize + 1)
-                return .handled
-            } else if e.key == .init("-") && e.modifiers.contains(.command) {
-                fontSize = max(8, fontSize - 1)
-                return .handled
             }
+            // ⌘= and ⌘- are not handled here any more: they are menu commands,
+            // so they fire wherever focus is rather than only in this editor —
+            // see `FontSizeCommands`. A menu key equivalent is matched before
+            // the responder chain, so this would never have seen them anyway.
             return .ignored
         })
         .onChange(of: findString) { _, _ in
@@ -237,8 +235,8 @@ struct MyTextEditor: View {
         }
 
         searchTask = Task {
-            let found = await Task.detached(priority: .userInitiated) {
-                Self.matches(of: query, in: text, caseSensitive: caseSensitive)
+            let found = await Task.detached(priority: .medium) {
+                await Self.matches(of: query, in: text, caseSensitive: caseSensitive)
             }.value
             guard !Task.isCancelled else { return }
             // The text or the query may have moved on while this ran — a

@@ -122,11 +122,15 @@ final class URLTaskRow: Codable, Identifiable, FetchableRecord {
         return formatter
     }()
 
-    var timeDelay: String {
+    /// Computed once per row rather than once per redraw — the Time column
+    /// redraws on every refresh, and a `NumberFormatter` run is not free.
+    /// Rows are re-fetched rather than mutated, so the two times this reads
+    /// cannot change underneath it.
+    lazy var timeDelay: String = {
         let diff = endTime - startTime
         guard diff > 0, let str = Self.timeDelayFormatter.string(from: NSNumber(value: diff)) else {
             return ""
         }
         return str
-    }
+    }()
 }

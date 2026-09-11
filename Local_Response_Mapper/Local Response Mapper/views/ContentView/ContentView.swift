@@ -78,7 +78,7 @@ struct ContentView: View {
                 Toggle("Auto scroll", isOn: autoScroll)
                     .help("Follow the newest recorded call")
 
-                Toggle("Query params", isOn: showUrlQuery)
+                Toggle("Show Query params", isOn: showUrlQuery)
                     .help("Show the query string after the path in the URL column")
 
                 MapRuleControls()
@@ -351,13 +351,18 @@ struct ContentView: View {
 
     var rightView: some View {
         VStack(alignment: .center, spacing: 0) {
-            if let item = viewm.fetch(taskId: viewm.focusedTaskId) {
+            if let item = viewm.detail {
                 // Keyed on the request, so the pane is rebuilt rather than
                 // reused when the selection moves and nothing inside it can
                 // carry state over from the row that was on screen before. The
                 // token is part of the key so a reload rebuilds it too.
                 detailView(item: item)
                     .id("\(item.id)-\(viewm.detailReloadToken)")
+            } else if viewm.focusedTaskId != nil {
+                // A row is selected and its record is still being read. The
+                // pane is left empty rather than holding the row before it:
+                // what that showed is another request's body.
+                ProgressView()
             } else {
                 Image(systemName: "tray")
             }
@@ -369,20 +374,23 @@ struct ContentView: View {
         VStack(alignment: .center, spacing: 0) {
             HStack {
                 Spacer()
-                HStack {
+                // A segmented control rather than two buttons styled to look
+                // like one. The pair of buttons hit-tested only their text —
+                // a system button style re-wraps the label, and the wrapper it
+                // makes is what decides where the button responds, so the
+                // padding around each tab was dead to the click. This is one
+                // control that owns its own segments, and it is what the
+                // selection reads as on macOS besides.
+                Picker("", selection: $viewm.selectedTab) {
                     ForEach(ContentViewModel.TabType.allCases, id: \.self) { tab in
-                        Button {
-                            viewm.selectedTab = tab
-                        } label: {
-                            Text(tab.rawValue)
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 8)
-                                .contentShape(Rectangle())
-                                .foregroundColor(viewm.getTabButtonTextColor(tab: tab))
-                        }
-                        .setSelectedButtonStyle(selected: viewm.selectedTab == tab)
+                        Text(tab.rawValue).tag(tab)
                     }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                // Segments are as wide as their text; without this the control
+                // takes the whole width of the pane.
+                .fixedSize()
                 Spacer()
             }
             .overlay(alignment: .trailing) {
@@ -525,13 +533,13 @@ struct ContentView: View {
                         openLocalMapWindow()
                     }
                     Button("Copy Request Body") {
-                        viewm.copyValue(val.prettyBody)
+                        viewm.copyBody(.requestBody, of: val)
                     }
                     Button("Copy Response String") {
-                        viewm.copyValue(val.prettyResponseString)
+                        viewm.copyBody(.responseBody, of: val)
                     }
                     Button("Copy All") {
-                        viewm.copyAll(obj: val)
+                        viewm.copyBody(.all, of: val)
                     }
                 }
                 Button("Copy URL") {
@@ -696,23 +704,11 @@ struct JSONBodyText: View {
                 // before handing the work off.
                 let style = SyntaxStyle.current
                 let body = raw
-                let text = await Task.detached {
+                let text = await Task.detached(priority: .utility) {
                     JSONHighlighter.highlight(body, style: style)
                 }.value
                 highlighted = (source: body, text: text)
             }
-    }
-}
-
-fileprivate extension View {
-
-    @ViewBuilder
-    func setSelectedButtonStyle(selected: Bool) -> some View {
-        if selected {
-            self.buttonStyle(.bordered)
-        } else {
-            self.buttonStyle(.borderless)
-        }
     }
 }
 

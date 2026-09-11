@@ -21,10 +21,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     @Published var list: [URLTaskRow]?
     var listCount: Int = 0
     @Published var filter: String = UserDefaults.standard.string(forKey: Constants.filterKey) ?? "" {
-        didSet {
-            UserDefaults.standard.set(filter, forKey: Constants.filterKey)
-            fetch()
-        }
+        didSet { filterChanged() }
     }
     @Published var selected = Set<String>() {
         didSet { updateFocused(oldValue: oldValue) }
@@ -37,7 +34,12 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     /// shows an arbitrary member as soon as more than one row is selected, and
     /// that is usually the row that was already on screen. The focus stays on
     /// one row and only moves once that row leaves the selection.
-    @Published private(set) var focusedTaskId: String?
+    @Published private(set) var focusedTaskId: String? {
+        didSet {
+            guard oldValue != focusedTaskId else { return }
+            loadDetail()
+        }
+    }
 
     private func updateFocused(oldValue: Set<String>) {
         if let focusedTaskId, selected.contains(focusedTaskId) { return }
@@ -67,6 +69,8 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             // seeded alongside the selection here.
             self.selected = Set([list.first?.taskId].compactMap { $0 })
             self.focusedTaskId = list.first?.taskId
+            // `didSet` does not run during initialization here either.
+            self.loadDetail()
             self.rebuildTree(list)
             // Any committed write to the table re-runs the read, filter and
             // all — the same refetch the live query used to trigger, coalesced
@@ -78,6 +82,28 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
             }
         } catch let e {
             appendError(e)
+        }
+    }
+
+    // MARK: - Filtering
+
+    /// How long typing settles before the list is read again.
+    ///
+    /// The filter matches with `LIKE '%term%'`, which no index can serve, so
+    /// every read of it is a scan of the whole table — and a query already
+    /// running cannot be cancelled, only its result thrown away. Typing a word
+    /// used to start one scan per character, all of them racing to be dropped.
+    private static let filterInterval: Duration = .milliseconds(200)
+
+    private var filterTask: Task<Void, Never>?
+
+    private func filterChanged() {
+        filterTask?.cancel()
+        filterTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.filterInterval)
+            guard !Task.isCancelled, let self else { return }
+            UserDefaults.standard.set(self.filter, forKey: Constants.filterKey)
+            self.fetch()
         }
     }
 
@@ -135,8 +161,9 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         fetchTask?.cancel()
         fetchTask = Task { [weak self] in
             do {
-                let newList = try await Task.detached(priority: .userInitiated) {
-                    try db.getRecordsList(filter: filter)
+                let newList = try await Task.detached(priority: .utility) {
+                    Utils.assertOffMain("Reading the request list")
+                    return try db.getRecordsList(filter: filter)
                 }.value
                 guard !Task.isCancelled, let self else { return }
                 self.apply(newList)
@@ -246,21 +273,111 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         fetch()
     }
 
-    /// The full record for one row — bodies included — kept until the next
-    /// refresh.
+    /// The full record for one row — bodies included — kept until a write
+    /// touches it.
     ///
-    /// The right pane asks for its record every time it is laid out, and the
-    /// record it gets carries the laid-out copy of the body, so re-reading it
-    /// per redraw means re-reading and re-formatting the same body. Cleared in
-    /// `fetch()`, so a record can never outlive a write that touched it.
+    /// A record carries the laid-out copies of its bodies on its own `lazy`
+    /// properties, so keeping it is what stops the pane parsing the same body
+    /// again every time the selection comes back to the row. Pruned in
+    /// `pruneDetailCache(against:)`, so a record can never outlive a write that
+    /// touched it.
     private var detailCache: [String: URLTaskObject] = [:]
 
-    /// Far more than the panes need at once — the cache exists to survive
-    /// redraws, not to hold the table.
-    private static let detailCacheLimit = 64
+    /// More than the panes need at once — the cache exists to survive redraws,
+    /// not to hold the table. Every entry carries both bodies, so this is a
+    /// cap on resident memory as much as on entries, and a miss now costs a
+    /// background read rather than a stalled frame.
+    private static let detailCacheLimit = 16
 
     /// Bumped to rebuild the detail pane — see `reloadDetail()`.
     @Published private(set) var detailReloadToken = 0
+
+    /// The record the right pane draws, or `nil` while one is being read.
+    ///
+    /// Published rather than fetched from the view body: reading it decodes
+    /// both bodies and laying it out parses and re-serializes the response, and
+    /// on a large one that was a visibly stalled window every time the
+    /// selection moved.
+    @Published private(set) var detail: URLTaskObject?
+
+    /// The read in flight, cancelled when the focus moves — arrowing down the
+    /// table starts one per row and only the last one is still wanted.
+    private var detailTask: Task<Void, Never>?
+
+    /// Reads one record and builds everything the pane draws from it.
+    ///
+    /// `nonisolated` and `async`, so it runs on the cooperative pool rather
+    /// than on this view model's actor. A detached task would have run there
+    /// too, but it inherits no cancellation: arrowing down a table of large
+    /// responses would leave one whole read and layout per row running to the
+    /// end, all at once, with every result but the last thrown away. This is
+    /// part of the call that awaits it, so cancelling that cancels this.
+    private nonisolated static func readDetail(
+        taskId: String,
+        db: DBProtocol
+    ) async throws -> URLTaskObject? {
+        Utils.assertOffMain("readDetail(), which decodes both bodies off the database,")
+        let item = try db.getItemTask(taskId: taskId)
+        try Task.checkCancellation()
+        // Here rather than on the first redraw that reads them.
+        item?.warmDetail()
+        return item
+    }
+
+    /// Reads the focused record, and builds everything the pane draws from it,
+    /// off the main thread.
+    ///
+    /// `keepingCurrent` is for a re-read of the row already on screen — a write
+    /// landed on it, or the reload button was pressed. What the pane holds is
+    /// then an older copy of the right request, which is worth leaving up while
+    /// the newer one is read; on a move to another row it is the wrong request
+    /// and comes down at once.
+    private func loadDetail(keepingCurrent: Bool = false) {
+        detailTask?.cancel()
+
+        guard let taskId = focusedTaskId else {
+            detail = nil
+            return
+        }
+        // A record already read is already laid out, so this is the same frame
+        // rather than a round trip — moving back to a row shows it at once.
+        //
+        // Only a warmed one: the synchronous read behind the context menus
+        // caches its record too, and that one's bodies are still unparsed.
+        // Drawing it would parse them on the main thread, which is the stall
+        // this whole path exists to move off it.
+        if let cached = detailCache[taskId], cached.isWarm {
+            detail = cached
+            return
+        }
+
+        if !keepingCurrent {
+            detail = nil
+        }
+        let db = self.db
+        detailTask = Task(priority: .medium) { [weak self] in
+            do {
+                let item = try await Self.readDetail(taskId: taskId, db: db)
+                guard !Task.isCancelled, let self else { return }
+                // The focus can have moved on while this was reading — a later
+                // load has already published, or is about to.
+                guard self.focusedTaskId == taskId else { return }
+                if let item { self.store(item) }
+                self.detail = item
+            } catch is CancellationError {
+                return
+            } catch {
+                self?.appendError(error)
+            }
+        }
+    }
+
+    private func store(_ item: URLTaskObject) {
+        if detailCache.count >= Self.detailCacheLimit {
+            detailCache.removeAll()
+        }
+        detailCache[item.taskId] = item
+    }
 
     /// Re-reads the focused record from scratch.
     ///
@@ -272,6 +389,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         guard let taskId = focusedTaskId else { return }
         detailCache.removeValue(forKey: taskId)
         detailReloadToken += 1
+        loadDetail(keepingCurrent: true)
     }
 
     /// Drops the cached records the refresh actually changed, and keeps the
@@ -296,6 +414,12 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         // of view — either way this is not the copy to answer with next time.
         stale.append(contentsOf: detailCache.keys.filter { !stillListed.contains($0) })
         stale.forEach { detailCache.removeValue(forKey: $0) }
+
+        // The pane is drawing one of the records just dropped, so what it is
+        // showing is the copy from before the write. Read it again.
+        if let focusedTaskId, stale.contains(focusedTaskId) {
+            loadDetail(keepingCurrent: true)
+        }
     }
 
     func fetch(taskId: String?) -> URLTaskObject? {
@@ -303,10 +427,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         if let cached = detailCache[taskId] { return cached }
         do {
             guard let item = try db.getItemTask(taskId: taskId) else { return nil }
-            if detailCache.count >= Self.detailCacheLimit {
-                detailCache.removeAll()
-            }
-            detailCache[taskId] = item
+            store(item)
             return item
         } catch let e {
             appendError(e)
@@ -314,57 +435,148 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         }
     }
 
-    func getTabButtonTextColor(tab: TabType) -> Color {
-        tab == selectedTab ? Color.blue : Color.gray.opacity(0.5)
+    /// Seeds a new map-local rule from a recorded call.
+    ///
+    /// The body is laid out off the main thread first. The record behind the
+    /// context menu is the synchronous read's, so it is cold, and a large
+    /// response parsed here stalled the window on the way to opening the rule
+    /// editor. The write lands after the editor window opens;
+    /// `LocalMapViewModel` observes the rule table, so the new rule shows up
+    /// there either way.
+    func addNewMapLocal(obj: URLTaskObject) {
+        let db = self.db
+        Task {
+            let resString = await Self.mapLocalBody(of: obj)
+            db.addMapRule(
+                MapLocalObject(
+                    subUrl: obj.url,
+                    method: obj.method,
+                    statusCode: String(obj.statusCode),
+                    resHeaders: obj.resHeaders,
+                    resString: resString
+                )
+            )
+        }
     }
 
-    func addNewMapLocal(obj: URLTaskObject) {
-        db.addMapRule(
-            MapLocalObject(
-                subUrl: obj.url,
-                method: obj.method,
-                statusCode: String(obj.statusCode),
-                resHeaders: obj.resHeaders,
-                resString: obj.prettyResponseString
-            )
-        )
+    private nonisolated static func mapLocalBody(of obj: URLTaskObject) async -> String {
+        Utils.assertOffMain("Laying out a response body for a new map-local rule")
+        // From the raw string, not `prettyResponseString` — see `copyText`.
+        return URLTaskObject.prettyPrinted(obj.responseString)
     }
 
     func copyValue(_ value: String) {
         Utils.copyToClipboard(value)
     }
 
-    func copyAll(obj: URLTaskObject) {
-        var arr = [String]()
-        arr.append("== URL ==")
-        arr.append(obj.url)
-        if !obj.body.isEmpty {
-            arr.append("== REQUEST_BODY ==")
-            arr.append(obj.prettyBody)
-        }
-        arr.append("== METHOD ==")
-        arr.append(obj.method)
-
-        arr.append("== REQUEST_HEADERS ==")
-        arr.append(Utils.dictToPlainString(item: obj.reqHeaders))
-
-        arr.append("== STATUS ==")
-        arr.append("\(obj.statusCode)")
-
-        arr.append("== RESPONSE_HEADERS ==")
-        arr.append(Utils.dictToPlainString(item: obj.resHeaders))
-
-        arr.append("== RESPONSE_BODY ==")
-        arr.append(obj.prettyResponseString)
-
-        Utils.copyToClipboard(arr.joined(separator: "\n"))
+    /// Which part of a record a copy action puts on the pasteboard.
+    enum CopyPart {
+        case requestBody, responseBody, all
     }
 
+    /// The copy in flight. One at a time: the pasteboard holds one thing, so a
+    /// second copy makes the first one's result unwanted.
+    private var copyTask: Task<Void, Never>?
+
+    /// Lays the record out off the main thread, then copies it.
+    ///
+    /// The context menu opens on any row, not only the one the pane follows, so
+    /// the record behind it is usually cold — and laying out a large body is
+    /// the same parse and re-serialize the pane already moved off main. The
+    /// pasteboard is written once the text is ready.
+    func copyBody(_ part: CopyPart, of obj: URLTaskObject) {
+        copyTask?.cancel()
+        copyTask = Task(priority: .userInitiated) { [weak self] in
+            let text = await Self.copyText(part, of: obj)
+            guard !Task.isCancelled, self != nil else { return }
+            Utils.copyToClipboard(text)
+        }
+    }
+
+    /// Builds the text for one record.
+    ///
+    /// Every body goes through `URLTaskObject.prettyPrinted` on the raw string
+    /// rather than through the record's own `prettyBody` / `prettyResponseString`.
+    /// Those are `lazy`: filling one here would write to a record the pane can
+    /// be drawing on main at the same moment. Everything else read below is a
+    /// stored property, set once when the record was decoded and never changed
+    /// after — the invariant the whole type is built on.
+    private nonisolated static func copyText(
+        _ part: CopyPart,
+        of obj: URLTaskObject
+    ) async -> String {
+        Utils.assertOffMain("Laying out a body for the pasteboard")
+
+        switch part {
+        case .requestBody:
+            return URLTaskObject.prettyPrinted(obj.body)
+
+        case .responseBody:
+            return URLTaskObject.prettyPrinted(obj.responseString)
+
+        case .all:
+            var arr = [String]()
+            arr.append("== URL ==")
+            arr.append(obj.url)
+            if !obj.body.isEmpty {
+                arr.append("== REQUEST_BODY ==")
+                arr.append(URLTaskObject.prettyPrinted(obj.body))
+            }
+            arr.append("== METHOD ==")
+            arr.append(obj.method)
+
+            arr.append("== REQUEST_HEADERS ==")
+            arr.append(Utils.dictToPlainString(item: obj.reqHeaders))
+
+            arr.append("== STATUS ==")
+            arr.append("\(obj.statusCode)")
+
+            arr.append("== RESPONSE_HEADERS ==")
+            arr.append(Utils.dictToPlainString(item: obj.resHeaders))
+
+            arr.append("== RESPONSE_BODY ==")
+            arr.append(URLTaskObject.prettyPrinted(obj.responseString))
+
+            return arr.joined(separator: "\n")
+        }
+    }
+
+    /// The same, for every selected row.
+    ///
+    /// Worse than the single-row case on main: it read each record — bodies and
+    /// all — and laid out each body, once per selected row, before anything
+    /// reached the pasteboard. All of it happens off main now, records
+    /// included, and the reads are not cached: a copy of fifty rows should not
+    /// evict the pane's record and hold fifty bodies resident afterwards.
     func copy(options: Set<CopyOptions>) {
+        let taskIds = Array(selected)
+        let db = self.db
+        copyTask?.cancel()
+        copyTask = Task(priority: .userInitiated) { [weak self] in
+            do {
+                let text = try await Self.copyText(options: options, taskIds: taskIds, db: db)
+                guard !Task.isCancelled, self != nil else { return }
+                Utils.copyToClipboard(text)
+            } catch is CancellationError {
+                return
+            } catch {
+                self?.appendError(error)
+            }
+        }
+    }
+
+    private nonisolated static func copyText(
+        options: Set<CopyOptions>,
+        taskIds: [String],
+        db: DBProtocol
+    ) async throws -> String {
+        Utils.assertOffMain("Reading and laying out the selected requests for the pasteboard")
+
         var arr = [String]()
 
-        for taskId in selected {
-            guard let obj = fetch(taskId: taskId) else {
+        for taskId in taskIds {
+            try Task.checkCancellation()
+            guard let obj = try db.getItemTask(taskId: taskId) else {
                 continue
             }
 
@@ -380,7 +592,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add request body
             if options.contains(.body) && !obj.body.isEmpty {
-                arr.append("body: \(obj.prettyBody)")
+                arr.append("body: \(URLTaskObject.prettyPrinted(obj.body))")
             }
 
             // Add request headers
@@ -400,13 +612,13 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
             // Add response body
             if options.contains(.response) && !obj.responseString.isEmpty {
-                arr.append("res: " + obj.prettyResponseString)
+                arr.append("res: " + URLTaskObject.prettyPrinted(obj.responseString))
             }
 
             arr.append("-------------")
         }
 
-        Utils.copyToClipboard(arr.joined(separator: "\n"))
+        return arr.joined(separator: "\n")
     }
 
     static let releasesURL = URL(string: "https://github.com/chanonly123/local-response/releases")!

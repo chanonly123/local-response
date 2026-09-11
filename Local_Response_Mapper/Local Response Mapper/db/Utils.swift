@@ -135,6 +135,31 @@ struct KeyValuePair: Identifiable, Hashable {
 
 struct Utils {
 
+    /// Fails a debug build when work that is supposed to be off the main
+    /// thread is not.
+    ///
+    /// Each of these guards a body parse, a body re-serialize, a database
+    /// decode or a file read — the things that stall the window when they land
+    /// on the wrong thread, and exactly the things an `await` added in the
+    /// wrong place silently pulls back onto it. `assert` is compiled out at
+    /// `-O`, so a release build pays nothing for any of them.
+    ///
+    /// `Thread.isMainThread` rather than `dispatchPrecondition`: a Swift
+    /// concurrency pool thread runs under no dispatch queue, so the queue check
+    /// is not meaningful there, and it would stay live in release.
+    static func assertOffMain(
+        _ what: @autoclosure () -> String,
+        file: StaticString = #fileID,
+        line: UInt = #line
+    ) {
+        assert(
+            !Thread.isMainThread,
+            "\(what()) ran on the main thread",
+            file: file,
+            line: line
+        )
+    }
+
     /// Theme names for `CodeEditor`, which still runs its own Highlightr.
     static func getThemeName(colorScheme: ColorScheme) -> String {
         return switch colorScheme {

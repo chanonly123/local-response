@@ -169,22 +169,77 @@ final class URLTaskObject: Codable, Identifiable, FetchableRecord, PersistableRe
     /// happen inside the write that records the call — so a flood paid for it
     /// on every request, on the connection's own queue, for bodies nothing ever
     /// opened. One row is on screen at a time; this is that row's copy.
-    lazy var prettyBody: String = {
-        (try? Utils.prettyPrintJSON(from: body)).flatMap { $0 } ?? body
-    }()
+    lazy var prettyBody: String = Self.prettyPrinted(body)
 
-    lazy var prettyResponseString: String = {
-        (try? Utils.prettyPrintJSON(from: responseString)).flatMap { $0 } ?? responseString
-    }()
+    lazy var prettyResponseString: String = Self.prettyPrinted(responseString)
+
+    /// Past this a body is shown exactly as it arrived.
+    ///
+    /// Laying one out parses it into an object graph the size of the body,
+    /// sorts every dictionary's keys and serializes the whole thing back —
+    /// three passes and a graph to hold while they run. A body this large is
+    /// shown plain by `HighlightBudget` anyway, so all the work buys past here
+    /// is the wait before the pane appears.
+    private static let maxPrettyBytes = 2 * 1024 * 1024
+
+    /// Not private: the copy actions lay a body out from the raw string rather
+    /// than through `prettyBody` / `prettyResponseString`. Those fill a `lazy`
+    /// on a record the pane may be drawing at that moment, and filling one off
+    /// the main thread while main reads it is a race — see
+    /// `ContentViewModel.copyText(_:of:)`.
+    static func prettyPrinted(_ raw: String) -> String {
+        guard raw.utf8.count <= maxPrettyBytes else { return raw }
+        Utils.assertOffMain("Pretty-printing a body")
+        return (try? Utils.prettyPrintJSON(from: raw)).flatMap { $0 } ?? raw
+    }
+
+    /// Builds every derived value the detail pane draws.
+    ///
+    /// All of them are `lazy`, so without this they are built by the first
+    /// redraw that reads them — on the main thread, while the window is trying
+    /// to show the row that was just clicked. Parsing and re-serializing a
+    /// large body, and reading an image back off disk, are the expensive ones.
+    /// Called on the task that read the record, before anything else can see
+    /// it — see `ContentViewModel.loadDetail()`.
+    ///
+    /// `getHost` and `getPath` are deliberately left out. They color their text
+    /// through `SyntaxStyle.current`, which reads the `@Published` scheme off
+    /// `ColorSchemeViewModel.shared` — main-thread state, and reading it from a
+    /// pool thread would race the rotate that writes it. Each is one
+    /// `URL(string:)` and one short `AttributedString`; the first redraw can
+    /// pay for them.
+    /// Whether `warmDetail()` has run on this record.
+    ///
+    /// Not every record reaches the pane through the background read: the
+    /// context menus build one synchronously, on the main thread, and it is
+    /// cached like any other. The pane must not draw one of those — its bodies
+    /// are still unparsed, and parsing them is exactly the main-thread stall
+    /// the background read exists to avoid. Left out of `CodingKeys` with the
+    /// `lazy` caches, so it is neither read from nor written to the database.
+    private(set) var isWarm = false
+
+    func warmDetail() {
+        Utils.assertOffMain("warmDetail(), which builds both bodies and reads the response file,")
+        _ = contentType
+        _ = fileURL
+        _ = image
+        _ = prettyBody
+        _ = prettyResponseString
+        _ = getQuery
+        _ = getReqHeaders
+        _ = getResHeaders
+        _ = getPathString
+        isWarm = true
+    }
 
     lazy var contentType: ContentType? = {
         Utils.determineFileExtensionAndType(from: self).type
     }()
     
     lazy var image: (Image, CGSize)? = {
+        guard contentType == .image, let url = fileURL else { return nil }
+        Utils.assertOffMain("Reading and decoding a response image")
         guard
-            contentType == .image,
-            let url = fileURL,
             let data = try? Data(contentsOf: url),
             let nsImage = NSImage(data: data)
         else {

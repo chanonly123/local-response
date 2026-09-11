@@ -41,7 +41,10 @@ protocol DBProtocol: Sendable {
     /// and published from there — see `ContentViewModel.fetch()`.
     func getRecordsList(filter: String) throws -> [URLTaskRow]
     @MainActor func getMapList() throws -> [MapLocalObject]
-    @MainActor func getItemTask(taskId: String?) throws -> URLTaskObject?
+    /// Deliberately not main-actor bound either: the pane's record carries the
+    /// bodies, and it is read — and laid out — on a background task, see
+    /// `ContentViewModel.loadDetail()`.
+    func getItemTask(taskId: String?) throws -> URLTaskObject?
     @MainActor func getItemMapLocal(id: String?) throws -> MapLocalObject?
     @MainActor func clearAllRecords()
     @MainActor func deleteRecords(taskIds: [String]) throws
@@ -191,6 +194,7 @@ final class DB: DBProtocol, @unchecked Sendable {
             t.column("enable", .boolean).notNull().defaults(to: false)
             t.column("kind", .text).notNull().defaults(to: MapLocalObject.RuleKind.mapResponse.rawValue)
             t.column("subUrl", .text).notNull().defaults(to: "")
+            t.column("urlMatch", .text).notNull().defaults(to: MapLocalObject.URLMatch.contains.rawValue)
             t.column("method", .text).notNull().defaults(to: "")
             t.column("statusCode", .text).notNull().defaults(to: "")
             t.column("resString", .text).notNull().defaults(to: "")
@@ -238,6 +242,11 @@ final class DB: DBProtocol, @unchecked Sendable {
         let matchesAnyUrl: Bool
         let matchesNoUrl: Bool
         let subUrl: String
+        let urlMatch: MapLocalObject.URLMatch
+        /// `wildcard` only: the pattern as characters, so matching a request
+        /// does not rebuild it. Empty for every other mode, which reads the
+        /// pattern straight off `subUrl`.
+        let patternChars: [Character]
         let changesRequest: Bool
         let reqHeaders: [String: String]
         let reqQuery: [String: String]
@@ -251,6 +260,8 @@ final class DB: DBProtocol, @unchecked Sendable {
             matchesAnyUrl = rule.matchesAnyUrl
             matchesNoUrl = rule.matchesNoUrl
             subUrl = rule.trimmedSubUrl
+            urlMatch = rule.urlMatch
+            patternChars = rule.urlMatch == .wildcard ? Array(rule.trimmedSubUrl) : []
             changesRequest = rule.changesRequest
             reqHeaders = rule.reqHeadersMap
             reqQuery = rule.reqQueryMap
@@ -262,7 +273,11 @@ final class DB: DBProtocol, @unchecked Sendable {
         func matches(url: String, method: String) -> Bool {
             guard matchesAnyMethod || self.method == method else { return false }
             guard !matchesNoUrl else { return false }
-            return matchesAnyUrl || url.contains(subUrl)
+            guard !matchesAnyUrl else { return true }
+            guard urlMatch != .wildcard else {
+                return MapLocalObject.URLMatch.globMatches(patternChars, url)
+            }
+            return urlMatch.matches(pattern: subUrl, url: url)
         }
     }
 
@@ -377,6 +392,7 @@ final class DB: DBProtocol, @unchecked Sendable {
             let copy = MapLocalObject()
             copy.enable = source.enable
             copy.subUrl = source.subUrl
+            copy.urlMatch = source.urlMatch
             copy.method = source.method
             copy.resString = source.resString
             copy.statusCode = source.statusCode

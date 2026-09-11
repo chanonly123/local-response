@@ -57,6 +57,7 @@
 		8DAF00122EA1000000000012 /* Template.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00102EA1000000000010 /* Template.swift */; };
 		8DAF00142EA1000000000014 /* TemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00132EA1000000000013 /* TemplateTests.swift */; };
 		8DAF00162EA1000000000016 /* TemplateHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00152EA1000000000015 /* TemplateHelpView.swift */; };
+		8DAF00192EA1000000000019 /* RuleFieldHelp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAF00182EA1000000000018 /* RuleFieldHelp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -120,6 +121,7 @@
 		8DAF00102EA1000000000010 /* Template.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Template.swift; sourceTree = "<group>"; };
 		8DAF00132EA1000000000013 /* TemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTests.swift; sourceTree = "<group>"; };
 		8DAF00152EA1000000000015 /* TemplateHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateHelpView.swift; sourceTree = "<group>"; };
+		8DAF00182EA1000000000018 /* RuleFieldHelp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleFieldHelp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -232,6 +234,7 @@
 				18BA66E62C7080C2005D86E7 /* LocalMapView.swift */,
 				188A7D882C7313A300B09A7F /* LocalMapViewModel.swift */,
 				8DAF00152EA1000000000015 /* TemplateHelpView.swift */,
+				8DAF00182EA1000000000018 /* RuleFieldHelp.swift */,
 			);
 			path = LocalMapView;
 			sourceTree = "<group>";
@@ -417,6 +420,7 @@
 				8DAB10012E96B0010012AB01 /* PersistentHSplitView.swift in Sources */,
 				1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */,
 				18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */,
+				8DAF00192EA1000000000019 /* RuleFieldHelp.swift in Sources */,
 				188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */,
 				8D1555A02E2FAA1400C50B67 /* ContentType.swift in Sources */,
 				1805D02E2C6CF8E200333A88 /* Local_Response_MapperApp.swift in Sources */,

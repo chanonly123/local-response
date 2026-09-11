@@ -31,7 +31,7 @@ class Constants {
     ]
     static let filterKey = "filterKey"
 
-    static let schemaVersion: UInt64 = 31
+    static let schemaVersion: UInt64 = 32
 
     /// Set once the database files Realm left behind have been removed, so the
     /// sweep does not run on every launch forever.
@@ -52,6 +52,11 @@ class Constants {
     static let mapCheckTimeout: TimeInterval = Double(maxMapDelayMs) / 1000 + 10
 
     static let fontSize: CGFloat = 11
+    /// The range ⌘= and ⌘- move within. Named here rather than written into the
+    /// two places that clamp: the menu command and the editor have to agree, or
+    /// the size the menu refuses to pass is one the editor still accepts.
+    static let fontSizeMin: CGFloat = 8
+    static let fontSizeMax: CGFloat = 20
     static let fontSizeKey: String = "fontSize"
     static let leftViewModeKey: String = "leftViewMode"
     /// Master switch over every rule. Stored inverted — the key holds "rules are

@@ -48,11 +48,119 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
         }
     }
 
+    /// How a rule's url pattern is tested against a request's url.
+    ///
+    /// One test in one place. The server, the editor's shadow warning and the
+    /// rule list each used to spell `url.contains(subUrl)` themselves — three
+    /// copies to keep in step, and the comments saying so were already load
+    /// bearing. Everything goes through `matches(pattern:url:)` now.
+    enum URLMatch: String, Codable, CaseIterable {
+        case contains
+        case equals
+        case startsWith
+        case endsWith
+        case wildcard
+
+        /// Reads as a sentence with the `URL` label and the field beside it.
+        var title: String {
+            switch self {
+            case .contains: "contains"
+            case .equals: "equals"
+            case .startsWith: "starts with"
+            case .endsWith: "ends with"
+            case .wildcard: "matches"
+            }
+        }
+
+        /// What the field beside the picker suggests. `*` means every url in
+        /// every mode, so only the modes where a bare `*` is the natural thing
+        /// to type say so.
+        var placeholder: String {
+            switch self {
+            case .contains: "part of a url, or * for every url"
+            case .equals: "the whole url"
+            case .startsWith: "https://api.example.com/v2/"
+            case .endsWith: ".json"
+            case .wildcard: "https://api.*.example.com/users/*/profile"
+            }
+        }
+
+        var help: String {
+            switch self {
+            case .contains: "Fires when the url has this anywhere in it."
+            case .equals: "Fires only when the url is exactly this."
+            case .startsWith: "Fires when the url begins with this."
+            case .endsWith: "Fires when the url ends with this."
+            case .wildcard: "Fires when the url fits this pattern. * stands for any run of characters, ? for exactly one."
+            }
+        }
+
+        func matches(pattern: String, url: String) -> Bool {
+            switch self {
+            case .contains: url.contains(pattern)
+            case .equals: url == pattern
+            case .startsWith: url.hasPrefix(pattern)
+            case .endsWith: url.hasSuffix(pattern)
+            case .wildcard: Self.globMatches(Array(pattern), url)
+            }
+        }
+
+        /// `*` stands for any run of characters, `?` for exactly one.
+        ///
+        /// Iterative with one backtrack point rather than recursive: a pattern
+        /// carrying several stars is where the naive recursive form goes
+        /// exponential, and the url side is whatever the app under test asks
+        /// for rather than anything this app chose.
+        ///
+        /// The pattern arrives as characters because the server keeps it that
+        /// way between requests — see `DB.CompiledRule`. The url is walked by
+        /// index so matching allocates nothing per request.
+        static func globMatches(_ pattern: [Character], _ text: String) -> Bool {
+            var textIndex = text.startIndex
+            var patternIndex = 0
+            // Where the last `*` was, and how much of the text it has been made
+            // to swallow so far.
+            var star = -1
+            var swallowed = text.startIndex
+
+            while textIndex < text.endIndex {
+                if patternIndex < pattern.count,
+                   pattern[patternIndex] == "?" || pattern[patternIndex] == text[textIndex] {
+                    patternIndex += 1
+                    textIndex = text.index(after: textIndex)
+                } else if patternIndex < pattern.count, pattern[patternIndex] == "*" {
+                    star = patternIndex
+                    patternIndex += 1
+                    swallowed = textIndex
+                } else if star >= 0 {
+                    // Give the last star one more character and try again.
+                    // `swallowed` is at most `textIndex`, which the loop
+                    // condition keeps below `endIndex`, so this always lands.
+                    patternIndex = star + 1
+                    swallowed = text.index(after: swallowed)
+                    textIndex = swallowed
+                } else {
+                    return false
+                }
+            }
+
+            // Trailing stars have nothing left to match, which is allowed.
+            while patternIndex < pattern.count, pattern[patternIndex] == "*" {
+                patternIndex += 1
+            }
+            return patternIndex == pattern.count
+        }
+    }
+
     var id: String = UUID().uuidString
     var date: Double = Date().timeIntervalSince1970
 
     var enable: Bool = false
     var subUrl: String = ""
+
+    /// How `subUrl` is read. `contains` is what every rule did before this
+    /// existed, so it is what an unset one still does.
+    var urlMatch: URLMatch = .contains
     var method: String = ""
     var resString: String = ""
     var statusCode: String = ""
@@ -84,7 +192,7 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
     /// `order` is a reserved word in SQL, so the column carries a different
     /// name than the property it fills.
     enum CodingKeys: String, CodingKey {
-        case id, date, enable, subUrl, method, resString, statusCode, resHeaders
+        case id, date, enable, subUrl, urlMatch, method, resString, statusCode, resHeaders
         case kind, reqHeaders, reqQuery, reqString, hitCount
         case order = "sortOrder"
     }
@@ -108,7 +216,8 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
     var matchesAnyMethod: Bool { method.contains("*") }
 
     /// `*` on its own stands for "every url", the same way the method picker
-    /// spells it.
+    /// spells it — in every mode, not only the ones where it reads naturally.
+    /// Under `wildcard` the glob would say the same thing anyway.
     var matchesAnyUrl: Bool { trimmedSubUrl == "*" }
 
     /// An empty url matches nothing rather than everything: a blank field is a
@@ -145,9 +254,12 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
     /// list in `order` and stops at the first `mapResponse` hit, a covered rule
     /// that sits later can never fire.
     ///
-    /// Url matching is `request.url.contains(subUrl)`, so a url reaching
-    /// `other` contains `other.subUrl`, which — when that in turn contains this
-    /// rule's `subUrl` — means it reaches this rule too.
+    /// Only answerable for two `contains` rules: a url reaching `other`
+    /// contains `other.subUrl`, which — when that in turn contains this rule's
+    /// `subUrl` — means it reaches this rule too. Once either side is matching
+    /// some other way, "does every url matching `other` also match this one"
+    /// has no general answer, and a wrong yes hides a rule that does fire. Any
+    /// such pair is reported as shadowing nothing.
     ///
     /// Only rules of the same kind can shadow each other, and only
     /// `mapResponse` ones actually do: every matching `modifyRequest` rule is
@@ -159,6 +271,7 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
         guard !matchesNoUrl, !other.matchesNoUrl else { return false }
         if matchesAnyUrl { return true }
         guard !other.matchesAnyUrl else { return false }
+        guard urlMatch == .contains, other.urlMatch == .contains else { return false }
         return other.trimmedSubUrl.contains(trimmedSubUrl)
     }
 
@@ -166,7 +279,8 @@ final class MapLocalObject: Codable, Identifiable, FetchableRecord, PersistableR
     func matches(url: String, method: String) -> Bool {
         guard matchesAnyMethod || self.method == method else { return false }
         guard !matchesNoUrl else { return false }
-        return matchesAnyUrl || url.contains(trimmedSubUrl)
+        guard !matchesAnyUrl else { return true }
+        return urlMatch.matches(pattern: trimmedSubUrl, url: url)
     }
 
     /// Header names are case-insensitive on the wire, so a rule that spells one
