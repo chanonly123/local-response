@@ -12,7 +12,7 @@ struct ContentView: View {
     @StateObject private var localMapsViewm = LocalMapViewModel()
     @StateObject private var myColorScheme = ColorSchemeViewModel.shared
     @StateObject private var viewm = ContentViewModel()
-    @StateObject private var server = LocalServer()
+    @ObservedObject private var server = LocalServer.shared
     @AppStorage(Constants.autoScrollOffKey) private var autoScrollOff = false
     @State private var scrollToId: String?
     @Environment(\.openWindow) private var openWindow
@@ -115,7 +115,9 @@ struct ContentView: View {
         .background(ToolbarLock())
         .showErrors(errors: viewm.errors)
         .onAppear {
-            server.startServer()
+            // The server itself is started by `AppDelegate`; this only covers
+            // the address, which can change while the app runs, and the
+            // version check.
             server.reloadLocalAddress()
             viewm.checkForNewVersion()
         }

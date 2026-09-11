@@ -11,7 +11,16 @@ import Factory
 
 class LocalServer: ObservableObject {
 
-    @MainActor init() {}
+    /// One server for the process, not one per window.
+    ///
+    /// It used to be a `@StateObject` on `ContentView`, so the listener's life
+    /// was tied to a window's. Closing the window and reopening it from the
+    /// Dock does not re-run `onAppear` — AppKit keeps the scene's state and
+    /// only re-shows the window — so nothing restarted the server, and a
+    /// window that had been torn down took the listener with it.
+    @MainActor static let shared = LocalServer()
+
+    @MainActor private init() {}
 
     let server = HTTPServer(address: .inet(port: UInt16(Constants.localBaseUrlPort)))
     @Injected(\.db) var db

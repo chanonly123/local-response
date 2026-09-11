@@ -236,6 +236,7 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     }
 
     func clearAll() {
+        selected = []
         db.clearAllRecords()
         seenNodes.removeAll()
         expandedNodes.removeAll()

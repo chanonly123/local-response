@@ -26,6 +26,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             options: [.userInitiatedAllowingIdleSystemSleep],
             reason: "Recording network traffic in the background"
         )
+
+        // Started here rather than from `ContentView.onAppear`: the listener
+        // belongs to the process, not to a window. Closing the window and
+        // reopening it from the Dock does not re-run `onAppear`.
+        Task { @MainActor in
+            LocalServer.shared.startServer()
+            LocalServer.shared.reloadLocalAddress()
+        }
+    }
+
+    /// Reopen from the Dock with no window left: the IP may have changed while
+    /// the app sat in the background, and no view-level hook fires here.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        Task { @MainActor in
+            LocalServer.shared.startServer()
+            LocalServer.shared.reloadLocalAddress()
+        }
+        return true
     }
 }
 
