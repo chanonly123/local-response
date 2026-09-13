@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Runs before Application.onCreate, so the package name is known by
+             the time the first request can be intercepted. The authority is
+             namespaced with the host app's id: two apps carrying this library
+             on one device would otherwise clash and the second would fail to
+             install. -->
+        <provider
+            android:name=".LocalResponseInitializer"
+            android:authorities="${applicationId}.localresponse-init"
+            android:exported="false"
+            android:enabled="true" />
+    </application>
+
+</manifest>

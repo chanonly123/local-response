@@ -1,2 +1,3 @@
 - dont run the project, only compile if needed
 - brief answers
+- always ask to run the local response server if needed, for rules and verification of logging.

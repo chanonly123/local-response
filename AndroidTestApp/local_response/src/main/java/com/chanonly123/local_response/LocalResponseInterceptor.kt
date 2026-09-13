@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import java.util.UUID
@@ -17,13 +19,13 @@ class LocalResponseInterceptor(
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val taskId = UUID.randomUUID().toString()
-
         val request = chain.request()
-        val currentUrl = request.url
-        val newUrl = currentUrl.newBuilder().build()
-        val currentRequest = request.newBuilder()
-        val newRequest = currentRequest.url(newUrl)
+
+        if (shouldIgnore(request.url.toString())) {
+            return chain.proceed(request)
+        }
+
+        val taskId = UUID.randomUUID().toString()
 
         val beginData = URLTaskModelBegin.init(
             taskId = taskId,
@@ -43,11 +45,37 @@ class LocalResponseInterceptor(
             }
         }
 
+        var outgoing = request
         try {
             val map = MapCheckRequest(url = request.url.toString(), method = request.method)
-            val id: String? = serverClient.checkIfLocalMapResponseAvailable(data = map)
-            if (id?.isNotEmpty() ?: false) {
-                serverClient.updateRequest(id, newRequest)
+            val result = serverClient.checkIfLocalMapResponseAvailable(data = map)
+            if (result != null) {
+                // Edits go on first: they describe the request as the app would
+                // have sent it, and a mapped response then replaces that request
+                // wholesale.
+                if (result.changesRequest) {
+                    outgoing = applyRequestChanges(result, outgoing)
+
+                    // Reported from the built request rather than from the rule,
+                    // so the record shows exactly what goes on the wire.
+                    val updateData = URLTaskModelUpdate.init(taskId = taskId, request = outgoing)
+                    coroutineScope.launch {
+                        try {
+                            serverClient.sendToLocalServerData(obj = updateData)
+                        } catch (e: Exception) {
+                            if (config.isDebugEnabled) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                }
+
+                result.overrideId?.let { id ->
+                    outgoing = serverClient.overriddenRequest(id, outgoing)
+                    if (config.isDebugEnabled) {
+                        println("LocalResponse: Mapped response $id for ${request.url}")
+                    }
+                }
             }
         } catch (e: Exception) {
             if (config.isDebugEnabled) {
@@ -56,7 +84,7 @@ class LocalResponseInterceptor(
         }
 
         try {
-            val response = chain.proceed(newRequest.build())
+            val response = chain.proceed(outgoing)
             val bytes: ByteArray = response.body.bytes()
 
             val endData = URLTaskModelEnd.init(
@@ -103,5 +131,47 @@ class LocalResponseInterceptor(
             }
             throw e
         }
+    }
+
+    /**
+     * Applies a `modifyRequest` rule to the request that is about to be sent.
+     */
+    private fun applyRequestChanges(changes: MapCheckResponse, request: Request): Request {
+        val builder = request.newBuilder()
+
+        // A rule sets parameters, it does not rewrite the query string: every
+        // parameter the url already carries and no rule names is kept, in the
+        // order it carries them.
+        if (!changes.reqQuery.isNullOrEmpty()) {
+            val url = request.url.newBuilder()
+            changes.reqQuery.forEach { (key, value) -> url.setQueryParameter(key, value) }
+            builder.url(url.build())
+        }
+
+        // `header` rather than `addHeader`: a rule declares what the header is,
+        // not one more value for it.
+        changes.reqHeaders?.forEach { (key, value) -> builder.header(key, value) }
+
+        changes.reqBody?.let { body ->
+            // Content type stays as the app set it; the rule replaces what is
+            // sent, not what it is. Content-Length is OkHttp's to fill in.
+            builder.method(request.method, body.toRequestBody(request.body?.contentType()))
+        }
+
+        return builder.build()
+    }
+
+    /**
+     * Anything the caller filtered out, plus the mapper itself: a request the
+     * app aims at the local server is the mapper's own traffic, not the app's.
+     */
+    private fun shouldIgnore(url: String): Boolean {
+        if (config.serverUrl.isNotEmpty() && url.startsWith(config.serverUrl)) {
+            return true
+        }
+        if (config.excludeUrls.any { url.contains(it) }) {
+            return true
+        }
+        return config.urlFilters.isNotEmpty() && config.urlFilters.none { url.contains(it) }
     }
 }

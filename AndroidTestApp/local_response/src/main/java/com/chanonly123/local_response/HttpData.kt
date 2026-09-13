@@ -80,21 +80,63 @@ data class URLTaskModelEnd(
             )
         }
 
+        /// The Android answer to iOS's bundle identifier. Supplied by
+        /// [LocalResponseInitializer], so no `Context` has to be passed in when
+        /// the interceptor is built.
         fun getBundleId(): String? {
-            // In Android, you can get the package name (like bundle ID)
-            return try {
-//                val context = MyApp.context  // replace with your Application context reference
-//                context.packageName
-                "package_name"
-            } catch (e: Exception) {
-                null
-            }
+            return LocalResponseInitializer.packageName
         }
     }
 }
 
 
+/// The request as it actually goes out, sent after a `modifyRequest` rule has
+/// edited it. `record-begin` has already reported the request the app built, so
+/// this replaces those fields on the recorded call.
+data class URLTaskModelUpdate(
+    val taskId: String,
+    val url: String,
+    val method: String,
+    val reqHeaders: Map<String, String>,
+    val body: String?,
+    val bundleID: String?
+) {
+    companion object {
+
+        fun init(taskId: String, request: Request): URLTaskModelUpdate {
+            return URLTaskModelUpdate(
+                taskId = taskId,
+                url = request.url.toString(),
+                method = request.method,
+                reqHeaders = request.headers.toMap(),
+                body = request.body?.let { URLTaskModelBegin.readRequestBody(it) },
+                bundleID = URLTaskModelEnd.getBundleId()
+            )
+        }
+    }
+}
+
 data class MapCheckRequest(
     val url: String,
     val method: String,
 )
+
+/// What the mapper wants done with a request that is about to be sent: edits to
+/// apply to it, and — when a rule answers it locally — the rule that serves the
+/// response instead.
+///
+/// Every field is nullable because Gson writes JSON nulls straight past a
+/// non-null Kotlin type; a payload from an older mapper that omits `reqQuery`
+/// has to read as empty rather than blow up at the first use.
+data class MapCheckResponse(
+    val overrideId: String? = null,
+    val reqHeaders: Map<String, String>? = null,
+    val reqQuery: Map<String, String>? = null,
+    val reqBody: String? = null
+) {
+    val changesRequest: Boolean
+        get() = !reqHeaders.isNullOrEmpty() || !reqQuery.isNullOrEmpty() || reqBody != null
+
+    val isEmpty: Boolean
+        get() = overrideId == null && !changesRequest
+}

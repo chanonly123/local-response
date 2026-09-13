@@ -17,7 +17,10 @@ object NetworkModule {
 
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(interceptor = LocalResponseInterceptor(config = LocalResponseConfig.emulator()))
+            .addInterceptor(interceptor = LocalResponseInterceptor(
+                // config = LocalResponseConfig.emulator(),
+                config = LocalResponseConfig.localIpAddress(url = "http://192.168.31.86:4040"),
+            ))
             .addInterceptor(interceptor = logging)
             .build()
     }
