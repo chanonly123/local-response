@@ -1,0 +1,20 @@
+# Tells JitPack how to build the Android library.
+#
+# Without this file JitPack inspects the repository root, finds Package.swift
+# rather than a Gradle build, spots AndroidTestApp/app/src/main/AndroidManifest.xml
+# and concludes this is a legacy Ant project — then fails looking for
+# project.properties. The Gradle build lives one directory down, so the steps
+# have to be spelled out.
+jdk:
+  - openjdk17
+
+before_install:
+  # The image ships the SDK but not always its licences, and Gradle refuses to
+  # fetch a missing platform without them. Guarded so a layout change in the
+  # image cannot fail the build here rather than at a useful place.
+  - if [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true; fi
+
+install:
+  # Only the library: the Compose test app beside it is not published and
+  # building it would be several minutes of someone else's CI for nothing.
+  - cd AndroidTestApp && ./gradlew :local_response:publishToMavenLocal --no-daemon

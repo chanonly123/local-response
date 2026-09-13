@@ -6,8 +6,13 @@ plugins {
 
 /// One version for both platforms: the release workflow tags on a
 /// `MARKETING_VERSION` bump, so reading it here is what keeps the published
-/// Android artifact and the tag that triggered it in step. The fallback is for
-/// a checkout of this module on its own, without the Xcode project beside it.
+/// Android artifact and the tag that triggered it in step.
+///
+/// `VERSION` comes first because a build service that checks out a tag knows
+/// the version it was asked for, and an artifact published under any other
+/// number is one the caller cannot resolve. The xcconfig is the fallback for a
+/// local build, and the last resort is for a checkout of this module on its
+/// own, without the Xcode project beside it.
 val libraryVersion: String = run {
     val config = rootDir.parentFile?.resolve("Local_Response_Mapper/Config.xcconfig")
     val fromConfig = config?.takeIf { it.isFile }
@@ -16,7 +21,10 @@ val libraryVersion: String = run {
         ?.substringAfter("=")
         ?.trim()
         ?.trimEnd(';')
-    (project.findProperty("libraryVersion") as String?) ?: fromConfig ?: "0.0.0-SNAPSHOT"
+    (project.findProperty("libraryVersion") as String?)
+        ?: System.getenv("VERSION")?.takeIf { it.isNotBlank() }
+        ?: fromConfig
+        ?: "0.0.0-SNAPSHOT"
 }
 
 android {
