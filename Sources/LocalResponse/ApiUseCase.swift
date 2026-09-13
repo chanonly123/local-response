@@ -35,20 +35,22 @@ class ApiUseCase {
         return URLSession(configuration: config)
     }()
 
+    /// Every body sent to the mapper goes through here, so this is the one
+    /// place the payload is encrypted — see `LocalCrypto`.
     private func toData(from: Encodable) -> Data? {
         do {
-            return try JSONEncoder().encode(from)
+            return LocalCrypto.seal(try JSONEncoder().encode(from))
         } catch let e {
             Logger.debugPrint("\(e)")
         }
         return nil
     }
 
+    /// Encodes without going through `toData`, which seals its output — the
+    /// point of this one is readable json.
     private func toString(from: Encodable) -> String? {
-        if let data = toData(from: from) {
-            return String(data: data, encoding: .utf8)
-        }
-        return nil
+        guard let data = try? JSONEncoder().encode(from) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     private func createURLRequest(endpoint: String) -> URLRequest {
@@ -123,7 +125,10 @@ class ApiUseCase {
 
             if let data, !data.isEmpty {
                 do {
-                    result = try JSONDecoder().decode(MapCheckResponse.self, from: data)
+                    guard let plain = LocalCrypto.open(data) else {
+                        throw NSError(domain: "could not decrypt map check response", code: -1)
+                    }
+                    result = try JSONDecoder().decode(MapCheckResponse.self, from: plain)
                 } catch let e {
                     error = e
                 }

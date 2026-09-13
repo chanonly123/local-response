@@ -51,8 +51,15 @@ internal class LocalServerClient(private val config: LocalResponseConfig) {
      * `204 No Content`, so an empty body is the ordinary case, not a failure.
      */
     fun checkIfLocalMapResponseAvailable(data: MapCheckRequest): MapCheckResponse? {
-        val json = sendHttpData(config.endpointCheckMapResponse, data, mapCheckClient)
+        val sealed = sendHttpData(config.endpointCheckMapResponse, data, mapCheckClient)
+        if (sealed == null || sealed.isEmpty()) {
+            return null
+        }
+        val json = LocalCrypto.open(sealed)?.toString(Charsets.UTF_8)
         if (json.isNullOrBlank()) {
+            if (config.isDebugEnabled) {
+                println("LocalResponse: could not decrypt map check response — shared key mismatch?")
+            }
             return null
         }
         return try {
@@ -84,15 +91,20 @@ internal class LocalServerClient(private val config: LocalResponseConfig) {
             .build()
     }
 
+    /// Returns the raw response body, still sealed — the one caller that reads
+    /// a reply decrypts it itself.
     private fun sendHttpData(
         endpoint: String,
         obj: Any,
         client: OkHttpClient = httpClient
-    ): String? {
+    ): ByteArray? {
         try {
 
             val json: String = gson.toJson(obj)
-            val requestBody = json.toRequestBody("application/json".toMediaType())
+            // Sealed here rather than at each call site: every body the library
+            // sends the mapper goes out through this method.
+            val sealed = LocalCrypto.seal(json.toByteArray(Charsets.UTF_8)) ?: return null
+            val requestBody = sealed.toRequestBody("application/octet-stream".toMediaType())
 
             val comps = endpoint.split(" ")
             val method = comps.first()
@@ -101,7 +113,7 @@ internal class LocalServerClient(private val config: LocalResponseConfig) {
             val request = Request.Builder()
                 .url(url)
                 .method(method, requestBody)
-                .addHeader("Content-Type", "application/json")
+                .addHeader("Content-Type", "application/octet-stream")
                 .build()
 
             // `use` rather than a close on one branch: the body has to be
@@ -113,7 +125,7 @@ internal class LocalServerClient(private val config: LocalResponseConfig) {
                 }
 
                 if (response.isSuccessful) {
-                    return response.body.string()
+                    return response.body.bytes()
                 }
             }
         } catch (e: Exception) {

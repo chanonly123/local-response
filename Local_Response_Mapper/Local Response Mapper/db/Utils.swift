@@ -321,6 +321,23 @@ struct Utils {
         set { UserDefaults.standard.set(min(max(newValue, 0), Constants.maxMapDelayMs), forKey: Constants.mapDelayMsKey) }
     }
 
+    /// The whitelist and blacklist applied to every incoming record. Read
+    /// straight from `UserDefaults` like the settings above, so the server can
+    /// ask for it on a background thread.
+    static var recordFilters: RecordFilters {
+        get {
+            UserDefaults.standard.data(forKey: Constants.recordFiltersKey)
+                .flatMap { try? JSONDecoder().decode(RecordFilters.self, from: $0) }
+                ?? RecordFilters()
+        }
+        set {
+            // Left alone rather than cleared if encoding somehow fails: the
+            // stored filters are better than none.
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            UserDefaults.standard.set(data, forKey: Constants.recordFiltersKey)
+        }
+    }
+
     /// The delay as the controls say it — one decimal, always seconds, so the
     /// label and the field never disagree about what `1500` is.
     static func delayLabel(_ ms: Int) -> String {
@@ -387,5 +404,57 @@ struct Utils {
         }
 
         return (finalExt, contentType)
+    }
+}
+
+/// Which calls the mapper records at all.
+///
+/// Applied by the server as a record arrives, so a filtered call is never
+/// written and never reaches the list — unlike a display filter, which would
+/// still leave the traffic in the database. Matching is "url contains this
+/// text", case insensitive; there is no globbing, because the point is to drop
+/// the analytics and crash-reporter noise an app makes on launch, and a
+/// hostname is enough to name that.
+struct RecordFilters: Codable, Equatable {
+
+    /// When on, only urls matching one of `whitelist` are recorded. An empty
+    /// list means the switch has no effect — an enabled but empty whitelist
+    /// would silently record nothing at all, which reads as the app being
+    /// broken.
+    var whitelistEnabled: Bool = false
+    var whitelist: [String] = []
+
+    /// When on, urls matching any of `blacklist` are dropped. Applied after the
+    /// whitelist, so a url on both lists is dropped.
+    var blacklistEnabled: Bool = false
+    var blacklist: [String] = []
+
+    func allows(url: String) -> Bool {
+        if whitelistEnabled {
+            let patterns = Self.usable(whitelist)
+            if !patterns.isEmpty, !Self.matches(url, patterns) { return false }
+        }
+        if blacklistEnabled, Self.matches(url, Self.usable(blacklist)) {
+            return false
+        }
+        return true
+    }
+
+    /// How many entries are actually doing something, for the toolbar label.
+    var activeCount: Int {
+        (whitelistEnabled ? Self.usable(whitelist).count : 0)
+            + (blacklistEnabled ? Self.usable(blacklist).count : 0)
+    }
+
+    /// A blank row is one the user is still typing into, not a rule that
+    /// matches every url.
+    private static func usable(_ patterns: [String]) -> [String] {
+        patterns
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private static func matches(_ url: String, _ patterns: [String]) -> Bool {
+        patterns.contains { url.range(of: $0, options: .caseInsensitive) != nil }
     }
 }

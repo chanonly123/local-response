@@ -622,7 +622,17 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
         return arr.joined(separator: "\n")
     }
 
-    static let releasesURL = URL(string: "https://github.com/chanonly123/local-response/releases")!
+    /// Downloads the newest release, unpacks it into Downloads and launches it.
+    ///
+    /// `latest/download` resolves to whichever release is newest, so this never
+    /// needs revising for a version. Fetching with `curl` rather than a browser
+    /// matters: a browser stamps the download with `com.apple.quarantine`, and
+    /// the app is only ad-hoc signed, so Gatekeeper would refuse to open it.
+    ///
+    /// Deliberately free of double quotes so it embeds in the AppleScript
+    /// string below without escaping — hence the tilde outside the quoting on
+    /// the last path, which needs the shell to expand it.
+    static let downloadLatestCommand = "curl -L -o ~/Downloads/app.zip https://github.com/chanonly123/local-response/releases/latest/download/Local.Response.Mapper.app.zip && unzip -oq ~/Downloads/app.zip -d ~/Downloads && open ~/Downloads/'Local Response Mapper.app'"
 
     func getUpdateButton() -> some View {
         Button("Update") { [weak self] in
@@ -638,20 +648,32 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
     /// this app is sandboxed and can't touch the repo itself.
     func runUpdate() {
         guard let scriptURL = locateUpdateScript() else {
-            // Couldn't find the source checkout (e.g. a downloaded release
-            // binary) — fall back to the releases page.
-            NSWorkspace.shared.open(Self.releasesURL)
+            // No source checkout to rebuild from (e.g. this is itself a
+            // downloaded release binary), so fetch the newest release instead
+            // of sending the user to the releases page to do it by hand.
+            runInTerminal(Self.downloadLatestCommand)
             return
         }
 
-        // Hand off to Terminal via AppleScript rather than writing a `.command`
-        // launcher. A file written by this sandboxed app gets stamped with the
-        // quarantine attribute, which makes Gatekeeper report it as "damaged".
-        // `osascript` telling Terminal to `do script` avoids the file entirely.
-        //
         // Single-quote the script path for the shell; no double quotes inside,
         // so the command embeds cleanly in the AppleScript string.
-        let shellCommand = "bash '\(scriptURL.path)'"
+        runInTerminal("bash '\(scriptURL.path)'")
+    }
+
+    /// Runs `shellCommand` in a new Terminal window, then quits this instance.
+    ///
+    /// Handed to Terminal via AppleScript rather than written as a `.command`
+    /// launcher. A file written by this sandboxed app gets stamped with the
+    /// quarantine attribute, which makes Gatekeeper report it as "damaged".
+    /// `osascript` telling Terminal to `do script` avoids the file entirely.
+    ///
+    /// The command must contain no double quotes — it is embedded in the
+    /// AppleScript string literal as-is.
+    ///
+    /// Quitting is what makes either update work: a running process cannot
+    /// replace its own binary, and a newly launched copy cannot take the
+    /// server's port while this one holds it.
+    private func runInTerminal(_ shellCommand: String) {
         let appleScript = """
         tell application "Terminal"
             do script "\(shellCommand)"
@@ -665,8 +687,8 @@ class ContentViewModel: ObservableObject, ObservableObjectErrors {
 
         do {
             try process.run()
-            // Give Terminal a moment to launch before we quit so update.sh can
-            // detect our exit and safely rebuild.
+            // Give Terminal a moment to launch before we quit, so the script
+            // can detect our exit and safely rebuild or relaunch.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NSApplication.shared.terminate(nil)
             }

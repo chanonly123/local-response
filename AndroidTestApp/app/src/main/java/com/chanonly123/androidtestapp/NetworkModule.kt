@@ -15,7 +15,10 @@ object NetworkModule {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
+    /// Exposed so the sample catalogue can make raw OkHttp calls through the
+    /// same client — every sample has to pass through LocalResponseInterceptor
+    /// or it is not testing anything.
+    val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(interceptor = LocalResponseInterceptor(
                 // config = LocalResponseConfig.emulator(),

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1805D02E2C6CF8E200333A88 /* Local_Response_MapperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */; };
 		1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1805D02F2C6CF8E200333A88 /* ContentView.swift */; };
+		41B08A7CE83B0E9324513A0A /* RecordFiltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E24237A3F2AC1898623587 /* RecordFiltersView.swift */; };
 		1805D0322C6CF8E300333A88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1805D0312C6CF8E300333A88 /* Assets.xcassets */; };
 		1805D0352C6CF8E300333A88 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1805D0342C6CF8E300333A88 /* Preview Assets.xcassets */; };
 		1805D03D2C6CF9CE00333A88 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */; };
@@ -77,6 +78,7 @@
 		1805D02A2C6CF8E200333A88 /* Local Response Mapper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Local Response Mapper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1805D02D2C6CF8E200333A88 /* Local_Response_MapperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Local_Response_MapperApp.swift; sourceTree = "<group>"; };
 		1805D02F2C6CF8E200333A88 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		96E24237A3F2AC1898623587 /* RecordFiltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFiltersView.swift; sourceTree = "<group>"; };
 		1805D0312C6CF8E300333A88 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1805D0342C6CF8E300333A88 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1805D0362C6CF8E300333A88 /* Local_Response_Mapper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Local_Response_Mapper.entitlements; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				1805D02F2C6CF8E200333A88 /* ContentView.swift */,
+				96E24237A3F2AC1898623587 /* RecordFiltersView.swift */,
 				1805D03C2C6CF9CE00333A88 /* ContentViewModel.swift */,
 				18CB6DA32C6E52E80074B8E0 /* LocalServer.swift */,
 				8D15559C2E2FA79B00C50B67 /* ResponseView.swift */,
@@ -419,6 +422,7 @@
 				8DA1F0022E96A1010012AB01 /* EndpointTreeView.swift in Sources */,
 				8DAB10012E96B0010012AB01 /* PersistentHSplitView.swift in Sources */,
 				1805D0302C6CF8E200333A88 /* ContentView.swift in Sources */,
+				41B08A7CE83B0E9324513A0A /* RecordFiltersView.swift in Sources */,
 				18BA66E72C7080C2005D86E7 /* LocalMapView.swift in Sources */,
 				8DAF00192EA1000000000019 /* RuleFieldHelp.swift in Sources */,
 				188A7D892C7313A300B09A7F /* LocalMapViewModel.swift in Sources */,

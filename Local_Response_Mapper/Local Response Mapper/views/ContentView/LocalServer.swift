@@ -9,6 +9,11 @@ import FlyingFox
 import Foundation
 import Factory
 
+enum LocalServerError: Error {
+    /// The body did not open with the shared key.
+    case undecryptableBody
+}
+
 class LocalServer: ObservableObject {
 
     /// One server for the process, not one per window.
@@ -79,26 +84,52 @@ class LocalServer: ObservableObject {
         listeningAddress = "http://\(ipAddr):\(Constants.localBaseUrlPort)"
     }
 
+    /// The library seals every body it sends, so nothing readable crosses the
+    /// network. A body that will not open is from a build carrying a different
+    /// `Constants.sharedKey` — the app and the library have to ship together.
+    private static func decode<T: Decodable>(_ type: T.Type, from body: Data) throws -> T {
+        guard let plain = LocalCrypto.open(body) else {
+            throw LocalServerError.undecryptableBody
+        }
+        return try JSONDecoder().decode(type, from: plain)
+    }
+
     lazy var recordBegin: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(URLTaskModelBegin.self, from: req.bodyData)
+        let obj = try await Self.decode(URLTaskModelBegin.self, from: req.bodyData)
+        // Dropped here rather than hidden in the list: a filtered call is never
+        // written, so it costs no row, no file on disk and no redraw. The app
+        // is told everything is fine — whether the mapper kept the record is
+        // not its business, and a failure would only make it retry.
+        guard Utils.recordFilters.allows(url: obj.url) else {
+            return HTTPResponse(statusCode: .ok)
+        }
         try self.db.recordBegin(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
 
     lazy var recordUpdate: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(URLTaskModelUpdate.self, from: req.bodyData)
+        let obj = try await Self.decode(URLTaskModelUpdate.self, from: req.bodyData)
+        // Checked against the rewritten url, which is the one the call actually
+        // used. `recordUpdate` inserts when the row is missing — it races with
+        // `recordBegin` — so without this a filtered call could still appear.
+        guard Utils.recordFilters.allows(url: obj.url) else {
+            return HTTPResponse(statusCode: .ok)
+        }
         try self.db.recordUpdate(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
 
+    /// Not filtered: the payload carries no url to filter on, and it does not
+    /// need one — `recordEnd` only finishes a row that already exists, so a
+    /// call whose start was dropped has nothing here to find.
     lazy var recordEnd: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(URLTaskModelEnd.self, from: req.bodyData)
+        let obj = try await Self.decode(URLTaskModelEnd.self, from: req.bodyData)
         try self.db.recordEnd(task: obj)
         return HTTPResponse(statusCode: .ok)
     }
 
     lazy var returnMappedIfAny: (@Sendable (HTTPRequest) async throws -> HTTPResponse) = { req in
-        let obj = try await JSONDecoder().decode(MapCheckRequest.self, from: req.bodyData)
+        let obj = try await Self.decode(MapCheckRequest.self, from: req.bodyData)
         if let result = try self.db.getLocalMapIfAvailable(req: obj), !result.isEmpty {
             // Waited out here rather than on the client: the app blocks on this
             // check before it sends or serves anything, so holding the answer
@@ -108,7 +139,9 @@ class LocalServer: ObservableObject {
             if delayMs > 0 {
                 try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
             }
-            let data = try JSONEncoder().encode(result)
+            guard let data = LocalCrypto.seal(try JSONEncoder().encode(result)) else {
+                return HTTPResponse(statusCode: .internalServerError)
+            }
             return HTTPResponse(statusCode: .ok, body: data)
         } else {
             return HTTPResponse(statusCode: .noContent)

@@ -74,7 +74,7 @@
 
    Then the dependency in your module's `build.gradle.kts`:
    ```kotlin
-   debugImplementation("com.github.chanonly123:local-response:2.2.6")
+   debugImplementation("com.github.chanonly123:local-response:2.2.7")
    ```
 
    `debugImplementation` keeps the interceptor — and the local network traffic it

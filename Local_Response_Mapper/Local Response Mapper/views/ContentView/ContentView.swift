@@ -29,6 +29,11 @@ struct ContentView: View {
     /// back. Columns are a preference, and this is where preferences live.
     @State private var customization: TableColumnCustomization<URLTaskRow>
 
+    /// Mirrors `Utils.recordFilters` so the toolbar label can react to an edit.
+    /// The server reads the stored copy, not this one.
+    @State private var recordFilters = Utils.recordFilters
+    @State private var showRecordFilters = false
+
     @AppStorage(Constants.hideUrlQueryKey) private var hideUrlQuery = false
 
     /// Both settings are stored as their opposite — see `Constants` — so each
@@ -140,6 +145,15 @@ struct ContentView: View {
                 Label("Theme", systemImage: "circle.lefthalf.striped.horizontal.inverse")
             }
 
+            Button {
+                showRecordFilters = true
+            } label: {
+                // The count is the point of the label: filters drop traffic
+                // before it is ever recorded, so an empty list is otherwise
+                // indistinguishable from a quiet app.
+                Text("Filters\(recordFilters.activeCount > 0 ? " (\(recordFilters.activeCount))" : "")")
+            }
+
             let enabledCount = localMapsViewm.getEnabledCount
 
             Button {
@@ -169,6 +183,9 @@ struct ContentView: View {
                 Text(viewm.newVersionDesc ?? "")
             }
         )
+        .sheet(isPresented: $showRecordFilters) {
+            RecordFiltersView(filters: $recordFilters)
+        }
         .popover(
             isPresented: $showMultiCopyPopover,
             attachmentAnchor: .point(.center),

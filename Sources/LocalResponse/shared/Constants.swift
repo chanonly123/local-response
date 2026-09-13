@@ -5,6 +5,7 @@
 //  Created by Chandan on 16/08/24.
 //
 
+import CryptoKit
 import Foundation
 
 class Constants {
@@ -30,6 +31,15 @@ class Constants {
         "WWW-Authenticate"
     ]
     static let filterKey = "filterKey"
+
+    /// Shared secret for the payloads exchanged with the mapper.
+    ///
+    /// This is committed, so it is not a secret from anyone who reads the
+    /// repository — it exists so the recorded traffic is not plaintext on a
+    /// shared network, where a sniffer would otherwise pick up every header
+    /// and body the app sends. Change it and both the app and the library have
+    /// to be rebuilt together.
+    static let sharedKey = "LocalResponse/v1/2f8a1c4e9b7d6053"
 
     static let schemaVersion: UInt64 = 32
 
@@ -75,6 +85,10 @@ class Constants {
     static let hideUrlQueryKey: String = "hideUrlQuery"
     /// Inverted for the same reason: a fresh install follows the newest call.
     static let autoScrollOffKey: String = "autoScrollOff"
+    /// The whitelist and blacklist applied to incoming records, as encoded
+    /// `RecordFilters`. Stored whole rather than as four keys so the lists and
+    /// the switches that enable them cannot get out of step.
+    static let recordFiltersKey: String = "recordFilters"
 
     /// Longest a single value is shown in full wherever one is listed — a
     /// header, a query parameter, the url column.
@@ -93,4 +107,33 @@ class Constants {
     /// method the app's own request used, so the route has to answer all of
     /// them. See `LocalResponse.injectorSessionOverrideResume`.
     static let overridenRequest = "/overriden-request"
+}
+
+/// Encrypts the bodies exchanged between the library and the mapper.
+///
+/// Lives here rather than in its own file because `Constants.swift` is already
+/// a member of both the Swift package and the macOS app target, which is what
+/// keeps the two ends of the wire using one definition.
+///
+/// The mapped response served from `/overriden-request` is deliberately not
+/// encrypted: it is read by the app's own HTTP client, which knows nothing
+/// about this key. It carries canned data the developer wrote, not recorded
+/// traffic.
+enum LocalCrypto {
+
+    /// AES-GCM needs 32 bytes; the shared string is whatever length it is, so
+    /// hash it to length rather than constrain how the constant is written.
+    private static let key = SymmetricKey(data: SHA256.hash(data: Data(Constants.sharedKey.utf8)))
+
+    /// Nonce, ciphertext and tag in one blob — the same layout the Android
+    /// side builds by hand, since `javax.crypto` has no equivalent of
+    /// `combined`.
+    static func seal(_ data: Data) -> Data? {
+        try? AES.GCM.seal(data, using: key).combined
+    }
+
+    static func open(_ data: Data) -> Data? {
+        guard let box = try? AES.GCM.SealedBox(combined: data) else { return nil }
+        return try? AES.GCM.open(box, using: key)
+    }
 }

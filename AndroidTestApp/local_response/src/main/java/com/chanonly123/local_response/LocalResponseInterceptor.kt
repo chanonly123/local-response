@@ -58,7 +58,16 @@ class LocalResponseInterceptor internal constructor(
                 // have sent it, and a mapped response then replaces that request
                 // wholesale.
                 if (result.changesRequest) {
-                    outgoing = applyRequestChanges(result, outgoing)
+                    // Kept separate from the override below: an edit that cannot
+                    // be applied must not also cost the request its mapped
+                    // response, which is the more visible half of a rule.
+                    try {
+                        outgoing = applyRequestChanges(result, outgoing)
+                    } catch (e: Exception) {
+                        if (config.isDebugEnabled) {
+                            e.printStackTrace()
+                        }
+                    }
 
                     // Reported from the built request rather than from the rule,
                     // so the record shows exactly what goes on the wire.
@@ -157,6 +166,20 @@ class LocalResponseInterceptor internal constructor(
         changes.reqHeaders?.forEach { (key, value) -> builder.header(key, value) }
 
         changes.reqBody?.let { body ->
+            // OkHttp refuses a body on GET and HEAD — `Request.Builder.method`
+            // throws rather than ignoring it — so the rest of the rule is
+            // applied and the body dropped. URLSession has no such rule, so a
+            // rule that sets a body on a GET behaves differently on iOS; there
+            // is no way to send one here short of rewriting the method.
+            if (!permitsRequestBody(request.method)) {
+                if (config.isDebugEnabled) {
+                    println(
+                        "LocalResponse: rule sets a request body, but OkHttp does not " +
+                            "allow one on ${request.method} — body ignored for ${request.url}"
+                    )
+                }
+                return@let
+            }
             // Content type stays as the app set it; the rule replaces what is
             // sent, not what it is. Content-Length is OkHttp's to fill in.
             builder.method(request.method, body.toRequestBody(request.body?.contentType()))
@@ -164,6 +187,11 @@ class LocalResponseInterceptor internal constructor(
 
         return builder.build()
     }
+
+    /// The two methods OkHttp will not carry a body for. Mirrors its own
+    /// internal `HttpMethod.permitsRequestBody`, which is not public API.
+    private fun permitsRequestBody(method: String): Boolean =
+        !(method.equals("GET", ignoreCase = true) || method.equals("HEAD", ignoreCase = true))
 
     /**
      * Anything the caller filtered out, plus the mapper itself: a request the

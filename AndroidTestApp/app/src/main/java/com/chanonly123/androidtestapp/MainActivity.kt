@@ -4,20 +4,29 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,28 +34,86 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.chanonly123.androidtestapp.Post
-import com.chanonly123.androidtestapp.NetworkModule
-import com.chanonly123.androidtestapp.PostRepository
+import com.chanonly123.androidtestapp.catalog.ApiCatalog
+import com.chanonly123.androidtestapp.catalog.ApiGroup
+import com.chanonly123.androidtestapp.catalog.ApiSample
+import com.chanonly123.androidtestapp.catalog.CallOutcome
 import com.chanonly123.androidtestapp.ui.theme.AndroidTestAppTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
-    private val repository = PostRepository(NetworkModule.apiService)
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             AndroidTestAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    RequestTestScreen(
-                        repository = repository,
-                        modifier = Modifier.padding(innerPadding)
+                    CatalogScreen(modifier = Modifier.padding(innerPadding))
+                }
+            }
+        }
+    }
+}
+
+/// What a sample is doing, keyed by title. Held here rather than inside each
+/// row so a row scrolled out of view and back keeps its last result.
+private class SampleState {
+    val running = mutableStateMapOf<String, Boolean>()
+    val outcomes = mutableStateMapOf<String, CallOutcome>()
+}
+
+@Composable
+fun CatalogScreen(modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val state = remember { SampleState() }
+    val expanded = remember { mutableStateMapOf<String, Boolean>() }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                Text("Local Response test app", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Every call goes through the interceptor — watch them land in the mapper.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+
+        ApiCatalog.groups.forEach { group ->
+            item(key = group.name) {
+                GroupHeader(
+                    group = group,
+                    expanded = expanded[group.name] ?: false,
+                    onToggle = { expanded[group.name] = !(expanded[group.name] ?: false) }
+                )
+            }
+
+            if (expanded[group.name] == true) {
+                items(group.samples, key = { "${group.name}/${it.title}" }) { sample ->
+                    SampleRow(
+                        sample = sample,
+                        isRunning = state.running[sample.title] == true,
+                        outcome = state.outcomes[sample.title],
+                        onRun = {
+                            if (state.running[sample.title] == true) return@SampleRow
+                            state.running[sample.title] = true
+                            scope.launch {
+                                val result = try {
+                                    sample.run()
+                                } catch (e: Exception) {
+                                    CallOutcome.failure("${e.javaClass.simpleName}: ${e.message}")
+                                }
+                                state.outcomes[sample.title] = result
+                                state.running[sample.title] = false
+                            }
+                        }
                     )
                 }
             }
@@ -55,145 +122,75 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun RequestTestScreen(repository: PostRepository, modifier: Modifier = Modifier) {
-    var getResponse by remember { mutableStateOf("No GET request made yet") }
-    var postResponse by remember { mutableStateOf("No POST request made yet") }
-    var isLoading by remember { mutableStateOf(false) }
-    
-    val coroutineScope = rememberCoroutineScope()
-    
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun GroupHeader(group: ApiGroup, expanded: Boolean, onToggle: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().clickable { onToggle() }
     ) {
-        Text(
-            text = "Retrofit Request Test App",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = group.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${group.samples.size}  ${if (expanded) "−" else "+"}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun SampleRow(
+    sample: ApiSample,
+    isRunning: Boolean,
+    outcome: CallOutcome?,
+    onRun: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !isRunning) { onRun() },
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                outcome == null -> MaterialTheme.colorScheme.surfaceVariant
+                outcome.ok -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.errorContainer
+            }
         )
-        
-        // GET Request Button
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    isLoading = true
-                    getResponse = makeGetRequest(repository)
-                    isLoading = false
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(sample.title, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        sample.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace
+                    )
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        ) {
-            Text("Make GET Request")
-        }
-        
-        // GET Response Card
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "GET Response:",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(8.dp)
-            )
-            Text(
-                text = getResponse,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-        
-        // POST Request Button
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    isLoading = true
-                    postResponse = makePostRequest(repository)
-                    isLoading = false
+                if (isRunning) {
+                    Spacer(Modifier.width(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        ) {
-            Text("Make POST Request")
-        }
-        
-        // POST Response Card
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "POST Response:",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(8.dp)
-            )
-            Text(
-                text = postResponse,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-        
-        if (isLoading) {
-            Text("Loading...", style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-suspend fun makeGetRequest(repository: PostRepository): String {
-    return withContext(Dispatchers.IO) {
-        try {
-            val response = repository.getPost(1)
-            
-            if (response.isSuccessful) {
-                response.body()?.string() ?: ""
-            } else {
-                "Error: ${response.code()} - ${response.message()}"
             }
-        } catch (e: Exception) {
-            "Error: ${e.message}"
-        }
-    }
-}
 
-suspend fun makePostRequest(repository: PostRepository): String {
-    return withContext(Dispatchers.IO) {
-        try {
-            val newPost = Post(
-                title = "Test Post",
-                body = "This is a test post from Android using Retrofit",
-                userId = 1
-            )
-            
-            val response = repository.createPost(newPost)
-            
-            if (response.isSuccessful) {
-                response.body()?.string() ?: "empty"
-            } else {
-                "Error: ${response.code()} - ${response.message()}"
+            AnimatedVisibility(visible = outcome != null) {
+                outcome?.let {
+                    Text(
+                        text = it.text,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
             }
-        } catch (e: Exception) {
-            "Error: ${e.message}"
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AndroidTestAppTheme {
-        RequestTestScreen(repository = PostRepository(NetworkModule.apiService))
     }
 }
