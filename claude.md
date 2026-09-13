@@ -1,0 +1,2 @@
+- dont run the project, only compile if needed
+- brief answers

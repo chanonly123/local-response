@@ -20,12 +20,16 @@ public class LocalResponse {
     }
 
     public static func connect(connectionUrl: String? = nil, excludes: [String] = []) {
+        // Swizzle synchronously so requests fired immediately after this call are intercepted.
+        shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
+        shared.excludes = excludes
+        // Resolve the actual server URL asynchronously (needs a network check for simulator vs device).
         Task {
-            await shared.connect(connectionUrl: connectionUrl, excludes: excludes)
+            await shared.resolveConnectionUrl(connectionUrl: connectionUrl)
         }
     }
 
-    private func connect(connectionUrl: String?, excludes: [String]) async {
+    private func resolveConnectionUrl(connectionUrl: String?) async {
         if await IPFinder.isServerRunning(urlString: Constants.localBaseUrl) {
             LocalResponse.shared.connectionUrl = Constants.localBaseUrl
         } else {
@@ -35,16 +39,17 @@ public class LocalResponse {
         if URL(string: LocalResponse.shared.connectionUrl) == nil {
             assertionFailure("❌ LocalResponse> Bad url! \(connectionUrl ?? "nil")")
         }
-        LocalResponse.shared.injector.injectAllNetworkClasses(config: NetworkConfiguration())
-        self.excludes = excludes
     }
 
+    /// `"POST /record-begin"`, or just `"/path"` for an endpoint that answers
+    /// any method — the caller sets the method it wants in that case.
     private func createURLRequest(endpoint: String) -> URLRequest {
-        let method = String(endpoint.split(separator: " ").first!)
-        let endPoint = String(endpoint.split(separator: " ").last!)
-        let url = URL(string: connectionUrl + endPoint)!
+        let comps = endpoint.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        let method = comps.count > 1 ? String(comps[0]) : "GET"
+        let path = String(comps.last ?? "")
+        let url = URL(string: connectionUrl + path)!
         var req = URLRequest(url: url)
-        req.httpMethod = String(method)
+        req.httpMethod = method
         return req
     }
 
@@ -83,16 +88,86 @@ extension LocalResponse: InjectorDelegate {
 
         let data = MapCheckRequest(url: task.currentRequest?.url?.absoluteString ?? "",
                                    method: task.currentRequest?.httpMethod ?? "")
-        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { id in
-            if let id {
-                var req = self.createURLRequest(endpoint: Constants.overridenRequest)
-                var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
-                comps?.queryItems = [URLQueryItem(name: "id", value: id)]
-                req.url = comps?.url
-                task.setValue(req, forKey: "currentRequest")
+        LocalResponse.shared.useCase.checkIfLocalMapResponseAvailable(data: data) { result in
+            if let result {
+                // Edits go on first: they describe the request as the app would
+                // have sent it, and a mapped response then replaces that request
+                // wholesale.
+                self.applyRequestChanges(result, to: task)
+
+                if let id = result.overrideId {
+                    var req = self.createURLRequest(endpoint: Constants.overridenRequest)
+                    var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: true)
+                    comps?.queryItems = [URLQueryItem(name: "id", value: id)]
+                    req.url = comps?.url
+                    // The task keeps the body it was built with and sends it
+                    // whatever `currentRequest` says, so the method has to stay
+                    // as it was: pointing a POST or PUT task at a bodyless GET
+                    // fails inside URLSession with -1103 before anything is
+                    // sent. The mapper answers every method on this path and
+                    // ignores the body.
+                    req.httpMethod = task.currentRequest?.httpMethod
+                        ?? task.originalRequest?.httpMethod
+                        ?? "GET"
+                    task.setValue(req, forKey: "currentRequest")
+                }
             }
+
             completion()
         }
+    }
+
+    /// Applies a `modifyRequest` rule to the request the task is about to send.
+    /// It runs before `resume` reaches the original implementation, which is the
+    /// last point at which `currentRequest` still decides what goes on the wire.
+    private func applyRequestChanges(_ changes: MapCheckResponse, to task: URLSessionTask) {
+        guard changes.changesRequest, var req = task.currentRequest else { return }
+
+        if !changes.reqQuery.isEmpty, let url = req.url {
+            req.url = Self.applying(query: changes.reqQuery, to: url) ?? url
+        }
+
+        changes.reqHeaders.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }
+
+        if let body = changes.reqBody {
+            let data = Data(body.utf8)
+            req.httpBody = data
+            req.setValue("\(data.count)", forHTTPHeaderField: Constants.contentLengthKey)
+        }
+
+        task.setValue(req, forKey: "currentRequest")
+
+        // Recorded from `req` rather than re-reading the task: this is exactly
+        // what was written, whether or not URLSession keeps every field.
+        useCase.recordUpdate(task: task, request: req)
+    }
+
+    /// Replaces the named parameters and keeps every other one the url already
+    /// carries, in the order it carries them — a rule sets parameters, it does
+    /// not rewrite the query string.
+    private static func applying(query: [String: String], to url: URL) -> URL? {
+        guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return nil }
+
+        var replaced = Set<String>()
+        var items = [URLQueryItem]()
+        for item in comps.queryItems ?? [] {
+            guard let value = query[item.name] else {
+                items.append(item)
+                continue
+            }
+            // A rule gives a parameter one value, so a name it sets ends up
+            // once in the url even if it was repeated there.
+            if replaced.insert(item.name).inserted {
+                items.append(URLQueryItem(name: item.name, value: value))
+            }
+        }
+        // Whatever the url didn't already have goes on the end, sorted so the
+        // same rule always produces the same url.
+        items += query.keys.filter { !replaced.contains($0) }.sorted()
+            .map { URLQueryItem(name: $0, value: query[$0]) }
+
+        comps.queryItems = items
+        return comps.url
     }
 
     func injectorSessionDidCallResume(task: URLSessionTask) {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:iOSTestApp/iOSTestApp.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Local_Response_Mapper/Local Response Mapper.xcodeproj">
+   </FileRef>
+</Workspace>

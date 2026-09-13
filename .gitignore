@@ -144,6 +144,11 @@ xcuserdata
 xcuserdata/
 xcshareddata/
 
+# ...but the iOSTestApp scheme is shared on purpose: run-ios.sh builds with it.
+!iOSTestApp/iOSTestApp.xcodeproj/xcshareddata/
+!iOSTestApp/iOSTestApp.xcodeproj/xcshareddata/xcschemes/
+!iOSTestApp/iOSTestApp.xcodeproj/xcshareddata/xcschemes/iOSTestApp.xcscheme
+
 ## Xcode 8 and earlier
 *.xcscmblueprint
 *.xccheckout
@@ -393,3 +398,4 @@ gradle-app.setting
 .classpath
 
 .idea
+*.claude

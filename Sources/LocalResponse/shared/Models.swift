@@ -23,12 +23,30 @@ struct URLTaskModelBegin: Codable {
         url = task.originalRequest?.url?.absoluteString ?? ""
         method = task.originalRequest?.httpMethod ?? ""
         body = if let httpBody = task.originalRequest?.httpBody { String(data: httpBody, encoding: .utf8) } else { nil }
-        var _reqHeaders = [String: String]()
-        task.originalRequest?.allHTTPHeaderFields?.forEach {
-            _reqHeaders[$0.key] = $0.value
-        }
-        reqHeaders = _reqHeaders
+        reqHeaders = task.originalRequest?.allHTTPHeaderFields ?? [:]
         startTime = Date().timeIntervalSince1970
+    }
+}
+
+/// The request as it actually goes out, sent after a `modifyRequest` rule has
+/// edited it. `recordBegin` has already reported the request the app built, so
+/// this replaces those fields on the recorded call.
+struct URLTaskModelUpdate: Codable {
+
+    let taskId: String
+    let url: String
+    let method: String
+    let reqHeaders: [String: String]
+    let body: String?
+    let bundleID: String?
+
+    init(task: URLSessionTask, request: URLRequest) {
+        bundleID = Bundle.main.bundleIdentifier
+        taskId = task.uniqueId
+        url = request.url?.absoluteString ?? ""
+        method = request.httpMethod ?? ""
+        reqHeaders = request.allHTTPHeaderFields ?? [:]
+        body = if let httpBody = request.httpBody { String(data: httpBody, encoding: .utf8) } else { nil }
     }
 }
 
@@ -115,4 +133,54 @@ struct LocalModel: Codable {
 struct MapCheckRequest: Codable {
     let url: String
     let method: String
+}
+
+/// What the mapper wants done with a request that is about to be sent: edits to
+/// apply to it, and — when a rule answers it locally — the rule that serves the
+/// response instead.
+struct MapCheckResponse: Codable {
+
+    /// Rule id whose canned response replaces this request, if one matched.
+    let overrideId: String?
+
+    /// Headers to set on the outgoing request, merged from every matching
+    /// `modifyRequest` rule in priority order.
+    let reqHeaders: [String: String]
+
+    /// Query parameters to set on the outgoing url, merged the same way. Every
+    /// parameter the url already carries and no rule names is kept.
+    let reqQuery: [String: String]
+
+    /// Replacement request body, when a rule declares one.
+    let reqBody: String?
+
+    init(
+        overrideId: String? = nil,
+        reqHeaders: [String: String] = [:],
+        reqQuery: [String: String] = [:],
+        reqBody: String? = nil
+    ) {
+        self.overrideId = overrideId
+        self.reqHeaders = reqHeaders
+        self.reqQuery = reqQuery
+        self.reqBody = reqBody
+    }
+
+    /// Absent on payloads written before query editing existed, so it decodes
+    /// as empty rather than failing the whole lookup.
+    enum CodingKeys: String, CodingKey {
+        case overrideId, reqHeaders, reqQuery, reqBody
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        overrideId = try container.decodeIfPresent(String.self, forKey: .overrideId)
+        reqHeaders = try container.decodeIfPresent([String: String].self, forKey: .reqHeaders) ?? [:]
+        reqQuery = try container.decodeIfPresent([String: String].self, forKey: .reqQuery) ?? [:]
+        reqBody = try container.decodeIfPresent(String.self, forKey: .reqBody)
+    }
+
+    var isEmpty: Bool { overrideId == nil && !changesRequest }
+
+    var changesRequest: Bool { !reqHeaders.isEmpty || !reqQuery.isEmpty || reqBody != nil }
 }

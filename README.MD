@@ -7,6 +7,8 @@
 - **Method Swizzling**: Intercepts `URLSession` classes through method swizzling, capturing network requests and responses. No extra code changes required.
 - **MacOS Companion App**: Records all intercepted traffic in a dedicated macOS app, which listens for incoming data via a simple server.
 - **Mock Responses**: Easily override and mock network responses directly from the macOS app, enabling you to test various scenarios without modifying your code.
+- **Modify Requests**: Rewrite outgoing requests before they are sent — add or replace headers, query parameters, and the request body — while still letting the call reach the real server.
+- **Variables & Placeholders**: Reuse values such as tokens or base urls across rules, and inject dynamic values like `{{uuid}}` or `{{timestamp}}` that are resolved fresh on every request.
 - **No Certificates or Proxy Needed**: Unlike other tools, this solution does not require the installation of certificates or the use of a proxy, simplifying the setup process.
 
 ## How to mock response
@@ -52,20 +54,87 @@
 
 ### macOS App
 
-1. **Download the macOS server app:**
-   - [Download Latest Release](https://github.com/chanonly123/local-response/releases)
-   - Launch the app, and it will automatically start listening for traffic from your iOS app.
-   - Allow it to run from security options from settings. <br/>
-   OR <br/>
-   - Download the repo and open `Local Response Mapper/Local Response Mapper.xcodeproj` in Xcode and run
+Clone the repo and run the launch script — it builds the app and opens it for you:
+
+```sh
+git clone https://github.com/chanonly123/local-response.git
+cd local-response
+sh run.sh
+```
+
+That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launches the app.
+
+- **Clean build:** `sh run.sh -clean`
+- **Xcode instead:** open `Local_Response_Mapper/Local Response Mapper.xcodeproj` and run with `Cmd+R`.
 
 ## Usage
 
 - **Intercepting Traffic:**
   - Once the library is initialized in your iOS app, all network requests made via `URLSession` will be intercepted and logged in the macOS app.
-  
+
 - **Mocking Responses:**
   - In the macOS app, you can select any intercepted request and provide an overridden response. The iOS app will receive this mocked response as if it were from the actual server.
+
+### Rules
+
+Every override lives in the **Local Map** list as a rule. A rule matches a request when its method matches (`* (any)` matches every method) and the request url *contains* the rule's url text (`*` on its own matches every url). An empty url matches nothing, so a half-written rule never swallows your traffic.
+
+Rules come in two kinds:
+
+| Kind | Badge | What it does |
+| --- | --- | --- |
+| **Map Response** | `RES` | Answers the request from the macOS app. The call never leaves the device. |
+| **Modify Request** | `REQ` | Edits the outgoing request, then lets it go to the real server. |
+
+Order matters. Rules are matched top to bottom:
+
+- Every matching **Modify Request** rule is applied, so several can stack on the same request. When two rules set the same header or query parameter, the lower one wins.
+- The first matching **Map Response** rule serves the response and stops the walk — later rules never see the request.
+
+Each rule shows a hit count. An enabled rule stuck at `0` usually means its url text does not match what the app actually requests.
+
+#### Override response (Map Response)
+
+Pick an intercepted request, create a rule from it, and edit:
+
+- **Status code** — return `500`, `401`, or anything else to test error paths.
+- **Response headers** — one `name: value` per line. `Content-Length` and `Content-Type` are always set by the app itself, so they win over anything the rule declares.
+- **Response body** — the exact text the app receives.
+
+#### Override request (Modify Request)
+
+The request still goes to the server; only what is sent changes:
+
+- **Query parameters** — one `name: value` per line (`name=value` also works). A parameter the url already carries is replaced, the rest are kept.
+- **Request headers** — one `name: value` per line. An existing header of the same name is replaced.
+- **Request body** — replaces the body the app sent. Leave it empty to keep the original body.
+
+A Modify Request rule that sets none of the three does nothing, and the editor says so.
+
+### Variables
+
+Any response or request field above can carry `{{...}}` placeholders. They are resolved in the macOS app, on every request — the injected library only applies what the app hands back. A token that names nothing is left exactly as written, so bodies containing braces are safe.
+
+Built-ins:
+
+| Token | Value |
+| --- | --- |
+| `{{uuid}}` | A new UUID. |
+| `{{timestamp}}` | Seconds since 1970. |
+| `{{timestamp_ms}}` | Milliseconds since 1970. |
+| `{{iso8601}}` | UTC, internet date-time. |
+| `{{date:yyyy-MM-dd HH:mm:ss}}` | The time now, in the format after the colon. |
+| `{{random_int:1-100}}` | A whole number in the range after the colon. |
+
+The same token used twice in one request resolves to the same value, so a request id can be sent in a header and in the body at once.
+
+Your own variables — a token, a build number, a base url — are defined once in the **Variables** sheet (the `{ }` button) and used as `{{name}}` in any rule. They are saved as you type, and a built-in name always wins over a variable of the same name.
+
+```
+Authorization: Bearer {{authToken}}
+X-Request-Id: {{uuid}}
+X-Sent-At: {{iso8601}}
+```
 
 ## Examples
 
@@ -75,10 +144,10 @@
 - **Testing Error Scenarios:**
   - Override network responses to simulate server errors, or custom data responses.
 
-## Screenshots
+- **Testing Against Another Environment:**
+  - Use a Modify Request rule to swap the auth header or add a `?env=staging` parameter, keeping the real server in the loop.
 
-### Allow the app to run (if downloaded directly)
-![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo1.png)
+## Screenshots
 
 ### Records all http network calls, You can edit (Response, Headers, StatusCode)
 ![alt tag](https://github.com/chanonly123/local-response/raw/main/demo/demo2.gif)

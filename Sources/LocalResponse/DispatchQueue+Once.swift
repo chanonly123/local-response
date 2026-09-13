@@ -9,7 +9,7 @@
 import Foundation
 
 extension DispatchQueue {
-    private static var _onceTracker = [String]()
+    private static var _onceTracker = Set<String>()
 
     class func once(file: String = #file, function: String = #function, line: Int = #line, block: ()->Void) {
         let token = file + ":" + function + ":" + String(line)
@@ -27,7 +27,7 @@ extension DispatchQueue {
         if _onceTracker.contains(token) {
             return
         }
-        _onceTracker.append(token)
+        _onceTracker.insert(token)
         block()
     }
 }
