@@ -1,10 +1,13 @@
 # Local response
 
-**Local response** is a powerful developer tool for iOS developers, allowing you to intercept and mock network traffic in your iOS apps without the need for certificates or proxy configurations. This tool is a lightweight alternative to Proxyman and Charles Proxy, specifically designed for simplicity and ease of use.
+[![](https://jitpack.io/v/chanonly123/local-response.svg)](https://jitpack.io/#chanonly123/local-response)
+
+**Local response** is a powerful developer tool for iOS and Android developers, allowing you to intercept and mock network traffic in your apps without the need for certificates or proxy configurations. This tool is a lightweight alternative to Proxyman and Charles Proxy, specifically designed for simplicity and ease of use.
 
 ## Features
 
-- **Method Swizzling**: Intercepts `URLSession` classes through method swizzling, capturing network requests and responses. No extra code changes required.
+- **iOS — Method Swizzling**: Intercepts `URLSession` classes through method swizzling, capturing network requests and responses. No extra code changes required.
+- **Android — OkHttp Interceptor**: Add one interceptor to your `OkHttpClient` and every call through it — including Retrofit — is captured and mappable.
 - **MacOS Companion App**: Records all intercepted traffic in a dedicated macOS app, which listens for incoming data via a simple server.
 - **Mock Responses**: Easily override and mock network responses directly from the macOS app, enabling you to test various scenarios without modifying your code.
 - **Modify Requests**: Rewrite outgoing requests before they are sent — add or replace headers, query parameters, and the request body — while still letting the call reach the real server.
@@ -52,9 +55,65 @@
    }
   ```
 
+### Android Library
+
+1. **Start the server**
+
+2. **Add the library to your project:**
+
+   Add the JitPack repository in `settings.gradle.kts`:
+   ```kotlin
+   dependencyResolutionManagement {
+       repositories {
+           google()
+           mavenCentral()
+           maven { url = uri("https://jitpack.io") }
+       }
+   }
+   ```
+
+   Then the dependency in your module's `build.gradle.kts`:
+   ```kotlin
+   debugImplementation("com.github.chanonly123:local-response:2.2.6")
+   ```
+
+   `debugImplementation` keeps the interceptor — and the local network traffic it
+   generates — out of your release builds.
+
+3. **Add the interceptor to your OkHttp client:**
+
+   ```kotlin
+   import com.chanonly123.local_response.LocalResponseConfig
+   import com.chanonly123.local_response.LocalResponseInterceptor
+
+   val client = OkHttpClient.Builder()
+       // for emulator
+       .addInterceptor(LocalResponseInterceptor(LocalResponseConfig.emulator()))
+       // for physical devices, use the address the macOS app shows
+       .addInterceptor(LocalResponseInterceptor(
+           LocalResponseConfig.localIpAddress("http://192.168.31.24:4040")
+       ))
+       .build()
+   ```
+
+   Retrofit picks this up through `Retrofit.Builder().client(client)`. A physical
+   device has to reach your Mac over the LAN, so the app needs
+   `android:usesCleartextTraffic="true"` for the plain-HTTP connection to the
+   mapper.
+
+   Requires OkHttp 4 or later, `minSdk` 24, and the `INTERNET` permission.
+
 ### macOS App
 
-Clone the repo and run the launch script — it builds the app and opens it for you:
+**Install the latest release:**
+
+```sh
+curl -L -o ~/Downloads/app.zip https://github.com/chanonly123/local-response/releases/latest/download/Local.Response.Mapper.app.zip
+unzip -oq ~/Downloads/app.zip -d ~/Downloads
+open "$HOME/Downloads/Local Response Mapper.app"
+```
+
+**Or build it yourself.** Clone the repo and run the launch script — it builds the app and opens it for you:
 
 ```sh
 git clone https://github.com/chanonly123/local-response.git
@@ -71,9 +130,10 @@ That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launche
 
 - **Intercepting Traffic:**
   - Once the library is initialized in your iOS app, all network requests made via `URLSession` will be intercepted and logged in the macOS app.
+  - On Android, every request through an `OkHttpClient` carrying `LocalResponseInterceptor` is logged the same way.
 
 - **Mocking Responses:**
-  - In the macOS app, you can select any intercepted request and provide an overridden response. The iOS app will receive this mocked response as if it were from the actual server.
+  - In the macOS app, you can select any intercepted request and provide an overridden response. The app will receive this mocked response as if it were from the actual server.
 
 ### Rules
 
