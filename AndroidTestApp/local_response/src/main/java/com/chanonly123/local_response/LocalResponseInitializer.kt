@@ -55,7 +55,7 @@ class LocalResponseInitializer : ContentProvider() {
          * which happens when the library is used from a unit test with no
          * Android runtime behind it.
          */
-        val packageName: String?
+        internal val packageName: String?
             get() = packageNameOrNull
     }
 }

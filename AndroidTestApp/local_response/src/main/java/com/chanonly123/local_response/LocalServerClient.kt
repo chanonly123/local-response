@@ -9,7 +9,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
-class LocalServerClient(private val config: LocalResponseConfig) {
+internal class LocalServerClient(private val config: LocalResponseConfig) {
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()

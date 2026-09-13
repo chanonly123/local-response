@@ -8,7 +8,7 @@ import okhttp3.ResponseBody
 import okio.Buffer
 import java.util.UUID
 
-data class URLTaskModelBegin(
+internal data class URLTaskModelBegin(
     val taskId: String,
     val url: String,
     val method: String,
@@ -45,7 +45,7 @@ data class URLTaskModelBegin(
     }
 }
 
-data class URLTaskModelEnd(
+internal data class URLTaskModelEnd(
     val taskId: String,
     val resString: String?,
     val resStringB64: String?,
@@ -93,7 +93,7 @@ data class URLTaskModelEnd(
 /// The request as it actually goes out, sent after a `modifyRequest` rule has
 /// edited it. `record-begin` has already reported the request the app built, so
 /// this replaces those fields on the recorded call.
-data class URLTaskModelUpdate(
+internal data class URLTaskModelUpdate(
     val taskId: String,
     val url: String,
     val method: String,
@@ -116,7 +116,7 @@ data class URLTaskModelUpdate(
     }
 }
 
-data class MapCheckRequest(
+internal data class MapCheckRequest(
     val url: String,
     val method: String,
 )
@@ -128,7 +128,7 @@ data class MapCheckRequest(
 /// Every field is nullable because Gson writes JSON nulls straight past a
 /// non-null Kotlin type; a payload from an older mapper that omits `reqQuery`
 /// has to read as empty rather than blow up at the first use.
-data class MapCheckResponse(
+internal data class MapCheckResponse(
     val overrideId: String? = null,
     val reqHeaders: Map<String, String>? = null,
     val reqQuery: Map<String, String>? = null,

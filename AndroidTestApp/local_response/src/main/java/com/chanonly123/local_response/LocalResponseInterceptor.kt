@@ -11,10 +11,14 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import java.util.UUID
 
 
-class LocalResponseInterceptor(
+class LocalResponseInterceptor internal constructor(
     private val config: LocalResponseConfig,
-    private val serverClient: LocalServerClient = LocalServerClient(config)
+    private val serverClient: LocalServerClient
 ) : Interceptor {
+
+    /// The constructor consumers use. The two-argument one exists so a test can
+    /// hand in its own client, and is internal because [LocalServerClient] is.
+    constructor(config: LocalResponseConfig) : this(config, LocalServerClient(config))
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
