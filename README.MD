@@ -19,9 +19,34 @@
 
 ## Installation
 
-### iOS Library
+### 1. macOS App — the server
 
-1. **Start the server**
+Everything else talks to this app, so install it first. It records the traffic and serves the mapped responses; with it closed, the libraries below have nothing to send to.
+
+**Install the latest release:**
+
+```sh
+curl -L -o ~/Downloads/app.zip https://github.com/chanonly123/local-response/releases/latest/download/Local.Response.Mapper.app.zip
+unzip -oq ~/Downloads/app.zip -d ~/Downloads
+open "$HOME/Downloads/Local Response Mapper.app"
+```
+
+**Or build it yourself.** Clone the repo and run the launch script — it builds the app and opens it for you:
+
+```sh
+git clone https://github.com/chanonly123/local-response.git
+cd local-response
+sh run.sh
+```
+
+That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launches the app.
+
+- **Clean build:** `sh run.sh -clean`
+- **Xcode instead:** open `Local_Response_Mapper/Local Response Mapper.xcodeproj` and run with `Cmd+R`.
+
+### 2. iOS Library
+
+1. **Start the macOS app** — install it as above and leave it running. The library connects to it on port 4040.
 
 2. **Add the library to your project:**
 
@@ -55,9 +80,9 @@
    }
   ```
 
-### Android Library
+### 3. Android Library
 
-1. **Start the server**
+1. **Start the macOS app** — install it as above and leave it running. The library connects to it on port 4040.
 
 2. **Add the library to your project:**
 
@@ -74,7 +99,7 @@
 
    Then the dependency in your module's `build.gradle.kts`:
    ```kotlin
-   debugImplementation("com.github.chanonly123:local-response:2.2.7")
+   debugImplementation("com.github.chanonly123:local-response:2.2.8")
    ```
 
    `debugImplementation` keeps the interceptor — and the local network traffic it
@@ -102,29 +127,6 @@
    mapper.
 
    Requires OkHttp 4 or later, `minSdk` 24, and the `INTERNET` permission.
-
-### macOS App
-
-**Install the latest release:**
-
-```sh
-curl -L -o ~/Downloads/app.zip https://github.com/chanonly123/local-response/releases/latest/download/Local.Response.Mapper.app.zip
-unzip -oq ~/Downloads/app.zip -d ~/Downloads
-open "$HOME/Downloads/Local Response Mapper.app"
-```
-
-**Or build it yourself.** Clone the repo and run the launch script — it builds the app and opens it for you:
-
-```sh
-git clone https://github.com/chanonly123/local-response.git
-cd local-response
-sh run.sh
-```
-
-That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launches the app.
-
-- **Clean build:** `sh run.sh -clean`
-- **Xcode instead:** open `Local_Response_Mapper/Local Response Mapper.xcodeproj` and run with `Cmd+R`.
 
 ## Usage
 

@@ -142,8 +142,15 @@ struct ContentView: View {
             Button {
                 myColorScheme.rotateScheme()
             } label: {
-                Label("Theme", systemImage: "circle.lefthalf.striped.horizontal.inverse")
+                // An `Image` rather than a `Label`, because `ToolbarLock` pins
+                // the toolbar to `.iconAndLabel` — AppKit draws whatever title
+                // the item has, and `labelStyle(.iconOnly)` does not reach it.
+                // With no title there is nothing to draw, and the tooltip
+                // carries the name instead.
+                Image(systemName: "circle.lefthalf.striped.horizontal.inverse")
+                    .accessibilityLabel("Theme")
             }
+            .help("Theme")
 
             Button {
                 showRecordFilters = true
