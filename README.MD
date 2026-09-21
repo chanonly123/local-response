@@ -99,7 +99,7 @@ That's it. `run.sh` builds `Local Response Mapper` with `xcodebuild` and launche
 
    Then the dependency in your module's `build.gradle.kts`:
    ```kotlin
-   debugImplementation("com.github.chanonly123:local-response:2.2.8")
+   debugImplementation("com.github.chanonly123:local-response:2.2.9")
    ```
 
    `debugImplementation` keeps the interceptor — and the local network traffic it

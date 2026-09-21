@@ -97,6 +97,7 @@ class Constants {
     /// everything around it out of view. Only the display is cut: copying,
     /// mapping and the stored record all keep the whole value.
     static let collapseLimit = 50
+    static let queryCollapseLimit = 10
     static let contentRightPaneWidthKey: String = "contentRightPaneWidth"
     static let mapLocalRightPaneWidthKey: String = "mapLocalRightPaneWidth"
     static let recordBeginUrl = "POST /record-begin"
